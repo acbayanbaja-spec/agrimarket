@@ -31,9 +31,19 @@ export default {
           800: '#854d0e',
           900: '#713f12',
         },
+        soil: {
+          50: '#f7f4ef',
+          100: '#ebe4d4',
+          800: '#3f2e1e',
+          900: '#2a2118',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        soft: '0 18px 50px -24px rgba(21, 128, 61, 0.35)',
       },
     },
   },
