@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: agrimarket-backend
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        value: mysql-3436c73a-angelmargaretteestores-969b.g.aivencloud.com
+      - key: DB_PORT
+        value: 22689
+      - key: DB_NAME
+        value: defaultdb
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: true
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        value: https://agrimarket.vercel.app,exp://localhost:19000
+      - key: FRONTEND_URL
+        value: https://agrimarket.vercel.app
+      - key: MOBILE_URL
+        value: exp://localhost:19000
