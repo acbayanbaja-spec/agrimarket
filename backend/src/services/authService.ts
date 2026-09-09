@@ -1,7 +1,11 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import pool from '../config/database';
 import { config } from '../config';
+
+const jwtSignOptions: SignOptions = {
+  expiresIn: config.jwt.expiresIn as SignOptions['expiresIn'],
+};
 
 export interface RegisterData {
   email: string;
@@ -74,7 +78,7 @@ export const authService = {
           roles: user.roles,
         },
         config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn }
+        jwtSignOptions
       );
       
       return { user, token };
@@ -126,7 +130,7 @@ export const authService = {
           roles: user.roles,
         },
         config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn }
+        jwtSignOptions
       );
       
       // Remove password hash from response

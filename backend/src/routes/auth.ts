@@ -63,9 +63,9 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
       return res.status(404).json(errorResponse('User not found', null, 'USER_NOT_FOUND', 404));
     }
     
-    res.json(successResponse(user, 'User retrieved successfully'));
+    return res.json(successResponse(user, 'User retrieved successfully'));
   } catch (error: any) {
-    res.status(500).json(errorResponse(error.message, null, 'GET_USER_FAILED', 500));
+    return res.status(500).json(errorResponse(error.message, null, 'GET_USER_FAILED', 500));
   }
 });
 

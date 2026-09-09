@@ -10,7 +10,7 @@ export const validate =
         query: req.query,
         params: req.params,
       });
-      next();
+      return next();
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({
@@ -24,6 +24,6 @@ export const validate =
           })),
         });
       }
-      next(error);
+      return next(error);
     }
   };
