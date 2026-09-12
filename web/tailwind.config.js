@@ -44,6 +44,31 @@ export default {
       },
       boxShadow: {
         soft: '0 18px 50px -24px rgba(21, 128, 61, 0.35)',
+        glow: '0 0 0 6px rgba(22, 163, 74, 0.12)',
+      },
+      keyframes: {
+        fadeUp: {
+          '0%': { opacity: '0', transform: 'translateY(18px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-12px)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: '0.55' },
+          '50%': { opacity: '1' },
+        },
+      },
+      animation: {
+        'fade-up': 'fadeUp 0.7s ease-out both',
+        float: 'float 6s ease-in-out infinite',
+        shimmer: 'shimmer 2.4s linear infinite',
+        'pulse-soft': 'pulseSoft 2.4s ease-in-out infinite',
       },
     },
   },

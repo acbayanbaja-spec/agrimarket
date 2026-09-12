@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://agrimarket-ecru.vercel.app/sitemap.xml

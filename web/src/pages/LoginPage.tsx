@@ -14,7 +14,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
 
   if (ready && isAuthenticated) {
-    const destination = from || (hasRole('admin') ? '/admin-dashboard' : hasRole('seller') ? '/seller-dashboard' : '/marketplace')
+    const destination = from || (hasRole('admin') ? '/admin-dashboard' : hasRole('delivery') ? '/delivery' : hasRole('seller') ? '/seller-dashboard' : '/marketplace')
     return <Navigate to={destination} replace />
   }
 
@@ -23,8 +23,10 @@ const LoginPage = () => {
     setError('')
     setLoading(true)
     try {
-      await login(email.trim(), password)
-      navigate(from || '/marketplace')
+      const nextUser = await login(email.trim(), password)
+      const roles = nextUser.roles
+      const destination = from || (roles.includes('admin') ? '/admin-dashboard' : roles.includes('delivery') ? '/delivery' : roles.includes('seller') ? '/seller-dashboard' : '/marketplace')
+      navigate(destination)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in')
     } finally {
@@ -34,7 +36,7 @@ const LoginPage = () => {
 
   return (
     <div className="page-shell grid lg:grid-cols-2 gap-10 items-center">
-      <div className="hidden lg:block rounded-3xl overflow-hidden min-h-[520px] bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=1200&q=80')" }}>
+      <div className="hidden lg:block rounded-3xl overflow-hidden min-h-[520px] bg-cover bg-center" style={{ backgroundImage: "url('/images/farm.jpg')" }}>
         <div className="h-full bg-primary-900/50 p-10 text-white flex flex-col justify-end">
           <h2 className="text-4xl font-bold">Welcome back to the farm stall.</h2>
           <p className="mt-3 text-primary-100">Buyers, sellers, and admins all use the same door. Your dashboard waits after you sign in.</p>
@@ -71,6 +73,7 @@ const LoginPage = () => {
           <p>Admin: admin@agrimarket.com / admin123</p>
           <p>Seller: seller@agrimarket.com / seller123</p>
           <p>Buyer: buyer@agrimarket.com / buyer123</p>
+          <p>Delivery: driver@agrimarket.com / driver123</p>
         </div>
       </div>
     </div>

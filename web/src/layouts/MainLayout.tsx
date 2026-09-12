@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Menu, Search, Leaf, X, LayoutDashboard } from 'lucide-react'
+import { ShoppingCart, User, Menu, Search, Leaf, X, LayoutDashboard, Bike, LineChart, MessageSquare } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import NotificationBell from '../components/NotificationBell'
 
 const MainLayout = () => {
   const { isAuthenticated, user, logout, hasRole } = useAuth()
@@ -21,15 +22,17 @@ const MainLayout = () => {
     ? '/admin-dashboard'
     : hasRole('seller')
       ? '/seller-dashboard'
-      : '/orders'
+      : hasRole('delivery')
+        ? '/delivery'
+        : '/orders'
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-white/90 backdrop-blur border-b border-gray-100 sticky top-0 z-50">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-white/70 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="h-9 w-9 rounded-xl bg-primary-600 text-white grid place-items-center">
+              <span className="h-9 w-9 rounded-xl bg-primary-600 text-white grid place-items-center shadow-glow">
                 <Leaf className="h-5 w-5" />
               </span>
               <span className="text-xl font-display font-bold text-gray-900">AgriMarket</span>
@@ -49,8 +52,9 @@ const MainLayout = () => {
             </form>
 
             <nav className="hidden md:flex items-center gap-1">
-              <Link to="/marketplace" className="btn-ghost">Marketplace</Link>
-              <Link to="/categories" className="btn-ghost">Categories</Link>
+              <Link to="/marketplace" className="btn-ghost">Shop</Link>
+              <Link to="/feed" className="btn-ghost">Feed</Link>
+              <Link to="/trades" className="btn-ghost">Trade</Link>
               <Link to="/cart" className="relative btn-ghost">
                 <ShoppingCart className="h-5 w-5" />
                 {count > 0 && (
@@ -59,8 +63,16 @@ const MainLayout = () => {
                   </span>
                 )}
               </Link>
+              <NotificationBell />
               {isAuthenticated ? (
                 <>
+                  {hasRole('delivery') && (
+                    <Link to="/delivery" className="btn-ghost" title="Deliveries"><Bike className="h-5 w-5" /></Link>
+                  )}
+                  {(hasRole('admin') || hasRole('seller')) && (
+                    <Link to="/analytics" className="btn-ghost" title="Analytics"><LineChart className="h-5 w-5" /></Link>
+                  )}
+                  <Link to="/messages" className="btn-ghost" title="Messages"><MessageSquare className="h-5 w-5" /></Link>
                   <Link to={dashboardLink} className="btn-ghost">
                     <LayoutDashboard className="h-5 w-5" />
                   </Link>
@@ -100,11 +112,14 @@ const MainLayout = () => {
               <input className="input-field" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products..." />
             </form>
             <Link to="/marketplace" onClick={() => setOpen(false)} className="block py-2">Marketplace</Link>
-            <Link to="/categories" onClick={() => setOpen(false)} className="block py-2">Categories</Link>
+            <Link to="/feed" onClick={() => setOpen(false)} className="block py-2">Seller feed</Link>
+            <Link to="/trades" onClick={() => setOpen(false)} className="block py-2">Trade board</Link>
+            <Link to="/prices" onClick={() => setOpen(false)} className="block py-2">Price monitor</Link>
             <Link to="/cart" onClick={() => setOpen(false)} className="block py-2">Cart ({count})</Link>
             {isAuthenticated ? (
               <>
                 <Link to="/orders" onClick={() => setOpen(false)} className="block py-2">Orders</Link>
+                <Link to="/messages" onClick={() => setOpen(false)} className="block py-2">Messages</Link>
                 <Link to="/profile" onClick={() => setOpen(false)} className="block py-2">Profile</Link>
                 <Link to={dashboardLink} onClick={() => setOpen(false)} className="block py-2">Dashboard</Link>
                 <button type="button" className="btn-outline w-full" onClick={() => { logout(); setOpen(false) }}>Log out</button>
@@ -141,14 +156,15 @@ const MainLayout = () => {
                 <li><Link to="/marketplace" className="hover:text-white">Browse products</Link></li>
                 <li><Link to="/categories" className="hover:text-white">Categories</Link></li>
                 <li><Link to="/sellers" className="hover:text-white">Sellers</Link></li>
+                <li><Link to="/prices" className="hover:text-white">Price monitor</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4">Support</h3>
+              <h3 className="font-semibold mb-4">Community</h3>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
-                <li><Link to="/contact" className="hover:text-white">Contact us</Link></li>
-                <li><Link to="/faq" className="hover:text-white">FAQ</Link></li>
+                <li><Link to="/feed" className="hover:text-white">Harvest feed</Link></li>
+                <li><Link to="/trades" className="hover:text-white">Trade board</Link></li>
+                <li><Link to="/shipping" className="hover:text-white">Shipping coupons</Link></li>
               </ul>
             </div>
             <div>
@@ -156,7 +172,7 @@ const MainLayout = () => {
               <ul className="space-y-2 text-gray-400 text-sm">
                 <li><Link to="/terms" className="hover:text-white">Terms of Service</Link></li>
                 <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
-                <li><Link to="/shipping" className="hover:text-white">Shipping Policy</Link></li>
+                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
               </ul>
             </div>
           </div>

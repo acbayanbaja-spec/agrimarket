@@ -1,24 +1,37 @@
 import { Link } from 'react-router-dom'
-import { MapPin, Star } from 'lucide-react'
+import { MapPin, Star, Repeat } from 'lucide-react'
 import type { Product } from '../data/catalog'
 import { formatPeso } from '../lib/utils'
+import { stockLabel, stockTone } from '../data/catalog'
 import { useCart } from '../context/CartContext'
+import ProductImage from './ProductImage'
 
 type Props = {
   product: Product
+  delay?: number
 }
 
-const ProductCard = ({ product }: Props) => {
+const ProductCard = ({ product, delay = 0 }: Props) => {
   const { addItem } = useCart()
+  const out = product.stock <= 0
 
   return (
-    <article className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-soft transition-shadow">
-      <Link to={`/products/${product.id}`} className="block overflow-hidden">
-        <img
+    <article
+      className="group bg-white/90 rounded-2xl border border-white overflow-hidden shadow-sm hover:shadow-soft hover:-translate-y-1 transition-all duration-300 animate-fade-up"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <Link to={`/products/${product.id}`} className="block overflow-hidden relative">
+        <ProductImage
           src={product.image}
           alt={product.name}
-          className="h-48 w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+          className="h-48 w-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
         />
+        <span className={`absolute top-3 left-3 chip ${stockTone(product.stock)}`}>{stockLabel(product.stock)}</span>
+        {product.tradeable && (
+          <span className="absolute top-3 right-3 chip bg-white/90 text-primary-800">
+            <Repeat className="h-3 w-3 mr-1" /> Trade
+          </span>
+        )}
       </Link>
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
@@ -47,8 +60,8 @@ const ProductCard = ({ product }: Props) => {
             {formatPeso(product.price)}
             <span className="text-sm font-medium text-gray-500"> / {product.unit}</span>
           </p>
-          <button type="button" className="btn-primary px-3 py-2 text-sm" onClick={() => addItem(product)}>
-            Add
+          <button type="button" className="btn-primary px-3 py-2 text-sm" disabled={out} onClick={() => addItem(product)}>
+            {out ? 'Sold out' : 'Add'}
           </button>
         </div>
       </div>

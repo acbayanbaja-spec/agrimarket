@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { formatPeso } from '../lib/utils'
+import ProductImage from '../components/ProductImage'
 
 const CartPage = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
@@ -21,7 +22,7 @@ const CartPage = () => {
         <h1 className="text-3xl font-bold">Cart</h1>
         {items.map((item) => (
           <div key={item.product.id} className="card flex gap-4">
-            <img src={item.product.image} alt="" className="h-24 w-24 rounded-xl object-cover" />
+            <ProductImage src={item.product.image} alt="" className="h-24 w-24 rounded-xl object-cover" />
             <div className="flex-1">
               <Link to={`/products/${item.product.id}`} className="font-semibold hover:text-primary-700">{item.product.name}</Link>
               <p className="text-sm text-gray-500">{item.product.seller}</p>

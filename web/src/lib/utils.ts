@@ -1,8 +1,5 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+export function cn(...inputs: Array<string | false | null | undefined>) {
+  return inputs.filter(Boolean).join(' ')
 }
 
 export function formatPeso(amount: number) {
@@ -20,4 +17,21 @@ export function getErrorMessage(error: unknown, fallback = 'Something went wrong
   }
   if (error instanceof Error && error.message) return error.message
   return fallback
+}
+
+export function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('Could not read file'))
+    reader.readAsDataURL(file)
+  })
+}
+
+export function mapsUrl(lat: number, lng: number) {
+  return `https://www.google.com/maps?q=${lat},${lng}`
+}
+
+export function recommendScore(rating: number, reviews: number) {
+  return rating * Math.log10(reviews + 10)
 }

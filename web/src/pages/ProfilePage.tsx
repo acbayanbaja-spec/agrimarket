@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import Seo from '../components/Seo'
 
 const ProfilePage = () => {
   const { user, updateProfile, hasRole, logout } = useAuth()
@@ -24,10 +25,17 @@ const ProfilePage = () => {
     window.setTimeout(() => setSaved(false), 2500)
   }
 
-  const dashboard = hasRole('admin') ? '/admin-dashboard' : hasRole('seller') ? '/seller-dashboard' : '/orders'
+  const dashboard = hasRole('admin')
+    ? '/admin-dashboard'
+    : hasRole('seller')
+      ? '/seller-dashboard'
+      : hasRole('delivery')
+        ? '/delivery'
+        : '/orders'
 
   return (
     <div className="page-shell grid lg:grid-cols-3 gap-8">
+      <Seo title="Profile" description="Manage your AgriMarket buyer, seller, or rider profile." path="/profile" />
       <div className="lg:col-span-2 card">
         <h1 className="text-3xl font-bold mb-2">Your profile</h1>
         <p className="text-gray-600 mb-6">{user?.email}</p>
@@ -42,7 +50,7 @@ const ProfilePage = () => {
             <input id="lastName" required className="input-field" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
           </div>
           <div className="sm:col-span-2">
-            <label className="label" htmlFor="phone">Mobile</label>
+            <label className="label" htmlFor="phone">Mobile (used for rider SMS)</label>
             <input id="phone" className="input-field" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
           </div>
           <div className="sm:col-span-2 flex flex-wrap gap-3">
@@ -57,8 +65,9 @@ const ProfilePage = () => {
           <p className="text-sm text-gray-600 mb-4">Roles: {user?.roles.join(', ') || 'buyer'}</p>
           <div className="flex flex-col gap-2">
             <Link to={dashboard} className="btn-primary">Open dashboard</Link>
-            <Link to="/orders" className="btn-outline">My orders ({myOrders.length})</Link>
-            {!hasRole('seller') && !hasRole('admin') && (
+            <Link to="/orders" className="btn-outline">Purchase history ({myOrders.length})</Link>
+            <Link to="/messages" className="btn-ghost">SMS inbox</Link>
+            {!hasRole('seller') && !hasRole('admin') && !hasRole('delivery') && (
               <Link to="/become-seller" className="btn-ghost">
                 {myApplication ? `Seller application: ${myApplication.status}` : 'Become a seller'}
               </Link>

@@ -45,6 +45,7 @@ const pages: Record<string, { title: string; body: string[] }> = {
     title: 'Shipping Policy',
     body: [
       'Orders over ₱500 include free delivery. Smaller baskets add a ₱50 delivery fee at checkout.',
+      'Shipping coupons SHIP50, FREESHIP, and HARVEST20 discount delivery only — never the produce total.',
       'Metro Manila typically arrives next day. Provincial routes take 2–4 days depending on the farm.',
       'Live fish and chilled poultry ship on ice. Inspect packages on arrival and report damage from Orders.',
     ],

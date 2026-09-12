@@ -15,7 +15,7 @@ interface AuthContextType {
   user: User | null
   token: string | null
   ready: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => void
   updateProfile: (updates: Partial<Pick<User, 'firstName' | 'lastName' | 'phone'>>) => void
@@ -39,9 +39,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const LOCAL_USERS_KEY = 'agrimarket.localUsers'
 
 const demoAccounts: LocalAccount[] = [
-  { id: 1, email: 'admin@agrimarket.com', password: 'admin123', firstName: 'Admin', lastName: 'User', phone: '+639123456789', roles: ['admin'] },
+  { id: 1, email: 'admin@agrimarket.com', password: 'admin123', firstName: 'Admin', lastName: 'User', phone: '+639123456789', roles: ['admin', 'buyer'] },
   { id: 2, email: 'seller@agrimarket.com', password: 'seller123', firstName: 'Maria', lastName: 'Santos', phone: '+639171112233', roles: ['seller', 'buyer'] },
   { id: 3, email: 'buyer@agrimarket.com', password: 'buyer123', firstName: 'Juan', lastName: 'Cruz', phone: '+639189998877', roles: ['buyer'] },
+  { id: 4, email: 'driver@agrimarket.com', password: 'driver123', firstName: 'Rico', lastName: 'Driver', phone: '+639175551111', roles: ['delivery'] },
 ]
 
 function readLocalUsers(): LocalAccount[] {
@@ -112,12 +113,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const payload = data.data || data
       const nextUser = normalizeUser(payload.user)
       setSession(nextUser, payload.token)
+      return nextUser
     } catch (error) {
       const local = findLocalAccount(email, password)
       if (local) {
         const nextUser = normalizeUser(local)
-        setSession(nextUser, `local-${local.id}-${Date.now()}`)
-        return
+        setSession(nextUser, `local-${local.id}`)
+        return nextUser
       }
       throw new Error(getErrorMessage(error, 'Unable to sign in. Check your email and password.'))
     }

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useStore, type Order } from '../context/StoreContext'
 import { formatPeso } from '../lib/utils'
+import Seo from '../components/Seo'
+import ProductImage from '../components/ProductImage'
 
-const statuses: Order['status'][] = ['Pending', 'Confirmed', 'Shipped', 'Delivered']
+const statuses: Order['status'][] = ['Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered']
 
 const AdminDashboardPage = () => {
   const { products, orders, applications, reviewApplication, removeProduct, updateOrderStatus } = useStore()
@@ -11,9 +13,10 @@ const AdminDashboardPage = () => {
 
   return (
     <div className="page-shell space-y-8">
+      <Seo title="Admin dashboard" description="Review seller KYC, moderate listings, and watch marketplace GMV." path="/admin-dashboard" />
       <div>
         <h1 className="text-4xl font-bold">Admin dashboard</h1>
-        <p className="text-gray-600 mt-2">Review sellers, listings, and marketplace orders.</p>
+        <p className="text-gray-600 mt-2">Approve seller requirements, moderate listings, and hand orders to riders.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -30,6 +33,11 @@ const AdminDashboardPage = () => {
         ))}
       </div>
 
+      <div className="flex gap-3">
+        <Link to="/analytics" className="btn-primary">Sales analytics</Link>
+        <Link to="/delivery" className="btn-outline">Delivery desk</Link>
+      </div>
+
       <div className="card">
         <h2 className="text-xl font-semibold mb-4">Seller applications</h2>
         {applications.length === 0 ? (
@@ -41,8 +49,14 @@ const AdminDashboardPage = () => {
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
                     <p className="font-semibold">{application.farmName}</p>
-                    <p className="text-sm text-gray-500">{application.name} · {application.location}</p>
+                    <p className="text-sm text-gray-500">{application.name} · {application.location} · {application.phone}</p>
                     <p className="text-sm text-gray-700 mt-2">{application.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">Category: {application.categories}</p>
+                    <div className="flex gap-2 mt-2">
+                      {application.idDocument && <ProductImage src={application.idDocument} alt="ID" className="h-16 w-16 rounded object-cover" />}
+                      {application.permitDocument && <ProductImage src={application.permitDocument} alt="Permit" className="h-16 w-16 rounded object-cover" />}
+                      {application.farmPhoto && <ProductImage src={application.farmPhoto} alt="Farm" className="h-16 w-16 rounded object-cover" />}
+                    </div>
                   </div>
                   <span className="text-sm font-semibold">{application.status}</span>
                 </div>
@@ -67,10 +81,10 @@ const AdminDashboardPage = () => {
             {orders.map((order) => (
               <div key={order.id} className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-semibold">{order.id} · {formatPeso(order.total)}</p>
+                  <p className="font-semibold">{order.id} · {formatPeso(order.total)} · {order.payment}</p>
                   <p className="text-sm text-gray-500">{order.address}</p>
                 </div>
-                <select className="input-field w-44" value={order.status} onChange={(event) => updateOrderStatus(order.id, event.target.value as Order['status'])}>
+                <select className="input-field w-52" value={order.status} onChange={(event) => updateOrderStatus(order.id, event.target.value as Order['status'])}>
                   {statuses.map((status) => <option key={status}>{status}</option>)}
                 </select>
               </div>
@@ -84,7 +98,10 @@ const AdminDashboardPage = () => {
         <ul className="space-y-3">
           {products.map((product) => (
             <li key={product.id} className="flex items-center justify-between gap-3">
-              <Link to={`/products/${product.id}`} className="hover:text-primary-700">{product.name}</Link>
+              <Link to={`/products/${product.id}`} className="hover:text-primary-700 flex items-center gap-3">
+                <ProductImage src={product.image} alt="" className="h-10 w-10 rounded object-cover" />
+                {product.name}
+              </Link>
               <button type="button" className="text-sm text-red-600" onClick={() => removeProduct(product.id)}>Unlist</button>
             </li>
           ))}

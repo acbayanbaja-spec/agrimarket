@@ -14,6 +14,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import OrdersPage from './pages/OrdersPage'
+import ReceiptPage from './pages/ReceiptPage'
 import SellerDashboardPage from './pages/SellerDashboardPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import BecomeSellerPage from './pages/BecomeSellerPage'
@@ -22,6 +23,12 @@ import SellersPage from './pages/SellersPage'
 import ContentPage from './pages/ContentPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import NotFoundPage from './pages/NotFoundPage'
+import FeedPage from './pages/FeedPage'
+import TradesPage from './pages/TradesPage'
+import MessagesPage from './pages/MessagesPage'
+import DeliveryDashboardPage from './pages/DeliveryDashboardPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import PriceMonitorPage from './pages/PriceMonitorPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,9 +58,16 @@ function App() {
                   <Route path="forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                   <Route path="orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+                  <Route path="orders/:id/receipt" element={<ProtectedRoute><ReceiptPage /></ProtectedRoute>} />
                   <Route path="seller-dashboard" element={<ProtectedRoute roles={['seller', 'admin']}><SellerDashboardPage /></ProtectedRoute>} />
                   <Route path="admin-dashboard" element={<ProtectedRoute roles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
+                  <Route path="delivery" element={<ProtectedRoute roles={['delivery', 'admin']}><DeliveryDashboardPage /></ProtectedRoute>} />
+                  <Route path="analytics" element={<ProtectedRoute roles={['seller', 'admin']}><AnalyticsPage /></ProtectedRoute>} />
                   <Route path="become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
+                  <Route path="messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+                  <Route path="feed" element={<FeedPage />} />
+                  <Route path="trades" element={<TradesPage />} />
+                  <Route path="prices" element={<PriceMonitorPage />} />
                   <Route path="categories" element={<CategoriesPage />} />
                   <Route path="sellers" element={<SellersPage />} />
                   <Route path="help" element={<ContentPage slug="help" />} />

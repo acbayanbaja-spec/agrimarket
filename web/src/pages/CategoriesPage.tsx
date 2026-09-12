@@ -13,8 +13,8 @@ const CategoriesPage = () => {
         {categories.map((category) => {
           const count = products.filter((product) => product.category === category.name).length
           return (
-            <Link key={category.name} to={`/marketplace?category=${encodeURIComponent(category.name)}`} className="card hover:shadow-soft transition-shadow">
-              <div className="text-4xl mb-3">{category.emoji}</div>
+            <Link key={category.name} to={`/marketplace?category=${encodeURIComponent(category.name)}`} className="card hover:shadow-soft hover:-translate-y-1 transition-all">
+              <img src={category.image} alt="" className="h-20 w-full rounded-xl object-cover mb-3" />
               <h2 className="text-xl font-semibold">{category.name}</h2>
               <p className="text-gray-600 text-sm mt-1">{category.description}</p>
               <p className="text-primary-700 font-semibold mt-4">{count} listing{count === 1 ? '' : 's'}</p>
