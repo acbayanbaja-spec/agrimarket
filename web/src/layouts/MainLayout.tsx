@@ -1,22 +1,19 @@
 import { useState } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Menu, Search, Leaf, X, LayoutDashboard, Bike, LineChart, MessageSquare } from 'lucide-react'
+import { Outlet, Link } from 'react-router-dom'
+import { ShoppingCart, User, Menu, Leaf, X, LayoutDashboard, Bike, LineChart, MessageSquare, Coins, Smartphone } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { useStore } from '../context/StoreContext'
 import NotificationBell from '../components/NotificationBell'
+import SearchBar from '../components/SearchBar'
+import InstallBanner from '../components/InstallBanner'
+import BottomNav from '../components/BottomNav'
 
 const MainLayout = () => {
   const { isAuthenticated, user, logout, hasRole } = useAuth()
   const { count } = useCart()
+  const { loyaltyPoints } = useStore()
   const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const navigate = useNavigate()
-
-  const search = (event: React.FormEvent) => {
-    event.preventDefault()
-    navigate(query.trim() ? `/marketplace?q=${encodeURIComponent(query.trim())}` : '/marketplace')
-    setOpen(false)
-  }
 
   const dashboardLink = hasRole('admin')
     ? '/admin-dashboard'
@@ -28,6 +25,7 @@ const MainLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <InstallBanner />
       <header className="bg-white/80 backdrop-blur-xl border-b border-white/70 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -38,18 +36,9 @@ const MainLayout = () => {
               <span className="text-xl font-display font-bold text-gray-900">AgriMarket</span>
             </Link>
 
-            <form onSubmit={search} className="hidden md:flex flex-1 max-w-lg mx-8">
-              <div className="relative w-full">
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search tomatoes, rice, farm supplies..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none"
-                />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-            </form>
+            <div className="hidden md:flex flex-1 max-w-lg mx-8">
+              <SearchBar />
+            </div>
 
             <nav className="hidden md:flex items-center gap-1">
               <Link to="/marketplace" className="btn-ghost">Shop</Link>
@@ -58,11 +47,17 @@ const MainLayout = () => {
               <Link to="/cart" className="relative btn-ghost">
                 <ShoppingCart className="h-5 w-5" />
                 {count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-[11px] rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-[11px] rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center animate-pop">
                     {count}
                   </span>
                 )}
               </Link>
+              {isAuthenticated && (
+                <Link to="/profile" className="btn-ghost text-amber-800" title="Harvest points">
+                  <Coins className="h-5 w-5" />
+                  <span className="hidden lg:inline">{loyaltyPoints}</span>
+                </Link>
+              )}
               <NotificationBell />
               {isAuthenticated ? (
                 <>
@@ -108,14 +103,13 @@ const MainLayout = () => {
                 <X />
               </button>
             </div>
-            <form onSubmit={search}>
-              <input className="input-field" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products..." />
-            </form>
+            <SearchBar compact onSubmitted={() => setOpen(false)} />
             <Link to="/marketplace" onClick={() => setOpen(false)} className="block py-2">Marketplace</Link>
             <Link to="/feed" onClick={() => setOpen(false)} className="block py-2">Seller feed</Link>
             <Link to="/trades" onClick={() => setOpen(false)} className="block py-2">Trade board</Link>
             <Link to="/prices" onClick={() => setOpen(false)} className="block py-2">Price monitor</Link>
             <Link to="/cart" onClick={() => setOpen(false)} className="block py-2">Cart ({count})</Link>
+            <Link to="/get-app" onClick={() => setOpen(false)} className="block py-2">Install on phone</Link>
             {isAuthenticated ? (
               <>
                 <Link to="/orders" onClick={() => setOpen(false)} className="block py-2">Orders</Link>
@@ -137,6 +131,7 @@ const MainLayout = () => {
       <main className="flex-1">
         <Outlet />
       </main>
+      <BottomNav />
 
       <footer className="bg-soil-900 text-white mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -165,6 +160,7 @@ const MainLayout = () => {
                 <li><Link to="/feed" className="hover:text-white">Harvest feed</Link></li>
                 <li><Link to="/trades" className="hover:text-white">Trade board</Link></li>
                 <li><Link to="/shipping" className="hover:text-white">Shipping coupons</Link></li>
+                <li><Link to="/get-app" className="hover:text-white inline-flex items-center gap-1"><Smartphone className="h-3.5 w-3.5" /> Get the app</Link></li>
               </ul>
             </div>
             <div>

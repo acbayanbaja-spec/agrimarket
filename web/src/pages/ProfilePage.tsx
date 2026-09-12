@@ -6,7 +6,7 @@ import Seo from '../components/Seo'
 
 const ProfilePage = () => {
   const { user, updateProfile, hasRole, logout } = useAuth()
-  const { myOrders, myApplication } = useStore()
+  const { myOrders, myApplication, loyaltyPoints } = useStore()
   const [form, setForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -60,6 +60,12 @@ const ProfilePage = () => {
         </form>
       </div>
       <aside className="space-y-4">
+        <div className="card bg-gradient-to-br from-amber-50 to-white">
+          <p className="text-sm font-semibold text-amber-800">Harvest points wallet</p>
+          <p className="text-4xl font-bold mt-1">{loyaltyPoints}</p>
+          <p className="text-sm text-gray-600 mt-2">1 point = ₱1 off shipping. You earn 1 point for every ₱10 of harvests you order.</p>
+          <Link to="/marketplace" className="btn-primary mt-4 w-full">Shop to earn more</Link>
+        </div>
         <div className="card">
           <h2 className="font-semibold mb-3">Workspace</h2>
           <p className="text-sm text-gray-600 mb-4">Roles: {user?.roles.join(', ') || 'buyer'}</p>

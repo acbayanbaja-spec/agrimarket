@@ -29,6 +29,9 @@ import MessagesPage from './pages/MessagesPage'
 import DeliveryDashboardPage from './pages/DeliveryDashboardPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import PriceMonitorPage from './pages/PriceMonitorPage'
+import GetTheAppPage from './pages/GetTheAppPage'
+import { ToastProvider } from './context/ToastContext'
+import { CartSheetProvider } from './context/CartSheetContext'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +49,8 @@ function App() {
         <CartProvider>
           <StoreProvider>
             <Router>
+            <ToastProvider>
+            <CartSheetProvider>
               <Routes>
                 <Route path="/" element={<MainLayout />}>
                   <Route index element={<HomePage />} />
@@ -76,9 +81,12 @@ function App() {
                   <Route path="terms" element={<ContentPage slug="terms" />} />
                   <Route path="privacy" element={<ContentPage slug="privacy" />} />
                   <Route path="shipping" element={<ContentPage slug="shipping" />} />
+                  <Route path="get-app" element={<GetTheAppPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Routes>
+            </CartSheetProvider>
+            </ToastProvider>
             </Router>
           </StoreProvider>
         </CartProvider>

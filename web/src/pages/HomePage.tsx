@@ -36,8 +36,11 @@ const HomePage = () => {
             <Link to="/marketplace" className="btn-primary bg-white text-primary-800 hover:bg-primary-50">
               Browse marketplace
             </Link>
-            <Link to="/register" className="btn-outline border-white text-white hover:bg-white/10">
-              Create a buyer account
+            <Link to="/marketplace?budget=200" className="btn-outline border-white text-white hover:bg-white/10">
+              Shop a ₱200 budget
+            </Link>
+            <Link to="/get-app" className="btn-outline border-white text-white hover:bg-white/10">
+              Install on phone
             </Link>
           </div>
         </div>
@@ -49,7 +52,7 @@ const HomePage = () => {
             { icon: Leaf, title: 'Farm-direct', copy: 'Listings from growers, co-ops, and verified aggregators.' },
             { icon: Truck, title: 'GCash & COD', copy: 'Shipping coupons stack on delivery fees only — Shopee-style.' },
             { icon: Shield, title: 'Seller KYC', copy: 'Buyers apply with ID, permit, and farm photos before selling.' },
-            { icon: Sparkles, title: 'Smart picks', copy: 'Top-rated harvests and budget baskets update with live stock.' },
+            { icon: Sparkles, title: 'Harvest points', copy: 'Earn points on every order and spend them on shipping, like Shopee coins — but farm-first.' },
           ].map((item, index) => (
             <div key={item.title} className="card hover:-translate-y-1 transition-transform animate-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
               <div className="h-12 w-12 rounded-2xl bg-primary-50 text-primary-700 grid place-items-center mb-4">

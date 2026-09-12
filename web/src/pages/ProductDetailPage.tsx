@@ -1,20 +1,24 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { MapPin, Star, Truck, Repeat } from 'lucide-react'
+import { MapPin, Star, Truck, Repeat, Coins, ShieldCheck, Clock } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { fileToDataUrl, formatPeso, mapsUrl } from '../lib/utils'
 import { stockLabel, stockTone } from '../data/catalog'
+import { harvestMeta } from '../lib/commerce'
 import ProductCard from '../components/ProductCard'
 import ProductImage from '../components/ProductImage'
+import QuantityStepper from '../components/QuantityStepper'
 import Seo from '../components/Seo'
 
 const ProductDetailPage = () => {
   const { id } = useParams()
   const { products, addReview, reviewsFor, recommended } = useStore()
   const { addItem } = useCart()
+  const { toast } = useToast()
   const { isAuthenticated, user } = useAuth()
   const [quantity, setQuantity] = useState(1)
   const [photoIndex, setPhotoIndex] = useState(0)
@@ -37,12 +41,18 @@ const ProductDetailPage = () => {
   const related = recommended.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4)
   const gallery = product.photos?.length ? product.photos : [product.image]
   const out = product.stock <= 0
+  const meta = harvestMeta(product)
 
   const submitReview = async (event: React.FormEvent) => {
     event.preventDefault()
     addReview({ productId: product.id, rating, comment: comment.trim(), photos })
     setComment('')
     setPhotos([])
+  }
+
+  const addToCart = () => {
+    addItem(product, quantity)
+    toast(`Added to cart · ${product.name}`, '/cart')
   }
 
   return (
@@ -65,16 +75,24 @@ const ProductDetailPage = () => {
           <p className="text-sm font-semibold text-primary-700 uppercase">{product.category}</p>
           <h1 className="text-4xl font-bold mt-2">{product.name}</h1>
           <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-600">
-            <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-secondary-400 text-secondary-400" /> {product.rating} · {product.reviews} reviews</span>
+            <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-secondary-400 text-secondary-400" /> {product.rating} · {meta.sold}+ sold</span>
             <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {product.location}</span>
             <span className={`chip ${stockTone(product.stock)}`}>{stockLabel(product.stock)}</span>
             {product.tradeable && <span className="chip bg-primary-50 text-primary-800"><Repeat className="h-3 w-3 mr-1" /> Tradable</span>}
           </div>
-          <p className="text-3xl font-bold mt-6">
-            {formatPeso(product.price)} <span className="text-base font-medium text-gray-500">/ {product.unit}</span>
-          </p>
+          <div className="flex items-baseline gap-3 mt-6">
+            <p className="text-3xl font-bold">{formatPeso(product.price)}</p>
+            <p className="text-gray-400 line-through">{formatPeso(meta.originalPrice)}</p>
+            <span className="text-base font-medium text-gray-500">/ {product.unit}</span>
+          </div>
           <p className="mt-4 text-gray-700 leading-relaxed">{product.description}</p>
-          <p className="mt-4 text-sm text-gray-500">Sold by {product.seller} · {product.stock} {product.unit} available</p>
+          <div className="mt-5 grid sm:grid-cols-2 gap-2 text-sm">
+            <p className="rounded-xl bg-amber-50 px-3 py-2 inline-flex items-center gap-2"><Coins className="h-4 w-4" /> Earn {meta.points * quantity} pts (₱10 = 1 pt)</p>
+            <p className="rounded-xl bg-sky-50 px-3 py-2 inline-flex items-center gap-2"><Clock className="h-4 w-4" /> {meta.eta}</p>
+            <p className="rounded-xl bg-primary-50 px-3 py-2 inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> {meta.freshness}</p>
+            <p className="rounded-xl bg-soil-100 px-3 py-2 inline-flex items-center gap-2"><Truck className="h-4 w-4" /> {meta.guarantee}</p>
+          </div>
+          <p className="mt-4 text-sm text-gray-500">Sold by {meta.origin} · {product.stock} {product.unit} available</p>
           <a className="mt-3 inline-flex text-sm font-semibold text-primary-700" href={mapsUrl(product.lat, product.lng)} target="_blank" rel="noreferrer">
             Open GPS pin on Google Maps
           </a>
@@ -85,23 +103,15 @@ const ProductDetailPage = () => {
               src={`https://maps.google.com/maps?q=${product.lat},${product.lng}&z=9&output=embed`}
             />
           </div>
-          <div className="flex items-center gap-3 mt-8">
-            <input
-              type="number"
-              min={1}
-              max={Math.max(product.stock, 1)}
-              value={quantity}
-              onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))}
-              className="input-field w-24"
-              disabled={out}
-            />
-            <button type="button" className="btn-primary" disabled={out} onClick={() => addItem(product, quantity)}>
-              {out ? 'Out of stock' : 'Add to cart'}
+          <div className="flex flex-wrap items-center gap-4 mt-8">
+            <QuantityStepper value={quantity} max={Math.max(product.stock, 1)} onChange={setQuantity} disabled={out} />
+            <button type="button" className="btn-primary" disabled={out} onClick={addToCart}>
+              {out ? 'Out of stock' : `Confirm add · ${formatPeso(product.price * quantity)}`}
             </button>
             {product.tradeable && <Link to={`/trades?want=${product.id}`} className="btn-outline">Offer a trade</Link>}
           </div>
           <p className="mt-6 inline-flex items-center gap-2 text-sm text-gray-600">
-            <Truck className="h-4 w-4" /> GCash or COD · shipping coupons at checkout
+            <Truck className="h-4 w-4" /> GCash or COD · harvest points apply to shipping at checkout
           </p>
         </div>
       </div>

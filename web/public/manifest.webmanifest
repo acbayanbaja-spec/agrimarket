@@ -1,0 +1,19 @@
+{
+  "name": "AgriMarket",
+  "short_name": "AgriMarket",
+  "description": "Farm-direct marketplace with budget search, harvest points, GCash and COD.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#14532d",
+  "theme_color": "#16a34a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

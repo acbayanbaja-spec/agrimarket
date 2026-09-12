@@ -5,6 +5,7 @@ import { useStore } from '../context/StoreContext'
 import ProductCard from '../components/ProductCard'
 import Seo from '../components/Seo'
 import { formatPeso } from '../lib/utils'
+import { BUDGET_PRESETS, filterByBudget, matchProduct } from '../lib/commerce'
 
 const stockFilters = [
   ['all', 'All stock'],
@@ -16,10 +17,11 @@ const stockFilters = [
 type StockFilter = (typeof stockFilters)[number][0]
 
 const MarketplacePage = () => {
-  const { products, recommended, budgetPicks } = useStore()
+  const { products, recommended } = useStore()
   const [params, setParams] = useSearchParams()
   const sort = params.get('sort') || 'featured'
-  const budget = Number(params.get('budget') || 200)
+  const budgetParam = params.get('budget')
+  const budget = budgetParam ? Number(budgetParam) : undefined
   const availability = (params.get('stock') as StockFilter) || 'all'
   const selectedCategory = params.get('category') || 'All'
   const seller = params.get('seller') || ''
@@ -40,34 +42,34 @@ const MarketplacePage = () => {
   const filtered = useMemo(() => {
     let list = products.filter((product) => {
       const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
-      const haystack = `${product.name} ${product.seller} ${product.location} ${product.category}`.toLowerCase()
-      const matchesQuery = !query || haystack.includes(query.toLowerCase())
+      const matchesQuery = matchProduct(product, query)
       const matchesSeller = !seller || product.seller === seller
       const matchesStock =
         availability === 'all' ||
         (availability === 'in' && product.stock > 20) ||
         (availability === 'low' && product.stock > 0 && product.stock <= 20) ||
         (availability === 'out' && product.stock <= 0)
-      return matchesCategory && matchesQuery && matchesSeller && matchesStock
+      const matchesBudget = !budget || product.price <= budget
+      return matchesCategory && matchesQuery && matchesSeller && matchesStock && matchesBudget
     })
+    if (budget && sort === 'featured') list = filterByBudget(list, budget)
     if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price)
     if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price)
     if (sort === 'rating') list = [...list].sort((a, b) => recommended.findIndex((item) => item.id === a.id) - recommended.findIndex((item) => item.id === b.id))
     if (sort === 'stock') list = [...list].sort((a, b) => a.stock - b.stock)
     return list
-  }, [products, selectedCategory, query, seller, sort, recommended, availability])
-
-  const withinBudget = budgetPicks(budget)
+  }, [products, selectedCategory, query, seller, sort, recommended, availability, budget])
 
   return (
     <div className="page-shell">
-      <Seo title="Marketplace" description="Browse farm-direct produce with live stock, GPS locations, GCash and COD, and shipping coupons." path="/marketplace" />
+      <Seo title="Marketplace" description="Browse farm-direct produce with budget search, harvest points, GCash and COD." path="/marketplace" />
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-4xl font-bold">Marketplace</h1>
           <p className="text-gray-600 mt-2">
             {filtered.length} listing{filtered.length === 1 ? '' : 's'}
             {query ? ` for “${query}”` : ''}
+            {budget ? ` · at or under ${formatPeso(budget)}, highest first` : ''}
             {availability !== 'all' ? ` · ${availability === 'in' ? 'in stock' : availability === 'low' ? 'low stock' : 'sold out'}` : ''}
           </p>
         </div>
@@ -78,6 +80,34 @@ const MarketplacePage = () => {
           <option value="rating">Best ratings</option>
           <option value="stock">Availability</option>
         </select>
+      </div>
+
+      <div className="card mb-6">
+        <p className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Budget recommendation</p>
+        <div className="flex flex-wrap gap-2">
+          {BUDGET_PRESETS.map((amount) => (
+            <button
+              key={amount}
+              type="button"
+              onClick={() => updateParams({ budget: String(amount) })}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                budget === amount ? 'bg-primary-600 text-white' : 'bg-primary-50 text-primary-800'
+              }`}
+            >
+              {formatPeso(amount)}
+            </button>
+          ))}
+          {budget && (
+            <button type="button" className="text-sm font-semibold text-gray-500" onClick={() => updateParams({ budget: null })}>
+              Clear budget
+            </button>
+          )}
+        </div>
+        {budget && (
+          <p className="text-sm text-primary-800 mt-3">
+            Showing harvests from {formatPeso(budget)} down to the lowest price that still fits.
+          </p>
+        )}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
@@ -94,33 +124,6 @@ const MarketplacePage = () => {
           </button>
         ))}
       </div>
-
-      <div className="card mb-8 flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex-1">
-          <p className="font-semibold">Budget basket</p>
-          <p className="text-sm text-gray-600">Show harvests at or under {formatPeso(budget)} per unit.</p>
-        </div>
-        <input
-          type="range"
-          min={20}
-          max={400}
-          value={budget}
-          onChange={(event) => updateParams({ budget: event.target.value })}
-          className="w-full md:w-64"
-        />
-        <p className="text-sm text-primary-800 font-semibold">{withinBudget.length} matches</p>
-      </div>
-
-      {withinBudget.length > 0 && sort === 'featured' && selectedCategory === 'All' && !query && availability === 'all' && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Within your budget</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {withinBudget.slice(0, 4).map((product, index) => (
-              <ProductCard key={product.id} product={product} delay={index * 50} />
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
         {['All', ...categories.map((category) => category.name)].map((category) => (
@@ -139,7 +142,7 @@ const MarketplacePage = () => {
 
       {filtered.length === 0 ? (
         <div className="card text-center">
-          <p className="text-gray-600">No products match that search.</p>
+          <p className="text-gray-600">No harvests match that budget or search yet. Try ₱200 or ₱300.</p>
           <Link to="/marketplace" className="btn-primary mt-4">Clear filters</Link>
         </div>
       ) : (

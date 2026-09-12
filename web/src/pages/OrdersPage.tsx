@@ -37,6 +37,7 @@ const OrdersPage = () => {
                 ))}
               </ul>
               <p className="text-sm text-gray-500">{order.address} · {order.payment}{order.couponCode ? ` · ${order.couponCode}` : ''}</p>
+              <p className="text-sm text-amber-800 mt-2">+{order.pointsEarned} pts earned{order.pointsRedeemed ? ` · ${order.pointsRedeemed} pts used on shipping` : ''}</p>
               <p className="font-bold mt-3">{formatPeso(order.total)}</p>
               <div className="flex gap-3 mt-4">
                 <Link to={`/orders/${order.id}/receipt`} className="btn-primary py-2">Receipt</Link>

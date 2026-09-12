@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { products as catalogProducts, shippingCoupons, type Product } from '../data/catalog'
 import { recommendScore } from '../lib/utils'
+import { filterByBudget, pointsFromSpend } from '../lib/commerce'
 import { useAuth } from './AuthContext'
 import api from '../services/api'
 
@@ -24,6 +25,8 @@ export type Order = {
   shippingFee: number
   shippingDiscount: number
   couponCode?: string
+  pointsEarned: number
+  pointsRedeemed: number
   total: number
   status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered'
   createdAt: string
@@ -132,7 +135,7 @@ type StoreContextType = {
   updateProductStock: (id: string, stock: number) => void
   updateProductPrice: (id: string, price: number) => void
   removeProduct: (id: string) => void
-  placeOrder: (order: Omit<Order, 'id' | 'createdAt' | 'userId' | 'status' | 'receiptNo' | 'buyerName'>) => Order
+  placeOrder: (order: Omit<Order, 'id' | 'createdAt' | 'userId' | 'status' | 'receiptNo' | 'buyerName' | 'pointsEarned'> & { pointsRedeemed?: number }) => Order
   myOrders: Order[]
   submitApplication: (payload: Omit<SellerApplication, 'id' | 'createdAt' | 'status' | 'userId' | 'name'>) => SellerApplication
   myApplication: SellerApplication | undefined
@@ -154,6 +157,7 @@ type StoreContextType = {
   unreadCount: number
   recommended: Product[]
   budgetPicks: (budget: number) => Product[]
+  loyaltyPoints: number
   salesSeries: { label: string; daily: number; monthly: number; yearly: number }[]
   categorySales: { name: string; value: number }[]
 }
@@ -222,6 +226,8 @@ const seedOrders: Order[] = [
     shippingFee: 50,
     shippingDiscount: 50,
     couponCode: 'FREESHIP',
+    pointsEarned: 58,
+    pointsRedeemed: 0,
     total: 580,
     status: 'Delivered',
     createdAt: daysAgo(2),
@@ -242,6 +248,8 @@ const seedOrders: Order[] = [
     subtotal: 440,
     shippingFee: 50,
     shippingDiscount: 0,
+    pointsEarned: 44,
+    pointsRedeemed: 0,
     total: 490,
     status: 'Out for delivery',
     createdAt: daysAgo(0),
@@ -277,6 +285,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [messages, setMessages] = useState<SmsMessage[]>([])
   const [followedCategories, setFollowedCategories] = useState<string[]>(['Vegetables', 'Fruits'])
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -384,6 +393,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (user && approvedSellerIds.includes(user.id)) addRole('seller')
   }, [user, approvedSellerIds, addRole])
 
+  useEffect(() => {
+    if (!hydrated) return
+    if (!user) {
+      setLoyaltyPoints(0)
+      return
+    }
+    const raw = localStorage.getItem(`agrimarket.loyalty.${user.id}`)
+    setLoyaltyPoints(raw ? Number(raw) : user.id === 3 ? 120 : 40)
+  }, [user, hydrated])
+
+  useEffect(() => {
+    if (!hydrated || !user) return
+    localStorage.setItem(`agrimarket.loyalty.${user.id}`, String(loyaltyPoints))
+  }, [loyaltyPoints, user, hydrated])
+
   const notify = (item: Omit<AppNotification, 'id' | 'createdAt' | 'readBy'>) => {
     const next: AppNotification = {
       ...item,
@@ -480,8 +504,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const placeOrder: StoreContextType['placeOrder'] = (order) => {
     const stamp = Date.now().toString().slice(-8)
+    const redeemed = user ? Math.max(0, Math.min(order.pointsRedeemed || 0, loyaltyPoints)) : 0
+    const earned = user ? pointsFromSpend(order.subtotal) : 0
     const next: Order = {
       ...order,
+      pointsRedeemed: redeemed,
+      pointsEarned: earned,
       id: `ORD-${stamp}`,
       receiptNo: `RCPT-${stamp}`,
       userId: user?.id || 0,
@@ -492,6 +520,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       driverId: DRIVER_ID,
     }
     setOrders((current) => [next, ...current])
+    if (user) setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
     next.items.forEach((item) => {
       const product = products.find((entry) => entry.id === item.productId)
       if (product) updateProductStock(product.id, product.stock - item.quantity)
@@ -499,7 +528,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     notify({
       userId: user?.id || 0,
       title: 'Order placed',
-      message: `${next.id} is confirmed. Receipt ${next.receiptNo} is ready.`,
+      message: `${next.id} is confirmed. You earned ${earned} harvest points${redeemed ? ` and used ${redeemed} on shipping` : ''}.`,
       href: `/orders/${next.id}/receipt`,
     })
     notify({
@@ -730,8 +759,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [products]
   )
 
-  const budgetPicks = (budget: number) =>
-    products.filter((product) => product.stock > 0 && product.price <= budget).sort((a, b) => b.rating - a.rating)
+  const budgetPicks = (budget: number) => filterByBudget(products, budget)
 
   const salesSeries = useMemo(() => {
     const now = new Date()
@@ -796,10 +824,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unreadCount,
       recommended,
       budgetPicks,
+      loyaltyPoints,
       salesSeries,
       categorySales,
     }),
-    [products, orders, applications, reviews, posts, trades, visibleNotifications, messages, followedCategories, user, myListings, unreadCount, recommended, salesSeries, categorySales]
+    [products, orders, applications, reviews, posts, trades, visibleNotifications, messages, followedCategories, user, myListings, unreadCount, recommended, salesSeries, categorySales, loyaltyPoints]
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

@@ -4,9 +4,12 @@ import { router } from 'expo-router';
 import { useStore } from '../src/context/StoreContext';
 import { productPhoto } from '../src/lib/images';
 import { formatPeso } from '../src/lib/utils';
+import { pointsFromSpend } from '../src/lib/commerce';
 
 export default function CartScreen() {
-  const { cart, cartTotal, removeFromCart } = useStore();
+  const { cart, cartTotal, removeFromCart, updateCartQuantity } = useStore();
+  const shipping = cartTotal >= 300 ? 0 : 50;
+  const points = pointsFromSpend(cartTotal);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -19,7 +22,12 @@ export default function CartScreen() {
             <Image source={productPhoto(item.image)} style={styles.thumb} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>{item.quantity} × {formatPeso(item.price)}</Text>
+              <Text style={styles.meta}>{formatPeso(item.price)} / {item.unit}</Text>
+              <View style={styles.stepper}>
+                <Pressable onPress={() => updateCartQuantity(item.productId, item.quantity - 1)}><Text style={styles.stepText}>−</Text></Pressable>
+                <Text style={styles.qty}>{item.quantity}</Text>
+                <Pressable onPress={() => updateCartQuantity(item.productId, Math.min(item.stock, item.quantity + 1))}><Text style={styles.stepText}>+</Text></Pressable>
+              </View>
             </View>
             <Pressable onPress={() => removeFromCart(item.productId)}>
               <Text style={styles.remove}>Remove</Text>
@@ -29,7 +37,10 @@ export default function CartScreen() {
       </ScrollView>
       {cart.length > 0 && (
         <View style={styles.footer}>
-          <Text style={styles.total}>{formatPeso(cartTotal)}</Text>
+          <View>
+            <Text style={styles.total}>{formatPeso(cartTotal + shipping)}</Text>
+            <Text style={styles.points}>+{points} pts · shipping {shipping ? formatPeso(shipping) : 'free'}</Text>
+          </View>
           <Pressable style={styles.checkout} onPress={() => router.push('/checkout')}>
             <Text style={styles.checkoutText}>Checkout</Text>
           </Pressable>
@@ -48,9 +59,13 @@ const styles = StyleSheet.create({
   thumb: { width: 64, height: 64, borderRadius: 8 },
   name: { fontWeight: '700' },
   meta: { color: '#6b7280', marginTop: 4 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  stepText: { fontSize: 20, fontWeight: '700' },
+  qty: { fontWeight: '700', minWidth: 18, textAlign: 'center' },
   remove: { color: '#dc2626', fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12 },
   total: { fontSize: 22, fontWeight: '800' },
+  points: { color: '#92400e', fontWeight: '600', marginTop: 4 },
   checkout: { backgroundColor: '#16a34a', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 12 },
   checkoutText: { color: '#fff', fontWeight: '800' },
 });

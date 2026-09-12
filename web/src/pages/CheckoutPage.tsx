@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Coins } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
+import { pointsFromSpend } from '../lib/commerce'
 import { shippingCoupons } from '../data/catalog'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 
 const CheckoutPage = () => {
   const { items, subtotal, clear } = useCart()
-  const { placeOrder, applyCoupon } = useStore()
+  const { placeOrder, applyCoupon, loyaltyPoints } = useStore()
   const { user } = useAuth()
+  const [usePoints, setUsePoints] = useState(true)
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
   const [payment, setPayment] = useState<'GCash' | 'Cash on delivery'>('Cash on delivery')
@@ -25,8 +28,11 @@ const CheckoutPage = () => {
   const [gpsNote, setGpsNote] = useState('Using Metro Manila pin until the browser shares GPS.')
 
   const shippingFee = subtotal >= 500 ? 0 : 50
-  const payableShipping = Math.max(0, shippingFee - shippingDiscount)
+  const afterCoupon = Math.max(0, shippingFee - shippingDiscount)
+  const pointsRedeemed = usePoints && user ? Math.min(loyaltyPoints, afterCoupon) : 0
+  const payableShipping = Math.max(0, afterCoupon - pointsRedeemed)
   const total = subtotal + payableShipping
+  const willEarn = pointsFromSpend(subtotal)
 
   const tryCoupon = () => {
     const result = applyCoupon(couponInput, shippingFee, subtotal)
@@ -65,7 +71,7 @@ const CheckoutPage = () => {
       <div className="page-shell max-w-lg text-center">
         <div className="card animate-fade-up">
           <h1 className="text-3xl font-bold mb-2">Order confirmed</h1>
-          <p className="text-gray-600">Your rider can SMS you updates. Receipt {placed} is ready to print.</p>
+          <p className="text-gray-600">Your rider can SMS you updates. Harvest points were applied to shipping and new points were added to your wallet. Receipt {placed} is ready to print.</p>
           <div className="flex gap-3 justify-center mt-6">
             <Link to={`/orders/${placed}/receipt`} className="btn-primary">View receipt</Link>
             <Link to="/orders" className="btn-outline">Order history</Link>
@@ -98,6 +104,7 @@ const CheckoutPage = () => {
       buyerPhone: user?.phone,
       lat: coords.lat,
       lng: coords.lng,
+      pointsRedeemed,
     })
     clear()
     setPlaced(order.id)
@@ -153,6 +160,15 @@ const CheckoutPage = () => {
           <p className="text-xs text-gray-500 mt-1">Coupons discount shipping only. Try {couponHints}.</p>
           {couponMsg && <p className="text-sm mt-2 text-primary-800">{couponMsg}</p>}
         </div>
+        <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 cursor-pointer">
+          <input type="checkbox" className="mt-1" checked={usePoints} onChange={(event) => setUsePoints(event.target.checked)} />
+          <span>
+            <span className="font-semibold inline-flex items-center gap-1"><Coins className="h-4 w-4" /> Apply harvest points to shipping</span>
+            <span className="block text-sm text-gray-700 mt-1">
+              Wallet: {loyaltyPoints} pts. This order uses {pointsRedeemed} pts (₱1 each) and earns {willEarn} pts from the harvest.
+            </span>
+          </span>
+        </label>
         <button type="submit" className="btn-primary">Place order · {formatPeso(total)}</button>
       </form>
       <aside className="card h-fit">
@@ -172,6 +188,8 @@ const CheckoutPage = () => {
           <div className="flex justify-between"><span>Subtotal</span><span>{formatPeso(subtotal)}</span></div>
           <div className="flex justify-between"><span>Shipping</span><span>{formatPeso(shippingFee)}</span></div>
           <div className="flex justify-between text-primary-800"><span>Shipping discount</span><span>-{formatPeso(shippingDiscount)}</span></div>
+          <div className="flex justify-between text-amber-800"><span>Points on shipping</span><span>-{formatPeso(pointsRedeemed)}</span></div>
+          <div className="flex justify-between text-amber-800"><span>Points you will earn</span><span>+{willEarn}</span></div>
         </div>
         <div className="border-t mt-4 pt-4 font-bold flex justify-between">
           <span>Total</span>

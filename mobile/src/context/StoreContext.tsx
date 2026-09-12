@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { products as catalogProducts, type Product } from '../data/catalog'
 import { useAuth } from './AuthContext'
+import { pointsFromSpend } from '../lib/commerce'
 
 export type CartItem = {
   productId: string
@@ -22,6 +23,8 @@ export type Order = {
   items: CartItem[]
   subtotal: number
   shippingFee: number
+  pointsEarned: number
+  pointsRedeemed: number
   total: number
   status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered'
   createdAt: string
@@ -50,11 +53,13 @@ type StoreContextType = {
   cartCount: number
   cartTotal: number
   addToCart: (product: Product, quantity?: number) => void
+  updateCartQuantity: (productId: string, quantity: number) => void
   removeFromCart: (productId: string) => void
   clearCart: () => void
   orders: Order[]
   messages: SmsMessage[]
-  placeOrder: (payload: { address: string; payment: Order['payment'] }) => Order | null
+  loyaltyPoints: number
+  placeOrder: (payload: { address: string; payment: Order['payment']; usePoints?: boolean }) => Order | null
   updateOrderStatus: (id: string, status: Order['status']) => void
   sendSms: (payload: Omit<SmsMessage, 'id' | 'createdAt' | 'channel' | 'status'>) => SmsMessage
 }
@@ -71,6 +76,8 @@ const seedOrders: Order[] = [
     items: [{ productId: 'p-eggs', name: 'Free-Range Eggs', price: 220, quantity: 2, image: '/images/eggs.jpg', seller: 'Sunrise Poultry', unit: 'tray', stock: 60 }],
     subtotal: 440,
     shippingFee: 50,
+    pointsEarned: 44,
+    pointsRedeemed: 0,
     total: 490,
     status: 'Out for delivery',
     createdAt: new Date().toISOString(),
@@ -111,6 +118,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [orders, setOrders] = useState<Order[]>(seedOrders)
   const [messages, setMessages] = useState<SmsMessage[]>(seedMessages)
   const [hydrated, setHydrated] = useState(false)
+  const [loyaltyPoints, setLoyaltyPoints] = useState(40)
 
   useEffect(() => {
     ;(async () => {
@@ -119,6 +127,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setOrders(storedOrders && storedOrders.length ? storedOrders : seedOrders)
       const storedSms = await readJson<SmsMessage[] | null>('agrimarket.mobile.sms', null)
       setMessages(storedSms && storedSms.length ? storedSms : seedMessages)
+      const pts = await AsyncStorage.getItem('agrimarket.mobile.loyalty')
+      if (pts) setLoyaltyPoints(Number(pts))
       setHydrated(true)
     })()
   }, [])
@@ -137,6 +147,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!hydrated) return
     AsyncStorage.setItem('agrimarket.mobile.sms', JSON.stringify(messages))
   }, [messages, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    AsyncStorage.setItem('agrimarket.mobile.loyalty', String(loyaltyPoints))
+  }, [loyaltyPoints, hydrated])
 
   const addToCart = (product: Product, quantity = 1) => {
     if (product.stock <= 0) return
@@ -165,16 +180,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })
   }
 
+  const updateCartQuantity = (productId: string, quantity: number) => {
+    setCart((current) =>
+      current
+        .map((item) => (item.productId === productId ? { ...item, quantity } : item))
+        .filter((item) => item.quantity > 0)
+    )
+  }
+
   const removeFromCart = (productId: string) => {
     setCart((current) => current.filter((item) => item.productId !== productId))
   }
 
   const clearCart = () => setCart([])
 
-  const placeOrder: StoreContextType['placeOrder'] = ({ address, payment }) => {
+  const placeOrder: StoreContextType['placeOrder'] = ({ address, payment, usePoints = true }) => {
     if (!user || cart.length === 0) return null
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const shippingFee = subtotal >= 300 ? 0 : 50
+    const earned = pointsFromSpend(subtotal)
+    const redeemed = usePoints ? Math.min(loyaltyPoints, shippingFee) : 0
     const order: Order = {
       id: `ORD-${Date.now().toString().slice(-6)}`,
       userId: user.id,
@@ -183,7 +208,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       items: cart,
       subtotal,
       shippingFee,
-      total: subtotal + shippingFee,
+      pointsEarned: earned,
+      pointsRedeemed: redeemed,
+      total: subtotal + Math.max(0, shippingFee - redeemed),
       status: 'Confirmed',
       createdAt: new Date().toISOString(),
       address,
@@ -191,6 +218,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       driverId: DRIVER_ID,
     }
     setOrders((current) => [order, ...current])
+    setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
     setCart([])
     return order
   }
@@ -219,10 +247,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     cartCount: cart.reduce((sum, item) => sum + item.quantity, 0),
     cartTotal,
     addToCart,
+    updateCartQuantity,
     removeFromCart,
     clearCart,
     orders,
     messages,
+    loyaltyPoints,
     placeOrder,
     updateOrderStatus,
     sendSms,

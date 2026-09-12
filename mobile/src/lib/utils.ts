@@ -1,9 +1,5 @@
 export function formatPeso(amount: number) {
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    maximumFractionDigits: 0,
-  }).format(amount)
+  return `₱${Math.round(amount).toLocaleString('en-PH')}`
 }
 
 export function stockLabel(stock: number) {

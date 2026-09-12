@@ -2,9 +2,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
+import { useStore } from '../../src/context/StoreContext';
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { loyaltyPoints } = useStore();
 
   if (!isAuthenticated) {
     return (
@@ -32,6 +34,7 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
           <Text style={styles.email}>{user?.email}</Text>
           <Text style={styles.email}>{user?.roles.join(', ')} · {user?.phone}</Text>
+          <Text style={styles.points}>{loyaltyPoints} harvest points · ₱1 off shipping each</Text>
         </View>
 
         <View style={styles.menu}>
@@ -65,6 +68,7 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 32, fontWeight: 'bold', color: '#ffffff' },
   name: { fontSize: 20, fontWeight: '600', color: '#1f2937', marginBottom: 4 },
   email: { fontSize: 14, color: '#6b7280' },
+  points: { fontSize: 14, color: '#92400e', fontWeight: '700', marginTop: 8 },
   menu: { gap: 4 },
   menuItem: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12 },
   menuItemText: { fontSize: 16, color: '#1f2937' },

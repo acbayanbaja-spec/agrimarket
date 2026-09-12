@@ -3,11 +3,13 @@ import { Link } from 'expo-router'
 import type { Product } from '../data/catalog'
 import { productPhoto } from '../lib/images'
 import { formatPeso, stockLabel } from '../lib/utils'
-import { useStore } from '../context/StoreContext'
+import { harvestMeta } from '../lib/commerce'
+import { useCartSheet } from '../context/CartSheetContext'
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { addToCart } = useStore()
+  const { openSheet } = useCartSheet()
   const out = product.stock <= 0
+  const meta = harvestMeta(product)
 
   return (
     <View style={styles.card}>
@@ -26,18 +28,23 @@ export default function ProductCard({ product }: { product: Product }) {
             <Text style={styles.name}>{product.name}</Text>
           </Pressable>
         </Link>
+        <Text style={styles.copy} numberOfLines={2}>{product.description}</Text>
         <Text style={styles.meta}>
-          {product.rating} ★ · {product.location}
+          {product.rating} ★ · {meta.sold}+ sold · {product.location}
         </Text>
+        <Text style={styles.points}>+{meta.points} harvest pts · {meta.eta}</Text>
         <View style={styles.row}>
-          <Text style={styles.price}>
-            {formatPeso(product.price)}
-            <Text style={styles.unit}> / {product.unit}</Text>
-          </Text>
+          <View>
+            <Text style={styles.price}>
+              {formatPeso(product.price)}
+              <Text style={styles.unit}> / {product.unit}</Text>
+            </Text>
+            <Text style={styles.was}>{formatPeso(meta.originalPrice)}</Text>
+          </View>
           <Pressable
             style={[styles.add, out && styles.addDisabled]}
             disabled={out}
-            onPress={() => addToCart(product)}
+            onPress={() => openSheet(product)}
           >
             <Text style={styles.addText}>{out ? 'Sold out' : 'Add'}</Text>
           </Pressable>
@@ -73,10 +80,13 @@ const styles = StyleSheet.create({
   body: { padding: 12, gap: 4 },
   category: { fontSize: 11, fontWeight: '700', color: '#15803d', textTransform: 'uppercase' },
   name: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  copy: { fontSize: 12, color: '#6b7280' },
   meta: { fontSize: 13, color: '#6b7280' },
+  points: { fontSize: 12, color: '#92400e', fontWeight: '600' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   price: { fontSize: 16, fontWeight: '800', color: '#111827' },
   unit: { fontSize: 12, fontWeight: '500', color: '#6b7280' },
+  was: { fontSize: 11, color: '#9ca3af', textDecorationLine: 'line-through' },
   add: { backgroundColor: '#16a34a', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   addDisabled: { backgroundColor: '#9ca3af' },
   addText: { color: '#fff', fontWeight: '700' },

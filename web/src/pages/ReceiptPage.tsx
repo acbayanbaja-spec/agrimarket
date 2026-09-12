@@ -61,6 +61,8 @@ const ReceiptPage = () => {
           <div className="flex justify-between"><span>Subtotal</span><span>{formatPeso(order.subtotal)}</span></div>
           <div className="flex justify-between"><span>Shipping</span><span>{formatPeso(order.shippingFee)}</span></div>
           <div className="flex justify-between"><span>Shipping discount {order.couponCode ? `(${order.couponCode})` : ''}</span><span>-{formatPeso(order.shippingDiscount)}</span></div>
+          <div className="flex justify-between"><span>Harvest points used on shipping</span><span>-{order.pointsRedeemed} pts</span></div>
+          <div className="flex justify-between"><span>Harvest points earned</span><span>+{order.pointsEarned} pts</span></div>
           <div className="flex justify-between font-bold text-lg pt-2"><span>Total</span><span>{formatPeso(order.total)}</span></div>
         </div>
       </div>

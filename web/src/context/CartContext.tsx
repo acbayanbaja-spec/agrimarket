@@ -21,6 +21,7 @@ const STORAGE_KEY = 'agrimarket.cart'
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([])
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
     try {
@@ -29,11 +30,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       setItems([])
     }
+    setHydrated(true)
   }, [])
 
   useEffect(() => {
+    if (!hydrated) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  }, [items])
+  }, [items, hydrated])
 
   const addItem = (product: Product, quantity = 1) => {
     setItems((current) => {
