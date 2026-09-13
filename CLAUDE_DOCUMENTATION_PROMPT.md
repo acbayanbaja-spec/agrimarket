@@ -1,7 +1,7 @@
-# Claude AI Prompt for System Documentation Generation
+# AGRIMARKET: AN AI-POWERED SMART AGRICULTURAL E-COMMERCE AND MARKETPLACE MANAGEMENT SYSTEM FOR SOCCSKSARGEN
 
 ## Purpose
-This prompt guides Claude to generate complete, professional DATABASE SYSTEM DOCUMENTATION that matches the exact format, structure, and depth of your reference document while accurately reflecting your specific system requirements.
+This prompt guides Claude to generate complete, professional DATABASE SYSTEM DOCUMENTATION that matches the exact format, structure, and depth of your reference document while accurately reflecting your agricultural marketplace platform.
 
 ---
 
@@ -196,7 +196,7 @@ IMPORTANT: Use EXACTLY this structure and format, matching the reference documen
 
 ### **Expected Output:**
 - 40,000-50,000 words of professional documentation
-- 5 complete chapters matching your grocery reference format
+- 5 complete chapters matching your reference format
 - All SQL code examples
 - Data dictionaries with all agricultural entities
 - Complete ER diagrams and relationships
