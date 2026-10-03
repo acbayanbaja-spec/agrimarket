@@ -54,9 +54,9 @@ function App() {
               <Routes>
                 <Route path="/" element={<MainLayout />}>
                   <Route index element={<HomePage />} />
-                  <Route path="marketplace" element={<MarketplacePage />} />
-                  <Route path="products/:id" element={<ProductDetailPage />} />
-                  <Route path="cart" element={<CartPage />} />
+                  <Route path="marketplace" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><MarketplacePage /></ProtectedRoute>} />
+                  <Route path="products/:id" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><ProductDetailPage /></ProtectedRoute>} />
+                  <Route path="cart" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><CartPage /></ProtectedRoute>} />
                   <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                   <Route path="login" element={<LoginPage />} />
                   <Route path="register" element={<RegisterPage />} />
@@ -70,7 +70,7 @@ function App() {
                   <Route path="analytics" element={<ProtectedRoute roles={['seller', 'admin']}><AnalyticsPage /></ProtectedRoute>} />
                   <Route path="become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
                   <Route path="messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-                  <Route path="feed" element={<FeedPage />} />
+                  <Route path="feed" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><FeedPage /></ProtectedRoute>} />
                   <Route path="trades" element={<TradesPage />} />
                   <Route path="prices" element={<PriceMonitorPage />} />
                   <Route path="categories" element={<CategoriesPage />} />

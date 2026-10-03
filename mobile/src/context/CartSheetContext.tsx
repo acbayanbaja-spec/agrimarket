@@ -5,6 +5,8 @@ import { harvestMeta } from '../lib/commerce'
 import { formatPeso } from '../lib/utils'
 import { productPhoto } from '../lib/images'
 import { useStore } from './StoreContext'
+import { router } from 'expo-router'
+import { useAuth } from './AuthContext'
 import { useToast } from './ToastContext'
 
 type CartSheetContextType = {
@@ -30,11 +32,16 @@ function Stepper({ value, max, onChange }: { value: number; max: number; onChang
 export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToCart } = useStore()
   const { toast } = useToast()
+  const { isAuthenticated, hasRole } = useAuth()
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
 
   const openSheet = (next: Product) => {
     if (next.stock <= 0) return
+    if (!isAuthenticated || !(hasRole('buyer') || hasRole('seller') || hasRole('admin'))) {
+      router.push('/login')
+      return
+    }
     setProduct(next)
     setQuantity(1)
   }
@@ -48,7 +55,7 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setProduct(null)
   }
 
-  const value = useMemo(() => ({ openSheet }), [])
+  const value = useMemo(() => ({ openSheet }), [isAuthenticated, hasRole])
 
   return (
     <CartSheetContext.Provider value={value}>

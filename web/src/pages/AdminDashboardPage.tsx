@@ -15,8 +15,8 @@ const AdminDashboardPage = () => {
     <div className="page-shell space-y-8">
       <Seo title="Admin dashboard" description="Review seller KYC, moderate listings, and watch marketplace GMV." path="/admin-dashboard" />
       <div>
-        <h1 className="text-4xl font-bold">Admin dashboard</h1>
-        <p className="text-gray-600 mt-2">Approve seller requirements, moderate listings, and hand orders to riders.</p>
+        <h1 className="text-4xl font-bold animate-fade-up">Admin dashboard</h1>
+        <p className="text-gray-600 mt-2">Approve passport and valid-ID seller requests, moderate listings, and watch marketplace GMV.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -51,7 +51,7 @@ const AdminDashboardPage = () => {
                     <p className="font-semibold">{application.farmName}</p>
                     <p className="text-sm text-gray-500">{application.name} · {application.location} · {application.phone}</p>
                     <p className="text-sm text-gray-700 mt-2">{application.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">Category: {application.categories}</p>
+                    <p className="text-xs text-gray-500 mt-1">Category: {application.categories} · ID: {application.idType || 'Valid ID'} {application.idNumber ? `· ${application.idNumber}` : ''}</p>
                     <div className="flex gap-2 mt-2">
                       {application.idDocument && <ProductImage src={application.idDocument} alt="ID" className="h-16 w-16 rounded object-cover" />}
                       {application.permitDocument && <ProductImage src={application.permitDocument} alt="Permit" className="h-16 w-16 rounded object-cover" />}

@@ -2,14 +2,29 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useStore } from '../src/context/StoreContext';
+import { useAuth } from '../src/context/AuthContext';
 import { productPhoto } from '../src/lib/images';
 import { formatPeso } from '../src/lib/utils';
 import { pointsFromSpend } from '../src/lib/commerce';
 
 export default function CartScreen() {
   const { cart, cartTotal, removeFromCart, updateCartQuantity } = useStore();
+  const { isAuthenticated, hasRole } = useAuth();
+  const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'));
   const shipping = cartTotal >= 300 ? 0 : 50;
   const points = pointsFromSpend(cartTotal);
+
+  if (!canShop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Log in to shop</Text>
+        <Text style={styles.empty}>Create a buyer account before you can fill a cart or place an order.</Text>
+        <Pressable style={styles.checkout} onPress={() => router.replace('/login')}>
+          <Text style={styles.checkoutText}>Log in</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

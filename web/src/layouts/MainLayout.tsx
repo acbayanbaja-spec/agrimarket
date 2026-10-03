@@ -7,6 +7,7 @@ import { useStore } from '../context/StoreContext'
 import NotificationBell from '../components/NotificationBell'
 import SearchBar from '../components/SearchBar'
 import InstallBanner from '../components/InstallBanner'
+import ShopNowLink from '../components/ShopNowLink'
 import BottomNav from '../components/BottomNav'
 
 const MainLayout = () => {
@@ -41,7 +42,7 @@ const MainLayout = () => {
             </div>
 
             <nav className="hidden md:flex items-center gap-1">
-              <Link to="/marketplace" className="btn-ghost">Shop</Link>
+              <ShopNowLink className="btn-ghost">Shop</ShopNowLink>
               <Link to="/feed" className="btn-ghost">Feed</Link>
               <Link to="/trades" className="btn-ghost">Trade</Link>
               <Link to="/cart" className="relative btn-ghost">
@@ -104,7 +105,7 @@ const MainLayout = () => {
               </button>
             </div>
             <SearchBar compact onSubmitted={() => setOpen(false)} />
-            <Link to="/marketplace" onClick={() => setOpen(false)} className="block py-2">Marketplace</Link>
+            <ShopNowLink className="block py-2">Shop Now</ShopNowLink>
             <Link to="/feed" onClick={() => setOpen(false)} className="block py-2">Seller feed</Link>
             <Link to="/trades" onClick={() => setOpen(false)} className="block py-2">Trade board</Link>
             <Link to="/prices" onClick={() => setOpen(false)} className="block py-2">Price monitor</Link>
@@ -141,14 +142,14 @@ const MainLayout = () => {
                 <Leaf className="h-6 w-6 text-primary-400" />
                 <span className="text-lg font-display font-bold">AgriMarket</span>
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                A trusted agricultural marketplace connecting Filipino farmers with households, grocers, and restaurants.
+      <p className="text-gray-400 text-sm leading-relaxed">
+                A trusted agricultural marketplace connecting SOCCSKSARGEN farmers with households, grocers, and restaurants.
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Marketplace</h3>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/marketplace" className="hover:text-white">Browse products</Link></li>
+                <li><ShopNowLink className="hover:text-white">Browse products</ShopNowLink></li>
                 <li><Link to="/categories" className="hover:text-white">Categories</Link></li>
                 <li><Link to="/sellers" className="hover:text-white">Sellers</Link></li>
                 <li><Link to="/prices" className="hover:text-white">Price monitor</Link></li>

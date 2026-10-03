@@ -3,42 +3,54 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { categories } from '../../src/data/catalog';
+import { soccsksargenPlaces } from '../../src/data/locations';
 import { useStore } from '../../src/context/StoreContext';
+import { useAuth } from '../../src/context/AuthContext';
 import ProductCard from '../../src/components/ProductCard';
-import { BUDGET_PRESETS, filterByBudget, matchProduct, parseSearchQuery } from '../../src/lib/commerce';
-import { formatPeso } from '../../src/lib/utils';
+import { matchProduct } from '../../src/lib/commerce';
 
 export default function MarketplaceScreen() {
-  const { products, cartCount } = useStore();
+  const { products, cartCount, posts } = useStore();
+  const { isAuthenticated, hasRole } = useAuth();
   const params = useLocalSearchParams<{ category?: string }>();
   const [query, setQuery] = useState('');
-  const [budget, setBudget] = useState<number | undefined>();
   const [category, setCategory] = useState(params.category || 'All');
+  const [location, setLocation] = useState('');
+
+  const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'));
+
+  useEffect(() => {
+    if (!isAuthenticated) router.replace('/login');
+    else if (hasRole('delivery') && !hasRole('buyer') && !hasRole('admin')) router.replace('/(tabs)/orders');
+  }, [isAuthenticated, hasRole]);
 
   useEffect(() => {
     if (params.category) setCategory(params.category);
   }, [params.category]);
 
-  const parsed = parseSearchQuery(query);
-  const activeBudget = parsed.budget || budget;
-
   const filtered = useMemo(() => {
-    let list = products.filter((product) => {
+    return products.filter((product) => {
       const matchesCategory = category === 'All' || product.category === category;
-      return matchesCategory && matchProduct(product, parsed.text);
+      const matchesLocation = !location || product.location === location;
+      return matchesCategory && matchesLocation && matchProduct(product, query);
     });
-    if (activeBudget) list = filterByBudget(list, activeBudget);
-    return list;
-  }, [products, category, parsed.text, activeBudget]);
+  }, [products, category, query, location]);
+
+  if (!canShop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Log in to shop</Text>
+        <Text style={styles.subtitle}>Only buyers and sellers can open the product catalog.</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Marketplace</Text>
-          <Text style={styles.subtitle}>
-            {filtered.length} listings{activeBudget ? ` · under ${formatPeso(activeBudget)}` : ''}
-          </Text>
+          <Text style={styles.subtitle}>{filtered.length} listings in SOCCSKSARGEN</Text>
         </View>
         <Pressable style={styles.cartBtn} onPress={() => router.push('/cart')}>
           <Text style={styles.cartText}>Cart {cartCount}</Text>
@@ -46,18 +58,17 @@ export default function MarketplaceScreen() {
       </View>
       <TextInput
         style={styles.search}
-        placeholder="Search or type a budget like 200 pesos"
+        placeholder="Search harvests, sellers, cities"
         value={query}
         onChangeText={setQuery}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {BUDGET_PRESETS.map((amount) => (
-          <Pressable
-            key={amount}
-            onPress={() => setBudget(amount === budget ? undefined : amount)}
-            style={[styles.chip, budget === amount && styles.chipActive]}
-          >
-            <Text style={[styles.chipText, budget === amount && styles.chipTextActive]}>{formatPeso(amount)}</Text>
+        <Pressable onPress={() => setLocation('')} style={[styles.chip, !location && styles.chipActive]}>
+          <Text style={[styles.chipText, !location && styles.chipTextActive]}>All cities</Text>
+        </Pressable>
+        {soccsksargenPlaces.map((place) => (
+          <Pressable key={place.label} onPress={() => setLocation(place.label)} style={[styles.chip, location === place.label && styles.chipActive]}>
+            <Text style={[styles.chipText, location === place.label && styles.chipTextActive]}>{place.city}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -73,6 +84,12 @@ export default function MarketplaceScreen() {
         ))}
       </ScrollView>
       <ScrollView contentContainerStyle={styles.list}>
+        {posts.slice(0, 2).map((post) => (
+          <View key={post.id} style={styles.feedCard}>
+            <Text style={styles.feedTitle}>{post.sellerName}{post.productName ? ` · ${post.productName}` : ''}</Text>
+            <Text style={styles.feedBody}>{post.body}</Text>
+          </View>
+        ))}
         {filtered.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
@@ -82,7 +99,7 @@ export default function MarketplaceScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: '#f7f4ef' },
   header: { paddingHorizontal: 16, paddingTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#1f2937' },
   subtitle: { fontSize: 13, color: '#6b7280', marginTop: 4 },
@@ -104,4 +121,7 @@ const styles = StyleSheet.create({
   chipText: { color: '#374151', fontWeight: '600' },
   chipTextActive: { color: '#fff' },
   list: { padding: 16, paddingBottom: 40 },
+  feedCard: { backgroundColor: '#fff', borderRadius: 14, padding: 12, marginBottom: 12 },
+  feedTitle: { fontWeight: '800', color: '#14532d' },
+  feedBody: { color: '#4b5563', marginTop: 4 },
 });

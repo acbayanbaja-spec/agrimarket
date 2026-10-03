@@ -10,7 +10,7 @@ const BottomNav = () => {
 
   const items = [
     { to: '/', label: 'Home', icon: Home, match: (path: string) => path === '/' },
-    { to: '/marketplace', label: 'Shop', icon: Store, match: (path: string) => path.startsWith('/marketplace') || path.startsWith('/products') },
+    { to: isAuthenticated ? '/marketplace' : '/login', label: 'Shop', icon: Store, match: (path: string) => path.startsWith('/marketplace') || path.startsWith('/products') },
     { to: '/cart', label: 'Cart', icon: ShoppingCart, match: (path: string) => path === '/cart' },
     { to: '/orders', label: 'Orders', icon: ClipboardList, match: (path: string) => path.startsWith('/orders') },
     { to: isAuthenticated ? '/profile' : '/login', label: 'Me', icon: User, match: (path: string) => path.startsWith('/profile') || path.startsWith('/login') },

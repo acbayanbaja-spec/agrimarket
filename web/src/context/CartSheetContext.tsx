@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from './AuthContext'
 import { Star, Truck, Coins, ShieldCheck, X } from 'lucide-react'
 import type { Product } from '../data/catalog'
 import { harvestMeta } from '../lib/commerce'
@@ -18,11 +19,18 @@ const CartSheetContext = createContext<CartSheetContextType | undefined>(undefin
 export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addItem } = useCart()
   const { toast } = useToast()
+  const { isAuthenticated, hasRole } = useAuth()
+  const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
 
   const openSheet = (next: Product) => {
     if (next.stock <= 0) return
+    const allowed = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'))
+    if (!allowed) {
+      navigate('/login', { state: { from: `/products/${next.id}` } })
+      return
+    }
     setProduct(next)
     setQuantity(1)
   }
@@ -37,7 +45,7 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setProduct(null)
   }
 
-  const value = useMemo(() => ({ openSheet }), [])
+  const value = useMemo(() => ({ openSheet }), [isAuthenticated, hasRole, navigate])
 
   return (
     <CartSheetContext.Provider value={value}>

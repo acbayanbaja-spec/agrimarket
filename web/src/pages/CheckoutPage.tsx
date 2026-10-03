@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Coins } from 'lucide-react'
+import { Coins, MapPin } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
 import { pointsFromSpend } from '../lib/commerce'
 import { shippingCoupons } from '../data/catalog'
+import { soccsksargenPlaces } from '../data/locations'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 
@@ -16,7 +17,7 @@ const CheckoutPage = () => {
   const { user } = useAuth()
   const [usePoints, setUsePoints] = useState(true)
   const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
+  const [city, setCity] = useState(soccsksargenPlaces[0].label)
   const [payment, setPayment] = useState<'GCash' | 'Cash on delivery'>('Cash on delivery')
   const [gcashRef, setGcashRef] = useState('')
   const [couponInput, setCouponInput] = useState('')
@@ -24,8 +25,9 @@ const CheckoutPage = () => {
   const [shippingDiscount, setShippingDiscount] = useState(0)
   const [couponCode, setCouponCode] = useState<string | undefined>()
   const [placed, setPlaced] = useState<string | null>(null)
-  const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 14.5995, lng: 120.9842 })
-  const [gpsNote, setGpsNote] = useState('Using Metro Manila pin until the browser shares GPS.')
+  const place = soccsksargenPlaces.find((item) => item.label === city) || soccsksargenPlaces[0]
+  const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: place.lat, lng: place.lng })
+  const [gpsNote, setGpsNote] = useState('Using the selected SOCCSKSARGEN city pin until you share GPS.')
 
   const shippingFee = subtotal >= 500 ? 0 : 50
   const afterCoupon = Math.max(0, shippingFee - shippingDiscount)
@@ -45,13 +47,13 @@ const CheckoutPage = () => {
 
   const pinGps = () => {
     if (!navigator.geolocation) {
-      setGpsNote('This browser cannot share GPS. The rider still gets a Metro Manila pin.')
+      setGpsNote('This browser cannot share GPS. The rider will use your SOCCSKSARGEN city pin.')
       return
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
-        setGpsNote('Drop-off GPS captured for the rider.')
+        setGpsNote('Drop-off GPS captured for the rider after the seller confirms.')
       },
       () => setGpsNote('GPS was denied. The rider will navigate from the typed address.')
     )
@@ -70,11 +72,13 @@ const CheckoutPage = () => {
     return (
       <div className="page-shell max-w-lg text-center">
         <div className="card animate-fade-up">
-          <h1 className="text-3xl font-bold mb-2">Order confirmed</h1>
-          <p className="text-gray-600">Your rider can SMS you updates. Harvest points were applied to shipping and new points were added to your wallet. Receipt {placed} is ready to print.</p>
+          <h1 className="text-3xl font-bold mb-2">Waiting for seller confirmation</h1>
+          <p className="text-gray-600">
+            {placed} is with the farm stall. The seller must confirm before a rider is notified. You will get a ping when it is packed, shipped, and out for delivery inside SOCCSKSARGEN.
+          </p>
           <div className="flex gap-3 justify-center mt-6">
             <Link to={`/orders/${placed}/receipt`} className="btn-primary">View receipt</Link>
-            <Link to="/orders" className="btn-outline">Order history</Link>
+            <Link to="/orders" className="btn-outline">Track order</Link>
           </div>
         </div>
       </div>
@@ -84,6 +88,7 @@ const CheckoutPage = () => {
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
     if (payment === 'GCash' && gcashRef.trim().length < 4) return
+    const selected = soccsksargenPlaces.find((item) => item.label === city) || place
     const order = placeOrder({
       items: items.map((item) => ({
         productId: item.product.id,
@@ -92,6 +97,9 @@ const CheckoutPage = () => {
         quantity: item.quantity,
         image: item.product.image,
         seller: item.product.seller,
+        sellerId: item.product.sellerId,
+        sellerUserId: item.product.sellerUserId,
+        pickupLocation: item.product.location,
       })),
       subtotal,
       shippingFee,
@@ -102,8 +110,8 @@ const CheckoutPage = () => {
       payment,
       paymentRef: payment === 'GCash' ? gcashRef.trim() : undefined,
       buyerPhone: user?.phone,
-      lat: coords.lat,
-      lng: coords.lng,
+      lat: coords.lat || selected.lat,
+      lng: coords.lng || selected.lng,
       pointsRedeemed,
     })
     clear()
@@ -112,19 +120,35 @@ const CheckoutPage = () => {
 
   return (
     <div className="page-shell grid lg:grid-cols-3 gap-8">
-      <Seo title="Checkout" description="Pay with GCash or cash on delivery and apply shipping-only coupons." path="/checkout" />
+      <Seo title="Checkout" description="Pay with GCash or COD. Sellers confirm before a SOCCSKSARGEN rider is dispatched." path="/checkout" />
       <form onSubmit={submit} className="lg:col-span-2 card space-y-4">
         <h1 className="text-3xl font-bold">Checkout</h1>
+        <p className="text-sm text-gray-600">The seller confirms first. Only then does the rider receive your name, mobile, drop-off, and the harvest list.</p>
         <div>
-          <label className="label" htmlFor="address">Street address</label>
-          <input id="address" required className="input-field" value={address} onChange={(event) => setAddress(event.target.value)} />
+          <label className="label" htmlFor="address">Street / purok / barangay</label>
+          <input id="address" required className="input-field" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Purok 2, Brgy. Zone 1" />
         </div>
         <div>
-          <label className="label" htmlFor="city">City / municipality</label>
-          <input id="city" required className="input-field" value={city} onChange={(event) => setCity(event.target.value)} />
+          <label className="label" htmlFor="city">City / municipality (SOCCSKSARGEN)</label>
+          <select
+            id="city"
+            required
+            className="input-field"
+            value={city}
+            onChange={(event) => {
+              const next = event.target.value
+              setCity(next)
+              const match = soccsksargenPlaces.find((item) => item.label === next)
+              if (match) setCoords({ lat: match.lat, lng: match.lng })
+            }}
+          >
+            {soccsksargenPlaces.map((item) => (
+              <option key={item.label} value={item.label}>{item.label}</option>
+            ))}
+          </select>
         </div>
         <div className="rounded-2xl border border-gray-200 p-4">
-          <p className="font-semibold">Drop-off GPS</p>
+          <p className="font-semibold inline-flex items-center gap-2"><MapPin className="h-4 w-4" /> Drop-off GPS</p>
           <p className="text-sm text-gray-600 mt-1">{gpsNote}</p>
           <button type="button" className="btn-outline mt-3" onClick={pinGps}>Share my location</button>
         </div>
@@ -136,10 +160,10 @@ const CheckoutPage = () => {
                 key={method}
                 type="button"
                 onClick={() => setPayment(method)}
-                className={`rounded-2xl border-2 p-4 text-left ${payment === method ? 'border-primary-600 bg-primary-50' : 'border-gray-200'}`}
+                className={`rounded-2xl border-2 p-4 text-left min-h-[72px] ${payment === method ? 'border-primary-600 bg-primary-50' : 'border-gray-200'}`}
               >
                 <p className="font-semibold">{method}</p>
-                <p className="text-sm text-gray-600">{method === 'GCash' ? 'Send to 09XX AgriMarket and paste the reference.' : 'Pay the rider on arrival.'}</p>
+                <p className="text-sm text-gray-600">{method === 'GCash' ? 'Send to AgriMarket Treasury and paste the reference.' : 'Pay the rider on arrival.'}</p>
               </button>
             ))}
           </div>
@@ -169,7 +193,7 @@ const CheckoutPage = () => {
             </span>
           </span>
         </label>
-        <button type="submit" className="btn-primary">Place order · {formatPeso(total)}</button>
+        <button type="submit" className="btn-primary w-full min-h-[48px]">Place order · {formatPeso(total)}</button>
       </form>
       <aside className="card h-fit">
         <h2 className="font-semibold mb-4">Your basket</h2>
@@ -178,7 +202,10 @@ const CheckoutPage = () => {
             <li key={item.product.id} className="flex justify-between gap-2">
               <span className="flex items-center gap-2">
                 <ProductImage src={item.product.image} alt="" className="h-8 w-8 rounded object-cover" />
-                {item.product.name} × {item.quantity}
+                <span>
+                  {item.product.name} × {item.quantity}
+                  <span className="block text-xs text-gray-500">{item.product.seller}</span>
+                </span>
               </span>
               <span>{formatPeso(item.product.price * item.quantity)}</span>
             </li>

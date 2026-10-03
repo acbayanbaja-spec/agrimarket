@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
 import Seo from '../components/Seo'
+import ShopNowLink from '../components/ShopNowLink'
 
 const ProfilePage = () => {
   const { user, updateProfile, hasRole, logout } = useAuth()
@@ -64,7 +65,7 @@ const ProfilePage = () => {
           <p className="text-sm font-semibold text-amber-800">Harvest points wallet</p>
           <p className="text-4xl font-bold mt-1">{loyaltyPoints}</p>
           <p className="text-sm text-gray-600 mt-2">1 point = ₱1 off shipping. You earn 1 point for every ₱10 of harvests you order.</p>
-          <Link to="/marketplace" className="btn-primary mt-4 w-full">Shop to earn more</Link>
+          <ShopNowLink className="btn-primary mt-4 w-full">Shop to earn more</ShopNowLink>
         </div>
         <div className="card">
           <h2 className="font-semibold mb-3">Workspace</h2>
@@ -75,7 +76,7 @@ const ProfilePage = () => {
             <Link to="/messages" className="btn-ghost">SMS inbox</Link>
             {!hasRole('seller') && !hasRole('admin') && !hasRole('delivery') && (
               <Link to="/become-seller" className="btn-ghost">
-                {myApplication ? `Seller application: ${myApplication.status}` : 'Become a seller'}
+                {myApplication ? `Seller application: ${myApplication.status}` : 'Become a seller (valid ID + admin approval)'}
               </Link>
             )}
           </div>

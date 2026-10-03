@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { categories } from '../data/catalog'
+import { soccsksargenPlaces } from '../data/locations'
 import { useStore } from '../context/StoreContext'
 import ProductCard from '../components/ProductCard'
 import Seo from '../components/Seo'
 import { formatPeso } from '../lib/utils'
 import { BUDGET_PRESETS, filterByBudget, matchProduct } from '../lib/commerce'
+import ProductImage from '../components/ProductImage'
 
 const stockFilters = [
   ['all', 'All stock'],
@@ -17,7 +19,7 @@ const stockFilters = [
 type StockFilter = (typeof stockFilters)[number][0]
 
 const MarketplacePage = () => {
-  const { products, recommended } = useStore()
+  const { products, recommended, posts } = useStore()
   const [params, setParams] = useSearchParams()
   const sort = params.get('sort') || 'featured'
   const budgetParam = params.get('budget')
@@ -26,6 +28,7 @@ const MarketplacePage = () => {
   const selectedCategory = params.get('category') || 'All'
   const seller = params.get('seller') || ''
   const query = params.get('q') || ''
+  const locationFilter = params.get('location') || ''
 
   const updateParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params)
@@ -49,8 +52,9 @@ const MarketplacePage = () => {
         (availability === 'in' && product.stock > 20) ||
         (availability === 'low' && product.stock > 0 && product.stock <= 20) ||
         (availability === 'out' && product.stock <= 0)
+      const matchesLocation = !locationFilter || product.location === locationFilter
       const matchesBudget = !budget || product.price <= budget
-      return matchesCategory && matchesQuery && matchesSeller && matchesStock && matchesBudget
+      return matchesCategory && matchesQuery && matchesSeller && matchesStock && matchesBudget && matchesLocation
     })
     if (budget && sort === 'featured') list = filterByBudget(list, budget)
     if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price)
@@ -58,7 +62,7 @@ const MarketplacePage = () => {
     if (sort === 'rating') list = [...list].sort((a, b) => recommended.findIndex((item) => item.id === a.id) - recommended.findIndex((item) => item.id === b.id))
     if (sort === 'stock') list = [...list].sort((a, b) => a.stock - b.stock)
     return list
-  }, [products, selectedCategory, query, seller, sort, recommended, availability, budget])
+  }, [products, selectedCategory, query, seller, sort, recommended, availability, budget, locationFilter])
 
   return (
     <div className="page-shell">
@@ -67,7 +71,7 @@ const MarketplacePage = () => {
         <div>
           <h1 className="text-4xl font-bold">Marketplace</h1>
           <p className="text-gray-600 mt-2">
-            {filtered.length} listing{filtered.length === 1 ? '' : 's'}
+            {filtered.length} listing{filtered.length === 1 ? '' : 's'} in SOCCSKSARGEN
             {query ? ` for “${query}”` : ''}
             {budget ? ` · at or under ${formatPeso(budget)}, highest first` : ''}
             {availability !== 'all' ? ` · ${availability === 'in' ? 'in stock' : availability === 'low' ? 'low stock' : 'sold out'}` : ''}
@@ -83,7 +87,7 @@ const MarketplacePage = () => {
       </div>
 
       <div className="card mb-6">
-        <p className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Budget recommendation</p>
+        <p className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Price cap (optional)</p>
         <div className="flex flex-wrap gap-2">
           {BUDGET_PRESETS.map((amount) => (
             <button
@@ -126,6 +130,49 @@ const MarketplacePage = () => {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
+        <button
+          type="button"
+          onClick={() => updateParams({ location: null })}
+          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold ${!locationFilter ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-700'}`}
+        >
+          All SOCCSKSARGEN
+        </button>
+        {soccsksargenPlaces.map((place) => (
+          <button
+            key={place.label}
+            type="button"
+            onClick={() => updateParams({ location: place.label })}
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold ${
+              locationFilter === place.label ? 'bg-primary-600 text-white shadow-glow' : 'bg-white border border-gray-200 text-gray-700'
+            }`}
+          >
+            {place.city}
+          </button>
+        ))}
+      </div>
+
+      {posts.slice(0, 3).length > 0 && (
+        <div className="card mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Live seller feed</h2>
+            <Link to="/feed" className="text-sm font-semibold text-primary-700">See all</Link>
+          </div>
+          <div className="space-y-3">
+            {posts.slice(0, 3).map((post) => (
+              <div key={post.id} className="flex gap-3">
+                {post.photos[0] && <ProductImage src={post.photos[0]} alt="" className="h-12 w-12 rounded-xl object-cover" />}
+                <div>
+                  <p className="text-sm font-semibold">{post.sellerName}{post.productName ? ` · ${post.productName}` : ''}</p>
+                  <p className="text-sm text-gray-600 line-clamp-2">{post.body}</p>
+                  {post.productId && <Link to={`/products/${post.productId}`} className="text-xs font-semibold text-primary-700">View product</Link>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
         {['All', ...categories.map((category) => category.name)].map((category) => (
           <button
             key={category}
@@ -142,7 +189,7 @@ const MarketplacePage = () => {
 
       {filtered.length === 0 ? (
         <div className="card text-center">
-          <p className="text-gray-600">No harvests match that budget or search yet. Try ₱200 or ₱300.</p>
+          <p className="text-gray-600">No harvests match that filter yet. Clear it or pick another city in SOCCSKSARGEN.</p>
           <Link to="/marketplace" className="btn-primary mt-4">Clear filters</Link>
         </div>
       ) : (

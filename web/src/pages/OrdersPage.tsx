@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext'
 import { formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
+import OrderTimeline from '../components/OrderTimeline'
 
 const OrdersPage = () => {
   const { myOrders } = useStore()
@@ -38,6 +39,7 @@ const OrdersPage = () => {
               </ul>
               <p className="text-sm text-gray-500">{order.address} · {order.payment}{order.couponCode ? ` · ${order.couponCode}` : ''}</p>
               <p className="text-sm text-amber-800 mt-2">+{order.pointsEarned} pts earned{order.pointsRedeemed ? ` · ${order.pointsRedeemed} pts used on shipping` : ''}</p>
+              <div className="mt-4"><OrderTimeline status={order.status} /></div>
               <p className="font-bold mt-3">{formatPeso(order.total)}</p>
               <div className="flex gap-3 mt-4">
                 <Link to={`/orders/${order.id}/receipt`} className="btn-primary py-2">Receipt</Link>

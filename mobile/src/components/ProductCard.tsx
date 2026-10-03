@@ -30,7 +30,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </Link>
         <Text style={styles.copy} numberOfLines={2}>{product.description}</Text>
         <Text style={styles.meta}>
-          {product.rating} ★ · {meta.sold}+ sold · {product.location}
+          {product.rating} ★ · {product.seller} · {product.location}
         </Text>
         <Text style={styles.points}>+{meta.points} harvest pts · {meta.eta}</Text>
         <View style={styles.row}>

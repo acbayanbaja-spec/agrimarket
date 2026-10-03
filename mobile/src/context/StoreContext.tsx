@@ -11,6 +11,9 @@ export type CartItem = {
   quantity: number
   image: string
   seller: string
+  sellerId: string
+  sellerUserId: number
+  pickupLocation: string
   unit: string
   stock: number
 }
@@ -31,6 +34,26 @@ export type Order = {
   address: string
   payment: 'GCash' | 'Cash on delivery'
   driverId?: number
+}
+
+export type SellerApplication = {
+  id: string
+  userId: number
+  farmName: string
+  location: string
+  idType: string
+  idNumber: string
+  status: 'Pending' | 'Approved' | 'Rejected'
+}
+
+export type Post = {
+  id: string
+  sellerName: string
+  productId?: string
+  productName?: string
+  body: string
+  category: string
+  createdAt: string
 }
 
 export type SmsMessage = {
@@ -58,10 +81,18 @@ type StoreContextType = {
   clearCart: () => void
   orders: Order[]
   messages: SmsMessage[]
+  posts: Post[]
+  applications: SellerApplication[]
   loyaltyPoints: number
   placeOrder: (payload: { address: string; payment: Order['payment']; usePoints?: boolean }) => Order | null
   updateOrderStatus: (id: string, status: Order['status']) => void
+  confirmOrder: (id: string) => void
+  markShipped: (id: string) => void
+  submitApplication: (payload: Omit<SellerApplication, 'id' | 'userId' | 'status'>) => void
+  reviewApplication: (id: string, status: 'Approved' | 'Rejected') => void
+  addPost: (payload: Omit<Post, 'id' | 'createdAt' | 'sellerName'>) => void
   sendSms: (payload: Omit<SmsMessage, 'id' | 'createdAt' | 'channel' | 'status'>) => SmsMessage
+  myApplication?: SellerApplication
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined)
@@ -73,7 +104,7 @@ const seedOrders: Order[] = [
     userId: 3,
     buyerName: 'Juan Cruz',
     buyerPhone: '+639189998877',
-    items: [{ productId: 'p-eggs', name: 'Free-Range Eggs', price: 220, quantity: 2, image: '/images/eggs.jpg', seller: 'Sunrise Poultry', unit: 'tray', stock: 60 }],
+    items: [{ productId: 'p-eggs', name: 'Free-Range Eggs', price: 220, quantity: 2, image: '/images/eggs.jpg', seller: 'Koronadal Sunrise Poultry', sellerId: 'seller-6', sellerUserId: 16, pickupLocation: 'Koronadal City, South Cotabato', unit: 'tray', stock: 60 }],
     subtotal: 440,
     shippingFee: 50,
     pointsEarned: 44,
@@ -81,9 +112,25 @@ const seedOrders: Order[] = [
     total: 490,
     status: 'Out for delivery',
     createdAt: new Date().toISOString(),
-    address: '12 Mabini St, Quezon City',
+    address: 'Purok 3, Calumpang, General Santos City',
     payment: 'Cash on delivery',
     driverId: DRIVER_ID,
+  },
+  {
+    id: 'ORD-1003',
+    userId: 3,
+    buyerName: 'Juan Cruz',
+    buyerPhone: '+639189998877',
+    items: [{ productId: 'p-tomato', name: 'Salad Tomatoes', price: 85, quantity: 5, image: '/images/tomato.jpg', seller: 'Green Valley Farm', sellerId: 'seller-1', sellerUserId: 2, pickupLocation: 'Polomolok, South Cotabato', unit: 'kg', stock: 120 }],
+    subtotal: 425,
+    shippingFee: 50,
+    pointsEarned: 42,
+    pointsRedeemed: 0,
+    total: 475,
+    status: 'Pending',
+    createdAt: new Date().toISOString(),
+    address: 'Blk 4 Lot 9, Koronadal City, South Cotabato',
+    payment: 'GCash',
   },
 ]
 
@@ -113,10 +160,15 @@ async function readJson<T>(key: string, fallback: T): Promise<T> {
 }
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth()
+  const { user, addRole } = useAuth()
   const [cart, setCart] = useState<CartItem[]>([])
   const [orders, setOrders] = useState<Order[]>(seedOrders)
   const [messages, setMessages] = useState<SmsMessage[]>(seedMessages)
+  const [applications, setApplications] = useState<SellerApplication[]>([])
+  const [approvedSellerIds, setApprovedSellerIds] = useState<number[]>([])
+  const [posts, setPosts] = useState<Post[]>([
+    { id: 'post-1', sellerName: 'Green Valley Farm', productId: 'p-tomato', productName: 'Salad Tomatoes', body: 'Dawn harvest packed in Polomolok. Ice packs for the first 40 kilos.', category: 'Vegetables', createdAt: new Date().toISOString() },
+  ])
   const [hydrated, setHydrated] = useState(false)
   const [loyaltyPoints, setLoyaltyPoints] = useState(40)
 
@@ -129,6 +181,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setMessages(storedSms && storedSms.length ? storedSms : seedMessages)
       const pts = await AsyncStorage.getItem('agrimarket.mobile.loyalty')
       if (pts) setLoyaltyPoints(Number(pts))
+      setApplications(await readJson('agrimarket.mobile.applications', []))
+      setApprovedSellerIds(await readJson('agrimarket.mobile.approvedSellers', []))
       setHydrated(true)
     })()
   }, [])
@@ -153,6 +207,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     AsyncStorage.setItem('agrimarket.mobile.loyalty', String(loyaltyPoints))
   }, [loyaltyPoints, hydrated])
 
+  useEffect(() => {
+    if (!hydrated) return
+    AsyncStorage.setItem('agrimarket.mobile.applications', JSON.stringify(applications))
+  }, [applications, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    AsyncStorage.setItem('agrimarket.mobile.approvedSellers', JSON.stringify(approvedSellerIds))
+  }, [approvedSellerIds, hydrated])
+
+  useEffect(() => {
+    if (user && approvedSellerIds.includes(user.id)) addRole('seller')
+  }, [user, approvedSellerIds, addRole])
+
   const addToCart = (product: Product, quantity = 1) => {
     if (product.stock <= 0) return
     setCart((current) => {
@@ -173,6 +241,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           quantity,
           image: product.image,
           seller: product.seller,
+          sellerId: product.sellerId,
+          sellerUserId: product.sellerUserId,
+          pickupLocation: product.location,
           unit: product.unit,
           stock: product.stock,
         },
@@ -211,11 +282,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       pointsEarned: earned,
       pointsRedeemed: redeemed,
       total: subtotal + Math.max(0, shippingFee - redeemed),
-      status: 'Confirmed',
+      status: 'Pending',
       createdAt: new Date().toISOString(),
       address,
       payment,
-      driverId: DRIVER_ID,
     }
     setOrders((current) => [order, ...current])
     setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
@@ -225,6 +295,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateOrderStatus: StoreContextType['updateOrderStatus'] = (id, status) => {
     setOrders((current) => current.map((order) => (order.id === id ? { ...order, status } : order)))
+  }
+
+  const confirmOrder = (id: string) => {
+    setOrders((current) =>
+      current.map((order) => (order.id === id && order.status === 'Pending' ? { ...order, status: 'Confirmed', driverId: DRIVER_ID } : order))
+    )
+  }
+
+  const markShipped = (id: string) => {
+    setOrders((current) =>
+      current.map((order) => (order.id === id && (order.status === 'Confirmed' || order.status === 'Pending') ? { ...order, status: 'Shipped', driverId: order.driverId || DRIVER_ID } : order))
+    )
+  }
+
+  const submitApplication: StoreContextType['submitApplication'] = (payload) => {
+    if (!user) return
+    const next: SellerApplication = { ...payload, id: `APP-${Date.now()}`, userId: user.id, status: 'Pending' }
+    setApplications((current) => [next, ...current.filter((item) => item.userId !== user.id)])
+  }
+
+  const reviewApplication = (id: string, status: 'Approved' | 'Rejected') => {
+    setApplications((current) => {
+      const target = current.find((item) => item.id === id)
+      if (status === 'Approved' && target) {
+        setApprovedSellerIds((ids) => (ids.includes(target.userId) ? ids : [...ids, target.userId]))
+        if (user && target.userId === user.id) addRole('seller')
+      }
+      return current.map((item) => (item.id === id ? { ...item, status } : item))
+    })
+  }
+
+  const addPost: StoreContextType['addPost'] = (payload) => {
+    setPosts((current) => [
+      {
+        ...payload,
+        id: `post-${Date.now()}`,
+        sellerName: user ? `${user.firstName} ${user.lastName}` : 'Farm stall',
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ])
   }
 
   const sendSms: StoreContextType['sendSms'] = (payload) => {
@@ -252,10 +363,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     clearCart,
     orders,
     messages,
+    posts,
+    applications,
     loyaltyPoints,
     placeOrder,
     updateOrderStatus,
+    confirmOrder,
+    markShipped,
+    submitApplication,
+    reviewApplication,
+    addPost,
     sendSms,
+    myApplication: applications.find((item) => user && item.userId === user.id),
   }
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

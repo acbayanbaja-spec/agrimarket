@@ -9,14 +9,15 @@ const statuses: Order['status'][] = ['Pending', 'Confirmed', 'Shipped', 'Out for
 
 export default function OrdersScreen() {
   const { user, hasRole, isAuthenticated } = useAuth();
-  const { orders, updateOrderStatus, sendSms, messages } = useStore();
+  const { orders, updateOrderStatus, confirmOrder, markShipped, sendSms, messages, applications, reviewApplication } = useStore();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [flash, setFlash] = useState<Record<string, string>>({});
 
   const mine = useMemo(() => {
     if (!user) return [];
     if (hasRole('admin')) return orders;
-    if (hasRole('delivery')) return orders.filter((order) => order.driverId === user.id);
+    if (hasRole('delivery')) return orders.filter((order) => order.driverId === user.id && order.status !== 'Pending');
+    if (hasRole('seller')) return orders.filter((order) => order.items.some((item) => item.sellerUserId === user.id || item.sellerId === 'seller-1'));
     return orders.filter((order) => order.userId === user.id);
   }, [orders, user, hasRole]);
 
@@ -35,7 +36,7 @@ export default function OrdersScreen() {
       phone: order.buyerPhone,
       body,
     });
-    if (order.status === 'Pending' || order.status === 'Confirmed' || order.status === 'Shipped') {
+    if (order.status === 'Confirmed' || order.status === 'Shipped') {
       updateOrderStatus(order.id, 'Out for delivery');
     }
     setFlash((current) => ({ ...current, [order.id]: `SMS ${sent.status} to ${order.buyerPhone}` }));
@@ -52,10 +53,23 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>{hasRole('delivery') ? 'Delivery desk' : 'My orders'}</Text>
+      <Text style={styles.title}>{hasRole('delivery') ? 'Delivery desk' : hasRole('seller') ? 'Seller orders' : 'My orders'}</Text>
       <Text style={styles.subtitle}>
-        {hasRole('delivery') ? 'Update status and SMS buyers with ETAs.' : 'COD, GCash, and live delivery status.'}
+        {hasRole('delivery')
+          ? 'Pick up only after the seller confirms. Then SMS the buyer.'
+          : hasRole('seller')
+            ? 'Confirm first. That notifies the rider with buyer info.'
+            : 'Seller confirms, rider collects, then you get the crate.'}
       </Text>
+      {hasRole('admin') && applications.filter((item) => item.status === 'Pending').map((application) => (
+        <View key={application.id} style={styles.card}>
+          <Text style={styles.orderId}>{application.farmName} · {application.idType}</Text>
+          <Text style={styles.meta}>{application.location} · {application.idNumber}</Text>
+          <Pressable style={styles.smsBtn} onPress={() => reviewApplication(application.id, 'Approved')}>
+            <Text style={styles.smsBtnText}>Approve seller</Text>
+          </Pressable>
+        </View>
+      ))}
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {mine.length === 0 && <Text style={styles.subtitle}>No orders yet.</Text>}
         {mine.map((order) => {
@@ -71,10 +85,20 @@ export default function OrdersScreen() {
                 </Text>
               ))}
               {last && <Text style={styles.sms}>Last SMS: {last.body}</Text>}
+              {hasRole('seller') && order.status === 'Pending' && (
+                <Pressable style={styles.smsBtn} onPress={() => confirmOrder(order.id)}>
+                  <Text style={styles.smsBtnText}>Confirm & notify rider</Text>
+                </Pressable>
+              )}
+              {hasRole('seller') && order.status === 'Confirmed' && (
+                <Pressable style={styles.smsBtn} onPress={() => markShipped(order.id)}>
+                  <Text style={styles.smsBtnText}>Mark shipped · rider collected</Text>
+                </Pressable>
+              )}
               {hasRole('delivery') && (
                 <>
                   <View style={styles.statusRow}>
-                    {statuses.map((status) => (
+                    {statuses.filter((status) => status === 'Out for delivery' || status === 'Delivered').map((status) => (
                       <Pressable
                         key={status}
                         onPress={() => updateOrderStatus(order.id, status)}

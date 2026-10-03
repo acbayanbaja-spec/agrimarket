@@ -13,7 +13,7 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>Profile</Text>
-          <Text style={styles.hint}>Use a demo account to try SMS delivery as a rider or shop as a buyer.</Text>
+          <Text style={styles.hint}>Log in as a buyer or seller to shop SOCCSKSARGEN harvests. Riders wait for confirmed pickups.</Text>
           <TouchableOpacity style={styles.button} onPress={() => router.push('/login')}>
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
@@ -40,6 +40,12 @@ export default function ProfileScreen() {
         <View style={styles.menu}>
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/orders')}>
             <Text style={styles.menuItemText}>My Orders</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/become-seller')}>
+            <Text style={styles.menuItemText}>Become a seller</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/seller')}>
+            <Text style={styles.menuItemText}>Seller desk</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cart')}>
             <Text style={styles.menuItemText}>Cart</Text>

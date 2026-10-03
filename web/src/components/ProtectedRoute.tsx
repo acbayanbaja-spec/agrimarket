@@ -15,10 +15,11 @@ const ProtectedRoute = ({ children, roles }: Props) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
   }
 
   if (roles && !roles.some((role) => hasRole(role))) {
+    if (hasRole('delivery')) return <Navigate to="/delivery" replace />
     return <Navigate to="/profile" replace />
   }
 

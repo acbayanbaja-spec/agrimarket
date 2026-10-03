@@ -48,7 +48,7 @@ const RegisterPage = () => {
     <div className="page-shell max-w-2xl">
       <div className="card">
         <h1 className="text-3xl font-bold mb-2">Create your AgriMarket account</h1>
-        <p className="text-gray-600 mb-6">You’ll start as a buyer. Apply to sell later from your profile.</p>
+        <p className="text-gray-600 mb-6">You’ll start as a buyer in SOCCSKSARGEN. Apply to sell from Profile after you upload a valid ID for admin review.</p>
         {error && <div className="mb-4 rounded-xl bg-red-50 text-red-700 px-4 py-3 text-sm">{error}</div>}
         <form onSubmit={submit} className="grid sm:grid-cols-2 gap-4">
           <div>

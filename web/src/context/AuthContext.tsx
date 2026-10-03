@@ -20,6 +20,7 @@ interface AuthContextType {
   logout: () => void
   updateProfile: (updates: Partial<Pick<User, 'firstName' | 'lastName' | 'phone'>>) => void
   addRole: (role: string) => void
+  grantRole: (userId: number, role: string) => void
   isAuthenticated: boolean
   hasRole: (role: string) => boolean
 }
@@ -81,6 +82,22 @@ function persistSession(user: User, token: string) {
   localStorage.setItem('user', JSON.stringify(user))
 }
 
+function approvedSellerIds(): number[] {
+  try {
+    const raw = localStorage.getItem('agrimarket.approvedSellers')
+    return raw ? (JSON.parse(raw) as number[]) : []
+  } catch {
+    return []
+  }
+}
+
+function withApprovedRoles(next: User): User {
+  if (approvedSellerIds().includes(next.id) && !next.roles.includes('seller')) {
+    return { ...next, roles: [...next.roles, 'seller'] }
+  }
+  return next
+}
+
 function findLocalAccount(email: string, password: string) {
   const all = [...demoAccounts, ...readLocalUsers()]
   return all.find((account) => account.email.toLowerCase() === email.toLowerCase() && account.password === password)
@@ -96,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem('user')
     if (storedToken && storedUser) {
       setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+      setUser(withApprovedRoles(JSON.parse(storedUser) as User))
     }
     setReady(true)
   }, [])
@@ -108,19 +125,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const login = async (email: string, password: string) => {
+    const local = findLocalAccount(email, password)
+    if (local) {
+      const nextUser = withApprovedRoles(normalizeUser(local))
+      setSession(nextUser, `local-${local.id}`)
+      return nextUser
+    }
     try {
       const { data } = await api.post('/auth/login', { email, password })
       const payload = data.data || data
-      const nextUser = normalizeUser(payload.user)
+      const nextUser = withApprovedRoles(normalizeUser(payload.user))
       setSession(nextUser, payload.token)
       return nextUser
     } catch (error) {
-      const local = findLocalAccount(email, password)
-      if (local) {
-        const nextUser = normalizeUser(local)
-        setSession(nextUser, `local-${local.id}`)
-        return nextUser
-      }
       throw new Error(getErrorMessage(error, 'Unable to sign in. Check your email and password.'))
     }
   }
@@ -152,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         roles: ['buyer'],
       }
       writeLocalUsers([...readLocalUsers(), localUser])
-      setSession(normalizeUser(localUser), `local-${localUser.id}`)
+      setSession(withApprovedRoles(normalizeUser(localUser)), `local-${localUser.id}`)
     }
   }
 
@@ -170,11 +187,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(next))
   }
 
+  const persistAccountRoles = (userId: number, roles: string[]) => {
+    const locals = readLocalUsers()
+    if (!locals.some((account) => account.id === userId)) return
+    writeLocalUsers(locals.map((account) => (account.id === userId ? { ...account, roles } : account)))
+  }
+
   const addRole = (role: string) => {
     if (!user || user.roles.includes(role)) return
     const next = { ...user, roles: [...user.roles, role] }
     setUser(next)
     localStorage.setItem('user', JSON.stringify(next))
+    persistAccountRoles(user.id, next.roles)
+  }
+
+  const grantRole = (userId: number, role: string) => {
+    if (user && user.id === userId) {
+      addRole(role)
+      return
+    }
+    const locals = readLocalUsers()
+    const target = locals.find((account) => account.id === userId)
+    if (target && !target.roles.includes(role)) {
+      persistAccountRoles(userId, [...target.roles, role])
+    }
   }
 
   const value = useMemo<AuthContextType>(
@@ -187,6 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       updateProfile,
       addRole,
+      grantRole,
       isAuthenticated: !!user,
       hasRole: (role: string) => user?.roles.includes(role) || false,
     }),

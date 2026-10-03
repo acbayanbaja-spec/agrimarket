@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Truck, Shield, Leaf, Store, Sparkles, Wallet } from 'lucide-react'
+import { ArrowRight, Truck, Shield, Leaf, Store, Wallet, MapPin } from 'lucide-react'
 import { categories } from '../data/catalog'
 import { useStore } from '../context/StoreContext'
 import ProductCard from '../components/ProductCard'
 import ProductImage from '../components/ProductImage'
 import Seo from '../components/Seo'
+import ShopNowLink from '../components/ShopNowLink'
 
 const HomePage = () => {
   const { products, recommended } = useStore()
@@ -14,8 +15,8 @@ const HomePage = () => {
   return (
     <div>
       <Seo
-        title="Fresh harvests from Filipino farms"
-        description="Shop vegetables, fruits, rice, poultry and farm supplies. Pay with GCash or COD, track delivery, trade produce, and follow category posts."
+        title="Fresh harvests from SOCCSKSARGEN farms"
+        description="Shop Region XII harvests. Log in as a buyer or seller, then order. Sellers confirm before riders pick up."
         path="/"
       />
       <section className="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900 text-white">
@@ -24,22 +25,22 @@ const HomePage = () => {
         <div className="absolute left-20 bottom-6 h-24 w-24 rounded-full bg-white/10 blur-xl animate-float" style={{ animationDelay: '1.2s' }} />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm mb-6 animate-fade-up">
-            <Leaf className="h-4 w-4" /> Direct from farms across the Philippines
+            <Leaf className="h-4 w-4" /> Direct from farms across SOCCSKSARGEN
           </p>
           <h1 className="text-4xl md:text-6xl font-bold max-w-3xl leading-tight animate-fade-up" style={{ animationDelay: '80ms' }}>
-            Fresh harvests, honest prices, delivered with care.
+            Fresh harvests, honest prices, delivered across SOCCSKSARGEN.
           </h1>
           <p className="text-lg md:text-xl mt-6 max-w-2xl text-primary-100 animate-fade-up" style={{ animationDelay: '140ms' }}>
-            Shop, trade, and follow farm posts. Pay with GCash or cash on delivery. Riders can SMS you when the crate is on the road.
+            Shop from verified farms in South Cotabato, Cotabato, Sultan Kudarat, Sarangani, and General Santos. Log in as a buyer or seller first — then sellers confirm every crate before a rider picks up.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mt-10 animate-fade-up" style={{ animationDelay: '200ms' }}>
-            <Link to="/marketplace" className="btn-primary bg-white text-primary-800 hover:bg-primary-50">
-              Browse marketplace
+            <ShopNowLink className="btn-primary bg-white text-primary-800 hover:bg-primary-50 min-h-[48px]">
+              Shop Now
+            </ShopNowLink>
+            <Link to="/become-seller" className="btn-outline border-white text-white hover:bg-white/10 min-h-[48px]">
+              Become a seller
             </Link>
-            <Link to="/marketplace?budget=200" className="btn-outline border-white text-white hover:bg-white/10">
-              Shop a ₱200 budget
-            </Link>
-            <Link to="/get-app" className="btn-outline border-white text-white hover:bg-white/10">
+            <Link to="/get-app" className="btn-outline border-white text-white hover:bg-white/10 min-h-[48px]">
               Install on phone
             </Link>
           </div>
@@ -49,10 +50,10 @@ const HomePage = () => {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { icon: Leaf, title: 'Farm-direct', copy: 'Listings from growers, co-ops, and verified aggregators.' },
-            { icon: Truck, title: 'GCash & COD', copy: 'Shipping coupons stack on delivery fees only — Shopee-style.' },
-            { icon: Shield, title: 'Seller KYC', copy: 'Buyers apply with ID, permit, and farm photos before selling.' },
-            { icon: Sparkles, title: 'Harvest points', copy: 'Earn points on every order and spend them on shipping, like Shopee coins — but farm-first.' },
+            { icon: Leaf, title: 'Farm-direct', copy: 'Listings from growers across SOCCSKSARGEN, GPS-pinned to the stall.' },
+            { icon: Truck, title: 'Seller then rider', copy: 'Checkout waits for seller confirm. Riders are pinged only when pickup is ready.' },
+            { icon: Shield, title: 'Seller KYC', copy: 'Buyers apply with passport or valid ID. Admin approves before anyone can list.' },
+            { icon: MapPin, title: 'Region XII only', copy: 'Drop-offs and pickups stay inside South Cotabato, Cotabato, SK, Sarangani, and Gensan.' },
           ].map((item, index) => (
             <div key={item.title} className="card hover:-translate-y-1 transition-transform animate-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
               <div className="h-12 w-12 rounded-2xl bg-primary-50 text-primary-700 grid place-items-center mb-4">
@@ -99,7 +100,7 @@ const HomePage = () => {
               <h2 className="text-3xl font-bold">Recommended for you</h2>
               <p className="text-gray-600 mt-1">Highest ratings weighted by review volume — the harvest people trust.</p>
             </div>
-            <Link to="/marketplace?sort=rating" className="btn-outline">View all</Link>
+            <ShopNowLink className="btn-outline">View all</ShopNowLink>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featured.map((product, index) => (
@@ -116,7 +117,7 @@ const HomePage = () => {
               <h2 className="text-3xl font-bold">This week’s harvest</h2>
               <p className="text-gray-600 mt-1">Live stock, GPS-tagged farms, GCash or cash on delivery.</p>
             </div>
-            <Link to="/marketplace" className="btn-outline">Marketplace</Link>
+            <ShopNowLink className="btn-outline">Marketplace</ShopNowLink>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {harvest.map((product, index) => (
@@ -131,7 +132,7 @@ const HomePage = () => {
           <div>
             <h2 className="text-3xl font-bold mb-2">Sell what you grow</h2>
             <p className="text-primary-100 max-w-xl">
-              Buyers can become sellers after ID, barangay/business permit, farm photos, and admin review. Sellers can still shop as buyers.
+              Buyers can become sellers from Profile → Become a seller. Upload a passport or valid ID, barangay/business permit, and farm photo. Admin reviews the file before you can list.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">

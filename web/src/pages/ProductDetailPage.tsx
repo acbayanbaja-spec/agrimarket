@@ -16,7 +16,7 @@ import Seo from '../components/Seo'
 
 const ProductDetailPage = () => {
   const { id } = useParams()
-  const { products, addReview, reviewsFor, recommended } = useStore()
+  const { products, addReview, reviewsFor, recommended, posts } = useStore()
   const { addItem } = useCart()
   const { toast } = useToast()
   const { isAuthenticated, user } = useAuth()
@@ -42,6 +42,7 @@ const ProductDetailPage = () => {
   const gallery = product.photos?.length ? product.photos : [product.image]
   const out = product.stock <= 0
   const meta = harvestMeta(product)
+  const sellerFeed = posts.filter((post) => post.productId === product.id || (post.sellerName === product.seller && post.category === product.category)).slice(0, 4)
 
   const submitReview = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -92,7 +93,7 @@ const ProductDetailPage = () => {
             <p className="rounded-xl bg-primary-50 px-3 py-2 inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> {meta.freshness}</p>
             <p className="rounded-xl bg-soil-100 px-3 py-2 inline-flex items-center gap-2"><Truck className="h-4 w-4" /> {meta.guarantee}</p>
           </div>
-          <p className="mt-4 text-sm text-gray-500">Sold by {meta.origin} · {product.stock} {product.unit} available</p>
+          <p className="mt-4 text-sm text-gray-500">Sold by <Link className="font-semibold text-primary-700" to={`/marketplace?seller=${encodeURIComponent(product.seller)}`}>{product.seller}</Link> · {product.stock} {product.unit} available · SOCCSKSARGEN</p>
           <a className="mt-3 inline-flex text-sm font-semibold text-primary-700" href={mapsUrl(product.lat, product.lng)} target="_blank" rel="noreferrer">
             Open GPS pin on Google Maps
           </a>
@@ -115,6 +116,22 @@ const ProductDetailPage = () => {
           </p>
         </div>
       </div>
+
+      {sellerFeed.length > 0 && (
+        <div className="card mt-12">
+          <h2 className="text-xl font-semibold mb-4">Seller feed for this harvest</h2>
+          <div className="space-y-4">
+            {sellerFeed.map((post) => (
+              <article key={post.id} className="border-b border-gray-100 pb-4 last:border-0">
+                <p className="font-semibold">{post.sellerName}</p>
+                <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleString()} · {post.category}</p>
+                <p className="text-gray-800 mt-2">{post.body}</p>
+              </article>
+            ))}
+          </div>
+          <Link to="/feed" className="btn-outline mt-4">Open harvest feed</Link>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-8 mt-12">
         <div className="card">

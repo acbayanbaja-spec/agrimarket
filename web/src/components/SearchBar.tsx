@@ -64,7 +64,7 @@ const SearchBar = ({ compact, onSubmitted }: Props) => {
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search harvests or type a budget like 200 pesos"
+          placeholder="Search harvests, sellers, or cities in SOCCSKSARGEN"
           className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none bg-white"
         />
         <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -120,7 +120,7 @@ const SearchBar = ({ compact, onSubmitted }: Props) => {
             })}
           </ul>
           {suggestions.length === 0 && (
-            <p className="px-4 py-3 text-sm text-gray-500">No harvests in that budget yet. Try ₱200 or ₱300.</p>
+            <p className="px-4 py-3 text-sm text-gray-500">No harvests match yet. Try a city or crop name.</p>
           )}
         </div>
       )}

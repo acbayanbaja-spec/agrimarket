@@ -13,8 +13,9 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
+  addRole: (role: string) => void;
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
 }
@@ -79,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     await SecureStore.setItemAsync(TOKEN_KEY, mockToken);
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
+    return nextUser;
   };
 
   const logout = async () => {
@@ -86,6 +88,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_KEY);
+  };
+
+  const addRole = (role: string) => {
+    setUser((current) => {
+      if (!current || current.roles.includes(role)) return current;
+      const next = { ...current, roles: [...current.roles, role] };
+      void SecureStore.setItemAsync(USER_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   const hasRole = (role: string): boolean => {
@@ -97,8 +108,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     token,
     login,
     logout,
+    addRole,
     isAuthenticated: !!user,
-    hasRole,
+    hasRole: (role: string) => user?.roles.includes(role) || false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

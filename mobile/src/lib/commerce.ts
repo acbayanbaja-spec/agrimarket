@@ -40,12 +40,11 @@ export function pointsFromSpend(subtotal: number) {
 }
 
 export function harvestMeta(product: Product) {
-  const near = /laguna|nueva ecija|batangas|pampanga|quezon/i.test(product.location)
   return {
     sold: Math.max(product.reviews * 7, 18),
     originalPrice: Math.round(product.price * 1.18),
     points: Math.max(1, Math.floor(product.price / 10)),
-    eta: near ? 'Arrives tomorrow' : '2–4 days',
+    eta: 'Same-day to next-day inside SOCCSKSARGEN',
     freshness: product.organic ? 'Dawn-picked and cold-packed' : 'Packed the same morning',
     guarantee: 'Freshness guaranteed or harvest points back',
     origin: `${product.seller} · ${product.location}`,

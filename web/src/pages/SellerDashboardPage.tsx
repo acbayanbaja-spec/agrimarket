@@ -1,52 +1,59 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { categories, stockLabel } from '../data/catalog'
+import { soccsksargenPlaces, findPlace } from '../data/locations'
 import { useStore, type Order } from '../context/StoreContext'
 import { fileToDataUrl, formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
-
-const statuses: Order['status'][] = ['Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered']
+import OrderTimeline from '../components/OrderTimeline'
 
 const SellerDashboardPage = () => {
-  const { addProduct, myListings, removeProduct, orders, updateOrderStatus, addPost, updateProductStock, updateProductPrice } = useStore()
+  const { addProduct, myListings, removeProduct, sellerOrders, confirmOrder, markShipped, addPost, updateProductStock, updateProductPrice } = useStore()
   const [form, setForm] = useState({
     name: '',
     category: categories[0].name,
     price: 50,
     unit: 'kg',
     stock: 20,
-    location: '',
+    location: soccsksargenPlaces[0].label,
     image: '/images/farm.jpg',
     description: '',
     organic: false,
     tradeable: true,
-    lat: 14.5995,
-    lng: 120.9842,
+    lat: soccsksargenPlaces[0].lat,
+    lng: soccsksargenPlaces[0].lng,
   })
   const [listed, setListed] = useState(false)
   const [postBody, setPostBody] = useState('')
   const [postCategory, setPostCategory] = useState(categories[0].name)
+  const [postProduct, setPostProduct] = useState('')
 
-  const incoming = orders.filter((order) =>
-    order.items.some((item) => myListings.some((product) => product.id === item.productId))
-  )
+  const incoming = sellerOrders
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    addProduct({
+    const place = findPlace(form.location)
+    const listedProduct = addProduct({
       name: form.name.trim(),
       category: form.category,
       price: Number(form.price),
       unit: form.unit,
       stock: Number(form.stock),
-      location: form.location.trim(),
+      location: form.location,
       image: form.image,
       description: form.description.trim(),
       organic: form.organic,
       tradeable: form.tradeable,
-      lat: Number(form.lat),
-      lng: Number(form.lng),
+      lat: place.lat,
+      lng: place.lng,
+    })
+    addPost({
+      body: `New listing: ${listedProduct.name} from ${listedProduct.location}. ${listedProduct.description.slice(0, 140)}`,
+      category: listedProduct.category,
+      photos: [listedProduct.image],
+      productId: listedProduct.id,
+      productName: listedProduct.name,
     })
     setListed(true)
     setForm((current) => ({ ...current, name: '', description: '' }))
@@ -55,19 +62,19 @@ const SellerDashboardPage = () => {
 
   return (
     <div className="page-shell space-y-8">
-      <Seo title="Seller dashboard" description="List harvests, post to the feed, and fulfill orders." path="/seller-dashboard" />
-      <div>
+      <Seo title="Seller dashboard" description="List harvests, post to the feed, and confirm orders for SOCCSKSARGEN riders." path="/seller-dashboard" />
+      <div className="animate-fade-up">
         <h1 className="text-4xl font-bold">Seller dashboard</h1>
-        <p className="text-gray-600 mt-2">You can still buy as a shopper. List harvests, tag a category, and ping followers.</p>
+        <p className="text-gray-600 mt-2">Confirm a sale first. That pings the rider with buyer info. Mark shipped when the rider collects the crate.</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
         {[
           { label: 'Active listings', value: myListings.length },
           { label: 'Incoming orders', value: incoming.length },
-          { label: 'Pending fulfillment', value: incoming.filter((order) => order.status !== 'Delivered').length },
-        ].map((stat) => (
-          <div key={stat.label} className="card">
+          { label: 'Awaiting your confirm', value: incoming.filter((order) => order.status === 'Pending').length },
+        ].map((stat, index) => (
+          <div key={stat.label} className="card animate-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
             <p className="text-sm text-gray-500">{stat.label}</p>
             <p className="text-3xl font-bold mt-1">{stat.value}</p>
           </div>
@@ -77,7 +84,7 @@ const SellerDashboardPage = () => {
       <div className="grid lg:grid-cols-2 gap-8">
         <form onSubmit={submit} className="card space-y-4">
           <h2 className="text-xl font-semibold">New listing</h2>
-          {listed && <p className="text-sm text-primary-800 bg-primary-50 rounded-xl px-3 py-2">Listing published. Followers of that category are notified.</p>}
+          {listed && <p className="text-sm text-primary-800 bg-primary-50 rounded-xl px-3 py-2">Listing published and posted to the harvest feed.</p>}
           <input required className="input-field" placeholder="Product name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           <select className="input-field" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>
             {categories.map((category) => (
@@ -89,11 +96,19 @@ const SellerDashboardPage = () => {
             <input className="input-field" value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
             <input type="number" min={0} className="input-field" value={form.stock} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) })} />
           </div>
-          <input required className="input-field" placeholder="Farm location" value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} />
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input-field" type="number" step="0.0001" value={form.lat} onChange={(event) => setForm({ ...form, lat: Number(event.target.value) })} />
-            <input className="input-field" type="number" step="0.0001" value={form.lng} onChange={(event) => setForm({ ...form, lng: Number(event.target.value) })} />
-          </div>
+          <select
+            className="input-field"
+            value={form.location}
+            onChange={(event) => {
+              const location = event.target.value
+              const place = findPlace(location)
+              setForm({ ...form, location, lat: place.lat, lng: place.lng })
+            }}
+          >
+            {soccsksargenPlaces.map((place) => (
+              <option key={place.label} value={place.label}>{place.label}</option>
+            ))}
+          </select>
           <input
             type="file"
             accept="image/*"
@@ -111,7 +126,7 @@ const SellerDashboardPage = () => {
             <input type="checkbox" checked={form.tradeable} onChange={(event) => setForm({ ...form, tradeable: event.target.checked })} />
             Open to trade
           </label>
-          <button type="submit" className="btn-primary">Publish listing</button>
+          <button type="submit" className="btn-primary w-full">Publish listing + feed post</button>
         </form>
 
         <div className="space-y-6">
@@ -120,14 +135,27 @@ const SellerDashboardPage = () => {
             onSubmit={(event) => {
               event.preventDefault()
               if (!postBody.trim()) return
-              addPost({ body: postBody.trim(), category: postCategory, photos: [form.image] })
+              const product = myListings.find((item) => item.id === postProduct)
+              addPost({
+                body: postBody.trim(),
+                category: postCategory,
+                photos: [product?.image || form.image],
+                productId: product?.id,
+                productName: product?.name,
+              })
               setPostBody('')
             }}
           >
-            <h2 className="text-xl font-semibold">Post like a feed</h2>
-            <p className="text-sm text-gray-600">Tag a category. Buyers and sellers who follow it get a notification.</p>
+            <h2 className="text-xl font-semibold">Product feed</h2>
+            <p className="text-sm text-gray-600">Posts show on the harvest feed and on the product page buyers open.</p>
             <select className="input-field" value={postCategory} onChange={(event) => setPostCategory(event.target.value)}>
               {categories.map((category) => <option key={category.name}>{category.name}</option>)}
+            </select>
+            <select className="input-field" value={postProduct} onChange={(event) => setPostProduct(event.target.value)}>
+              <option value="">Tag a listing (optional)</option>
+              {myListings.map((product) => (
+                <option key={product.id} value={product.id}>{product.name}</option>
+              ))}
             </select>
             <textarea required rows={3} className="input-field" placeholder="What’s harvesting today?" value={postBody} onChange={(event) => setPostBody(event.target.value)} />
             <button type="submit" className="btn-primary">Share to feed</button>
@@ -145,7 +173,7 @@ const SellerDashboardPage = () => {
                       <ProductImage src={product.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
                       <div>
                         <Link to={`/products/${product.id}`} className="font-semibold hover:text-primary-700">{product.name}</Link>
-                        <p className="text-sm text-gray-500">{formatPeso(product.price)} · {stockLabel(product.stock)}</p>
+                        <p className="text-sm text-gray-500">{formatPeso(product.price)} · {stockLabel(product.stock)} · {product.location}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -164,24 +192,35 @@ const SellerDashboardPage = () => {
       <div className="card">
         <h2 className="text-xl font-semibold mb-4">Orders for your products</h2>
         {incoming.length === 0 ? (
-          <p className="text-gray-600">No orders yet. Share your stall from the marketplace.</p>
+          <p className="text-gray-600">No orders yet. When a buyer checks out, you confirm, then the rider is notified.</p>
         ) : (
-          <div className="space-y-4">
-            {incoming.map((order) => (
-              <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                <div>
-                  <p className="font-semibold">{order.id}</p>
-                  <p className="text-sm text-gray-500">{order.items.map((item) => `${item.name} × ${item.quantity}`).join(', ')}</p>
+          <div className="space-y-6">
+            {incoming.map((order: Order) => (
+              <div key={order.id} className="border-b border-gray-100 pb-5 space-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{order.id} · {order.buyerName}</p>
+                    <p className="text-sm text-gray-500">{order.buyerPhone || 'no mobile'} · {order.address}</p>
+                    <p className="text-sm text-gray-700 mt-1">{order.items.map((item) => `${item.name} × ${item.quantity}`).join(', ')}</p>
+                    <p className="text-sm font-semibold mt-1">{formatPeso(order.total)} · {order.payment}</p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {order.status === 'Pending' && (
+                      <button type="button" className="btn-primary py-2" onClick={() => confirmOrder(order.id)}>
+                        Confirm & notify rider
+                      </button>
+                    )}
+                    {order.status === 'Confirmed' && (
+                      <button type="button" className="btn-primary py-2" onClick={() => markShipped(order.id)}>
+                        Rider collected · mark shipped
+                      </button>
+                    )}
+                    {order.status !== 'Pending' && order.status !== 'Confirmed' && (
+                      <span className="chip bg-primary-50 text-primary-800">{order.status}</span>
+                    )}
+                  </div>
                 </div>
-                <select
-                  className="input-field w-52"
-                  value={order.status}
-                  onChange={(event) => updateOrderStatus(order.id, event.target.value as Order['status'])}
-                >
-                  {statuses.map((status) => (
-                    <option key={status}>{status}</option>
-                  ))}
-                </select>
+                <OrderTimeline status={order.status} />
               </div>
             ))}
           </div>

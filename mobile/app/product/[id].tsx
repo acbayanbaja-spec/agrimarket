@@ -7,10 +7,12 @@ import { useToast } from '../../src/context/ToastContext';
 import { productPhoto } from '../../src/lib/images';
 import { formatPeso, stockLabel } from '../../src/lib/utils';
 import { harvestMeta } from '../../src/lib/commerce';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { products, addToCart } = useStore();
+  const { products, addToCart, posts } = useStore();
+  const { isAuthenticated, hasRole } = useAuth();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const product = products.find((item) => item.id === id);
@@ -25,6 +27,21 @@ export default function ProductDetailScreen() {
 
   const out = product.stock <= 0;
   const meta = harvestMeta(product);
+  const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'));
+  const sellerFeed = posts.filter((post) => post.productId === product.id || post.sellerName === product.seller);
+
+  if (!canShop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.body}>
+          <Text style={styles.title}>Log in to view this harvest</Text>
+          <Pressable style={styles.add} onPress={() => router.replace('/login')}>
+            <Text style={styles.addText}>Log in</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,7 +51,7 @@ export default function ProductDetailScreen() {
           <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back</Text></Pressable>
           <Text style={styles.category}>{product.category} · {stockLabel(product.stock)}</Text>
           <Text style={styles.title}>{product.name}</Text>
-          <Text style={styles.meta}>{meta.origin} · {meta.sold}+ sold</Text>
+          <Text style={styles.meta}>{product.seller} · {product.location} · {meta.sold}+ sold</Text>
           <Text style={styles.price}>{formatPeso(product.price)} / {product.unit}</Text>
           <Text style={styles.was}>{formatPeso(meta.originalPrice)}</Text>
           <Text style={styles.copy}>{product.description}</Text>
@@ -58,6 +75,12 @@ export default function ProductDetailScreen() {
           >
             <Text style={styles.addText}>{out ? 'Sold out' : `Confirm add · ${formatPeso(product.price * quantity)}`}</Text>
           </Pressable>
+          {sellerFeed.map((post) => (
+            <View key={post.id} style={{ marginTop: 16 }}>
+              <Text style={{ fontWeight: '800', color: '#14532d' }}>Seller feed</Text>
+              <Text style={{ color: '#374151', marginTop: 6 }}>{post.body}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

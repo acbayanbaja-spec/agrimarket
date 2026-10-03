@@ -24,6 +24,8 @@ export default function RootLayout() {
               <Stack.Screen name="cart" options={{ title: 'Cart' }} />
               <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
               <Stack.Screen name="login" options={{ title: 'Login' }} />
+              <Stack.Screen name="become-seller" options={{ title: 'Become a seller' }} />
+              <Stack.Screen name="seller" options={{ title: 'Seller desk' }} />
             </Stack>
             <StatusBar style="auto" />
               </CartSheetProvider>

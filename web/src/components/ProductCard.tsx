@@ -48,7 +48,8 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
             <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-1 rounded-full">Organic</span>
           )}
         </div>
-        <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
+          <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
+        <p className="text-xs font-semibold text-primary-800">{product.seller}</p>
         <div className="flex items-center gap-3 text-sm text-gray-500">
           <span className="inline-flex items-center gap-1">
             <Star className="h-4 w-4 fill-secondary-400 text-secondary-400" />

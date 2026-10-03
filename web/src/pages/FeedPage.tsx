@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { categories } from '../data/catalog'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
@@ -42,6 +43,11 @@ const FeedPage = () => {
             </div>
             <p className="text-gray-800 leading-relaxed">{post.body}</p>
             {post.photos[0] && <ProductImage src={post.photos[0]} alt="" className="mt-4 w-full h-56 object-cover rounded-2xl" />}
+            {post.productId && (
+              <Link to={`/products/${post.productId}`} className="inline-flex mt-3 text-sm font-semibold text-primary-700">
+                Shop {post.productName || 'this harvest'}
+              </Link>
+            )}
           </article>
         ))}
       </div>
