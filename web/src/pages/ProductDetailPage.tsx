@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { MapPin, Star, Truck, Repeat, Coins, ShieldCheck, Clock } from 'lucide-react'
+import { MapPin, Star, Truck, Repeat, Coins, ShieldCheck, Clock, Heart, Zap } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
@@ -12,14 +12,15 @@ import { harvestMeta } from '../lib/commerce'
 import ProductCard from '../components/ProductCard'
 import ProductImage from '../components/ProductImage'
 import QuantityStepper from '../components/QuantityStepper'
+import ProductReviewsSection from '../components/ProductReviewsSection'
 import Seo from '../components/Seo'
 
 const ProductDetailPage = () => {
   const { id } = useParams()
-  const { products, addReview, reviewsFor, recommended, posts } = useStore()
+  const { products, addReview, reviewsFor, recommended, posts, toggleWishlist, isWishlisted } = useStore()
   const { addItem } = useCart()
   const { toast } = useToast()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, hasRole } = useAuth()
   const [quantity, setQuantity] = useState(1)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [rating, setRating] = useState(5)
@@ -109,7 +110,24 @@ const ProductDetailPage = () => {
             <button type="button" className="btn-primary" disabled={out} onClick={addToCart}>
               {out ? 'Out of stock' : `Confirm add · ${formatPeso(product.price * quantity)}`}
             </button>
-            {product.tradeable && <Link to={`/trades?want=${product.id}`} className="btn-outline">Offer a trade</Link>}
+            <button
+              type="button"
+              onClick={() => toggleWishlist(product.id)}
+              className={`p-3 rounded-2xl border transition-all ${
+                isWishlisted(product.id)
+                  ? 'bg-rose-50 border-rose-300 text-rose-600 scale-105 shadow-sm'
+                  : 'bg-white border-gray-200 text-gray-500 hover:text-rose-600 hover:border-rose-200'
+              }`}
+              title="Add to Wishlist"
+            >
+              <Heart className={`h-5 w-5 ${isWishlisted(product.id) ? 'fill-rose-500' : ''}`} />
+            </button>
+            {/* Offer a trade is hidden from admin and delivery roles */}
+            {product.tradeable && !hasRole('admin') && !hasRole('delivery') && (
+              <Link to={`/trades?want=${product.id}`} className="btn-outline">
+                Offer a trade
+              </Link>
+            )}
           </div>
           <p className="mt-6 inline-flex items-center gap-2 text-sm text-gray-600">
             <Truck className="h-4 w-4" /> GCash or COD · harvest points apply to shipping at checkout
@@ -133,52 +151,26 @@ const ProductDetailPage = () => {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-8 mt-12">
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Price monitoring</h2>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={product.priceHistory}>
-                <XAxis dataKey="date" hide />
-                <YAxis hide />
-                <Tooltip formatter={(value) => formatPeso(Number(value))} />
-                <Line type="monotone" dataKey="price" stroke="#16a34a" strokeWidth={3} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Buyer feedback</h2>
-          {feedback.length === 0 ? <p className="text-gray-600 text-sm">Be the first to review with a photo.</p> : (
-            <div className="space-y-4 max-h-56 overflow-y-auto">
-              {feedback.map((review) => (
-                <article key={review.id}>
-                  <p className="font-semibold">{review.userName} · {review.rating}★</p>
-                  <p className="text-sm text-gray-700">{review.comment}</p>
-                  {review.photos[0] && <ProductImage src={review.photos[0]} alt="" className="h-16 w-16 rounded-lg object-cover mt-2" />}
-                </article>
-              ))}
-            </div>
-          )}
-          {isAuthenticated ? (
-            <form onSubmit={submitReview} className="mt-4 space-y-3">
-              <select className="input-field" value={rating} onChange={(event) => setRating(Number(event.target.value))}>
-                {[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} stars</option>)}
-              </select>
-              <textarea required rows={3} className="input-field" placeholder={`How was the ${product.name}, ${user?.firstName}?`} value={comment} onChange={(event) => setComment(event.target.value)} />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={async (event) => {
-                  const file = event.target.files?.[0]
-                  if (file) setPhotos([await fileToDataUrl(file)])
-                }}
-              />
-              <button type="submit" className="btn-primary">Post review</button>
-            </form>
-          ) : (
-            <Link to="/login" className="btn-outline mt-4">Log in to review</Link>
-          )}
+      {/* Shopee & Lazada Style Customer Reviews Section */}
+      <div className="mt-12">
+        <ProductReviewsSection
+          productId={product.id}
+          rating={product.rating}
+          reviewCount={product.reviews}
+        />
+      </div>
+
+      <div className="card mt-12">
+        <h2 className="text-xl font-semibold mb-4">Price monitoring (Historical Regional Pricing)</h2>
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={product.priceHistory}>
+              <XAxis dataKey="date" />
+              <YAxis tickFormatter={(v) => `₱${v}`} />
+              <Tooltip formatter={(value) => formatPeso(Number(value))} />
+              <Line type="monotone" dataKey="price" stroke="#16a34a" strokeWidth={3} dot={{ r: 4, fill: '#16a34a' }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

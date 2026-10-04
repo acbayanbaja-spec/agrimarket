@@ -49,8 +49,8 @@ const MarketplacePage = () => {
       const matchesSeller = !seller || product.seller === seller
       const matchesStock =
         availability === 'all' ||
-        (availability === 'in' && product.stock > 20) ||
-        (availability === 'low' && product.stock > 0 && product.stock <= 20) ||
+        (availability === 'in' && product.stock > 0) ||
+        (availability === 'low' && product.stock > 0 && product.stock <= 10) ||
         (availability === 'out' && product.stock <= 0)
       const matchesLocation = !locationFilter || product.location === locationFilter
       const matchesBudget = !budget || product.price <= budget

@@ -170,6 +170,15 @@ type StoreContextType = {
   recommended: Product[]
   budgetPicks: (budget: number) => Product[]
   loyaltyPoints: number
+  wishlist: string[]
+  toggleWishlist: (productId: string) => void
+  isWishlisted: (productId: string) => boolean
+  claimedVouchers: string[]
+  claimVoucher: (code: string) => boolean
+  checkInDaily: () => { success: boolean; pointsAdded: number; streak: number }
+  streakDays: number
+  lastCheckInDate: string | null
+  syncStatus: 'online' | 'syncing' | 'offline'
   salesSeries: { label: string; daily: number; monthly: number; yearly: number }[]
   categorySales: { name: string; value: number }[]
 }
@@ -327,6 +336,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [messages, setMessages] = useState<SmsMessage[]>([])
   const [followedCategories, setFollowedCategories] = useState<string[]>(['Vegetables', 'Fruits'])
   const [loyaltyPoints, setLoyaltyPoints] = useState(0)
+  const [wishlist, setWishlist] = useState<string[]>([])
+  const [claimedVouchers, setClaimedVouchers] = useState<string[]>(['FREESHIP', 'NEWBUYER50'])
+  const [streakDays, setStreakDays] = useState(1)
+  const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(null)
+  const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online')
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -341,6 +355,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setReviews(readJson('agrimarket.reviews', seedReviews))
     setPosts(readJson('agrimarket.posts', seedPosts))
     setTrades(readJson('agrimarket.trades', []))
+    setWishlist(readJson('agrimarket.wishlist', ['p-mango', 'p-tomato']))
+    setClaimedVouchers(readJson('agrimarket.claimedVouchers', ['FREESHIP', 'NEWBUYER50', 'SHIP50']))
+    setStreakDays(readJson('agrimarket.streakDays', 1))
+    setLastCheckInDate(readJson('agrimarket.lastCheckInDate', null))
     const storedNotices = readJson<Array<AppNotification & { read?: boolean }>>('agrimarket.notifications', [
       {
         id: 'n-welcome',
@@ -375,6 +393,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     ]))
     setFollowedCategories(readJson('agrimarket.follows', ['Vegetables', 'Fruits']))
     setHydrated(true)
+
+    // Hydrate backend products so products added by any seller sync across devices & buyers
+    api.get<{ success?: boolean; data?: { products: Product[] }; products?: Product[] }>('/products')
+      .then((res) => {
+        const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
+        if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+          setExtraProducts((current) => {
+            const customRemote = remoteProducts.filter(
+              (p) => !catalogProducts.some((c) => c.id === p.id)
+            )
+            const map = new Map<string, Product>()
+            current.forEach((p) => map.set(p.id, p))
+            customRemote.forEach((p) => map.set(p.id, p))
+            return Array.from(map.values())
+          })
+        }
+      })
+      .catch(() => undefined)
   }, [])
 
   useEffect(() => {
@@ -429,6 +465,50 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!hydrated) return
     localStorage.setItem('agrimarket.follows', JSON.stringify(followedCategories))
   }, [followedCategories, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem('agrimarket.wishlist', JSON.stringify(wishlist))
+  }, [wishlist, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem('agrimarket.claimedVouchers', JSON.stringify(claimedVouchers))
+  }, [claimedVouchers, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem('agrimarket.streakDays', JSON.stringify(streakDays))
+    localStorage.setItem('agrimarket.lastCheckInDate', JSON.stringify(lastCheckInDate))
+  }, [streakDays, lastCheckInDate, hydrated])
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || !event.newValue) return
+      try {
+        if (event.key === 'agrimarket.extraProducts') setExtraProducts(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.stock') setStockOverrides(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.prices') setPriceOverrides(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.orders') setOrders(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.wishlist') setWishlist(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.notifications') setNotifications(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.claimedVouchers') setClaimedVouchers(JSON.parse(event.newValue))
+        if (event.key === 'agrimarket.sms') setMessages(JSON.parse(event.newValue))
+      } catch (err) {
+        console.error('Storage sync error:', err)
+      }
+    }
+    const handleOnline = () => setSyncStatus('online')
+    const handleOffline = () => setSyncStatus('offline')
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   useEffect(() => {
     if (user && approvedSellerIds.includes(user.id)) addRole('seller')
@@ -511,6 +591,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       lng: product.lng || 124.8436,
     }
     setExtraProducts((current) => [next, ...current])
+    void api.post('/products', next).catch((err) => {
+      console.warn('Backend product listing sync notice:', err)
+    })
     notify({
       userId: 'all',
       title: `${next.category} listing just dropped`,
@@ -521,22 +604,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const updateProductStock = (id: string, stock: number) => {
-    setStockOverrides((current) => ({ ...current, [id]: Math.max(0, stock) }))
+    const nextStock = Math.max(0, stock)
+    setStockOverrides((current) => ({ ...current, [id]: nextStock }))
+    void api.put(`/products/${id}`, { stock: nextStock }).catch(() => undefined)
   }
 
   const updateProductPrice = (id: string, price: number) => {
-    setPriceOverrides((current) => ({ ...current, [id]: Math.max(1, price) }))
+    const nextPrice = Math.max(1, price)
+    setPriceOverrides((current) => ({ ...current, [id]: nextPrice }))
     setExtraProducts((current) =>
       current.map((product) =>
         product.id === id
           ? {
               ...product,
-              price,
-              priceHistory: [...product.priceHistory, { date: new Date().toISOString().slice(0, 10), price }],
+              price: nextPrice,
+              priceHistory: [...product.priceHistory, { date: new Date().toISOString().slice(0, 10), price: nextPrice }],
             }
           : product
       )
     )
+    void api.put(`/products/${id}`, { price: nextPrice }).catch(() => undefined)
   }
 
   const removeProduct = (id: string) => {
@@ -544,6 +631,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (catalogProducts.some((product) => product.id === id)) {
       setHiddenIds((current) => [...current, id])
     }
+    void api.delete(`/products/${id}`).catch(() => undefined)
   }
 
   const placeOrder: StoreContextType['placeOrder'] = (order) => {
@@ -788,14 +876,70 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTrades((current) => current.map((trade) => (trade.id === id ? { ...trade, status } : trade)))
   }
 
+  const toggleWishlist = (productId: string) => {
+    setWishlist((current) => {
+      const exists = current.includes(productId)
+      const next = exists ? current.filter((id) => id !== productId) : [...current, productId]
+      notify({
+        userId: user?.id || 'all',
+        title: exists ? 'Removed from Wishlist' : 'Added to Wishlist ❤️',
+        message: exists ? 'Product removed from your saved items.' : 'Saved to your wishlist! View it anytime from Shop or Profile.',
+        href: `/products/${productId}`,
+      })
+      return next
+    })
+  }
+
+  const isWishlisted = (productId: string) => wishlist.includes(productId)
+
+  const claimVoucher = (code: string) => {
+    if (claimedVouchers.includes(code)) return false
+    setClaimedVouchers((current) => [...current, code])
+    notify({
+      userId: user?.id || 'all',
+      title: 'Voucher Claimed! 🎟️',
+      message: `Voucher "${code}" is now ready in your wallet. Apply it during checkout!`,
+      href: '/cart',
+    })
+    return true
+  }
+
+  const checkInDaily = () => {
+    const today = new Date().toISOString().slice(0, 10)
+    if (lastCheckInDate === today) {
+      return { success: false, pointsAdded: 0, streak: streakDays }
+    }
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const newStreak = lastCheckInDate === yesterday ? (streakDays % 7) + 1 : 1
+    const pointsMap = [5, 10, 15, 20, 25, 30, 50]
+    const pointsAdded = pointsMap[newStreak - 1] || 10
+    setStreakDays(newStreak)
+    setLastCheckInDate(today)
+    setLoyaltyPoints((current) => current + pointsAdded)
+    notify({
+      userId: user?.id || 'all',
+      title: `Day ${newStreak} Check-in Complete! 🎉`,
+      message: `You earned +${pointsAdded} AgriCoins! Use them as cash discounts at checkout.`,
+      href: '/profile',
+    })
+    return { success: true, pointsAdded, streak: newStreak }
+  }
+
   const applyCoupon: StoreContextType['applyCoupon'] = (code, shippingFee, subtotal) => {
     const coupon = shippingCoupons.find((item) => item.code.toLowerCase() === code.trim().toLowerCase())
-    if (!coupon) return { ok: false, message: 'Coupon not found.', discount: 0 }
+    if (!coupon) return { ok: false, message: 'Voucher code not found.', discount: 0 }
     if (subtotal < coupon.minOrder) {
       return { ok: false, message: `Spend at least ₱${coupon.minOrder} to use ${coupon.code}.`, discount: 0 }
     }
-    const discount = coupon.type === 'percent' ? shippingFee * (coupon.value / 100) : Math.min(coupon.value, shippingFee)
-    return { ok: true, message: `${coupon.code} applied to shipping only.`, discount, code: coupon.code }
+    let discount = 0
+    if (coupon.code === 'FREESHIP') {
+      discount = shippingFee
+    } else if (coupon.type === 'percent') {
+      discount = Math.round((subtotal * coupon.value) / 100)
+    } else {
+      discount = coupon.value
+    }
+    return { ok: true, message: `${coupon.code} applied! Saved ₱${discount}.`, discount, code: coupon.code }
   }
 
   const sendSms: StoreContextType['sendSms'] = (payload) => {
@@ -932,10 +1076,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       recommended,
       budgetPicks,
       loyaltyPoints,
+      wishlist,
+      toggleWishlist,
+      isWishlisted,
+      claimedVouchers,
+      claimVoucher,
+      checkInDaily,
+      streakDays,
+      lastCheckInDate,
+      syncStatus,
       salesSeries,
       categorySales,
     }),
-    [products, orders, applications, reviews, posts, trades, visibleNotifications, messages, followedCategories, user, myListings, sellerOrders, unreadCount, recommended, salesSeries, categorySales, loyaltyPoints]
+    [
+      products,
+      orders,
+      applications,
+      reviews,
+      posts,
+      trades,
+      visibleNotifications,
+      messages,
+      followedCategories,
+      user,
+      myListings,
+      sellerOrders,
+      unreadCount,
+      recommended,
+      salesSeries,
+      categorySales,
+      loyaltyPoints,
+      wishlist,
+      claimedVouchers,
+      streakDays,
+      lastCheckInDate,
+      syncStatus,
+    ]
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

@@ -29,9 +29,17 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow all origins (mobile apps, local network, different ports, deployed domains)
+    callback(null, true);
+  },
+  credentials: true,
+};
+
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: config.corsOrigin,
+    origin: true,
     credentials: true,
   },
 });
@@ -40,12 +48,9 @@ const io = new SocketIOServer(httpServer, {
 initSocket(io);
 
 // Middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(compression());
-app.use(cors({
-  origin: config.corsOrigin,
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

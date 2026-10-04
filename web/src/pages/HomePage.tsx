@@ -1,49 +1,164 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Truck, Shield, Leaf, Store, Wallet, MapPin } from 'lucide-react'
+import { ArrowRight, Truck, Shield, Leaf, Store, Wallet, MapPin, Zap, Ticket, Coins, Smartphone, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react'
 import { categories } from '../data/catalog'
 import { useStore } from '../context/StoreContext'
 import ProductCard from '../components/ProductCard'
 import ProductImage from '../components/ProductImage'
 import Seo from '../components/Seo'
 import ShopNowLink from '../components/ShopNowLink'
+import FlashDealsSection from '../components/FlashDealsSection'
+import DownloadAppModal from '../components/DownloadAppModal'
+import VoucherCenterModal from '../components/VoucherCenterModal'
+import DailyCoinsCheckIn from '../components/DailyCoinsCheckIn'
 
 const HomePage = () => {
-  const { products, recommended } = useStore()
+  const { products, recommended, loyaltyPoints } = useStore()
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false)
+  const [isVoucherOpen, setIsVoucherOpen] = useState(false)
+  const [isCoinsOpen, setIsCoinsOpen] = useState(false)
+
   const featured = recommended.slice(0, 4)
   const harvest = products.filter((product) => product.stock > 0).slice(0, 4)
 
+  // Quick Feature & Category bubbles (Shopee circular strip)
+  const quickBubbles = [
+    { label: 'Flash Deals', icon: Zap, tone: 'bg-rose-500 text-white', to: '/marketplace', badge: 'HOT' },
+    { label: 'Free Delivery', icon: Truck, tone: 'bg-emerald-600 text-white', action: () => setIsVoucherOpen(true), badge: '₱0' },
+    { label: 'Daily Coins', icon: Coins, tone: 'bg-amber-500 text-white', action: () => setIsCoinsOpen(true), badge: `${loyaltyPoints}pts` },
+    { label: 'Vouchers', icon: Ticket, tone: 'bg-orange-500 text-white', action: () => setIsVoucherOpen(true) },
+    { label: 'Vegetables', icon: Leaf, tone: 'bg-green-600 text-white', to: '/marketplace?category=Vegetables' },
+    { label: 'Fresh Fruits', icon: Sparkles, tone: 'bg-yellow-500 text-white', to: '/marketplace?category=Fruits' },
+    { label: 'Rice & Grains', icon: Store, tone: 'bg-soil-700 text-white', to: '/marketplace?category=Rice%20%26%20Grains' },
+    { label: 'Mobile App', icon: Smartphone, tone: 'bg-primary-700 text-white', action: () => setIsDownloadOpen(true), badge: 'SYNC' },
+  ]
+
   return (
-    <div>
+    <div className="space-y-6">
       <Seo
         title="Fresh harvests from SOCCSKSARGEN farms"
         description="Shop Region XII harvests. Log in as a buyer or seller, then order. Sellers confirm before riders pick up."
         path="/"
       />
+
+      {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900 text-white">
         <div className="absolute inset-0 opacity-25 bg-[url('/images/hero.jpg')] bg-cover bg-center" />
         <div className="absolute -right-10 top-10 h-40 w-40 rounded-full bg-secondary-400/30 blur-2xl animate-float" />
         <div className="absolute left-20 bottom-6 h-24 w-24 rounded-full bg-white/10 blur-xl animate-float" style={{ animationDelay: '1.2s' }} />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm mb-6 animate-fade-up">
-            <Leaf className="h-4 w-4" /> Direct from farms across SOCCSKSARGEN
-          </p>
-          <h1 className="text-4xl md:text-6xl font-bold max-w-3xl leading-tight animate-fade-up" style={{ animationDelay: '80ms' }}>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md px-3.5 py-1 text-xs sm:text-sm mb-6 border border-white/20 animate-fade-up">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <Leaf className="h-4 w-4 text-emerald-300" />
+            <span>Direct from certified farms across SOCCSKSARGEN</span>
+          </div>
+
+          <h1 className="text-4xl md:text-6xl font-bold font-display max-w-3xl leading-tight animate-fade-up" style={{ animationDelay: '80ms' }}>
             Fresh harvests, honest prices, delivered across SOCCSKSARGEN.
           </h1>
-          <p className="text-lg md:text-xl mt-6 max-w-2xl text-primary-100 animate-fade-up" style={{ animationDelay: '140ms' }}>
+          <p className="text-base md:text-lg mt-5 max-w-2xl text-primary-100 animate-fade-up" style={{ animationDelay: '140ms' }}>
             Shop from verified farms in South Cotabato, Cotabato, Sultan Kudarat, Sarangani, and General Santos. Log in as a buyer or seller first — then sellers confirm every crate before a rider picks up.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-10 animate-fade-up" style={{ animationDelay: '200ms' }}>
-            <ShopNowLink className="btn-primary bg-white text-primary-800 hover:bg-primary-50 min-h-[48px]">
+
+          <div className="flex flex-wrap gap-3.5 mt-8 animate-fade-up" style={{ animationDelay: '200ms' }}>
+            <ShopNowLink className="btn-primary bg-white text-primary-800 hover:bg-primary-50 min-h-[46px] px-6 text-sm font-bold shadow-lg">
               Shop Now
             </ShopNowLink>
-            <Link to="/become-seller" className="btn-outline border-white text-white hover:bg-white/10 min-h-[48px]">
-              Become a seller
-            </Link>
-            <Link to="/get-app" className="btn-outline border-white text-white hover:bg-white/10 min-h-[48px]">
-              Install on phone
-            </Link>
+
+            <button
+              type="button"
+              onClick={() => setIsDownloadOpen(true)}
+              className="btn-primary bg-gradient-to-r from-emerald-500 to-primary-600 hover:from-emerald-600 hover:to-primary-700 text-white min-h-[46px] px-5 text-sm font-bold shadow-lg inline-flex items-center gap-2"
+            >
+              <Smartphone className="h-4 w-4" /> Download Mobile App
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsVoucherOpen(true)}
+              className="btn-outline border-white text-white hover:bg-white/10 min-h-[46px] px-5 text-sm font-semibold inline-flex items-center gap-1.5"
+            >
+              <Ticket className="h-4 w-4 text-yellow-300" /> Claim Vouchers
+            </button>
           </div>
+        </div>
+      </section>
+
+      {/* Shopee Style Circular Quick Icons Strip */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 relative z-20">
+        <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-soft border border-gray-100">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-4 text-center">
+            {quickBubbles.map((bubble) => {
+              const Icon = bubble.icon
+              const content = (
+                <div className="flex flex-col items-center group cursor-pointer">
+                  <div className="relative mb-2">
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${bubble.tone} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    {bubble.badge && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full shadow-sm animate-pop uppercase">
+                        {bubble.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] sm:text-xs font-bold text-gray-800 group-hover:text-primary-700 transition-colors line-clamp-1">
+                    {bubble.label}
+                  </span>
+                </div>
+              )
+
+              if (bubble.to) {
+                return (
+                  <Link key={bubble.label} to={bubble.to}>
+                    {content}
+                  </Link>
+                )
+              }
+
+              return (
+                <button key={bubble.label} type="button" onClick={bubble.action}>
+                  {content}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Shopee Style Live Flash Deals Section */}
+      <FlashDealsSection />
+
+      {/* Voucher Teaser Banner */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          onClick={() => setIsVoucherOpen(true)}
+          className="bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500 rounded-3xl p-4 sm:p-5 text-white flex flex-wrap items-center justify-between gap-4 cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-[1.01]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
+              <Ticket className="h-6 w-6 text-yellow-200 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-base sm:text-lg">Shopee & Lazada Style Voucher Center</span>
+                <span className="bg-yellow-400 text-orange-950 font-black text-[10px] px-2 py-0.5 rounded-full uppercase">
+                  Collect Now
+                </span>
+              </div>
+              <p className="text-xs text-orange-100 mt-0.5">
+                Up to ₱100 OFF Fresh Harvests & 100% Free Shipping inside SOCCSKSARGEN.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn-primary bg-white text-orange-800 hover:bg-orange-50 text-xs py-2 px-4 rounded-xl font-bold shadow-sm inline-flex items-center gap-1 shrink-0"
+          >
+            <span>Open Voucher Wallet</span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
       </section>
 
@@ -145,6 +260,11 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Modals */}
+      <DownloadAppModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} />
+      <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />
+      <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />
     </div>
   )
 }

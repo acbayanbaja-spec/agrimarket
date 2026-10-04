@@ -358,8 +358,22 @@ export const sellers = [
   { id: 'seller-9', name: 'Surallah Dairy', location: 'Surallah, South Cotabato', products: 1, rating: 4.7, sellerUserId: 19 },
 ]
 
-export const shippingCoupons = [
-  { code: 'SHIP50', description: '₱50 off shipping inside SOCCSKSARGEN', type: 'fixed' as const, value: 50, minOrder: 0 },
-  { code: 'FREESHIP', description: 'Free shipping on ₱300+', type: 'percent' as const, value: 100, minOrder: 300 },
-  { code: 'HARVEST20', description: '₱20 shipping discount', type: 'fixed' as const, value: 20, minOrder: 150 },
+export type Coupon = {
+  code: string
+  description: string
+  type: 'fixed' | 'percent'
+  value: number
+  minOrder: number
+  category?: string
+  expires?: string
+  badge?: string
+}
+
+export const shippingCoupons: Coupon[] = [
+  { code: 'FREESHIP', description: '100% Free Shipping across SOCCSKSARGEN (₱300+ order)', type: 'percent', value: 100, minOrder: 300, badge: 'FREE SHIPPING' },
+  { code: 'SHIP50', description: '₱50 off delivery fee inside SOCCSKSARGEN', type: 'fixed', value: 50, minOrder: 0, badge: '₱50 OFF' },
+  { code: 'HARVEST100', description: '₱100 off bulk fresh harvest orders (₱600+ order)', type: 'fixed', value: 100, minOrder: 600, badge: '₱100 OFF' },
+  { code: 'NEWBUYER50', description: '₱50 Welcome voucher for new AgriMarket buyers', type: 'fixed', value: 50, minOrder: 200, badge: 'WELCOME' },
+  { code: 'SOCCSK15', description: '15% off regional agricultural specialties (₱400+ order)', type: 'percent', value: 15, minOrder: 400, badge: '15% OFF' },
+  { code: 'FLASH25', description: '⚡ Flash Deal special discount for fast checkouts', type: 'percent', value: 25, minOrder: 150, badge: 'FLASH SALE' },
 ]

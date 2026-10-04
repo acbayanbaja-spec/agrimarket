@@ -3,10 +3,10 @@ import { config } from '../config';
 
 export const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
+  max: Math.max(config.rateLimit.maxRequests, 10000), // Generous ceiling for multiple concurrent users
   message: {
     success: false,
-    message: 'Too many requests from this IP, please try again later',
+    message: 'Too many requests, please slow down',
     data: null,
     errorCode: 'RATE_LIMIT_EXCEEDED',
   },
@@ -16,10 +16,10 @@ export const apiLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts
+  max: 200, // Generous limit so shared Wi-Fi / classroom / multiple users don't get locked out
   message: {
     success: false,
-    message: 'Too many authentication attempts, please try again later',
+    message: 'Too many authentication attempts, please try again in a few moments',
     data: null,
     errorCode: 'AUTH_RATE_LIMIT_EXCEEDED',
   },

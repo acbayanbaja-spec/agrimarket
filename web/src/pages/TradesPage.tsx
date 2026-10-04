@@ -34,6 +34,14 @@ const TradesPage = () => {
   return (
     <div className="page-shell grid lg:grid-cols-2 gap-8">
       <Seo title="Trade board" description="Swap harvests with other farms. Tradable listings only." path="/trades" />
+      {/* Notice when viewed by admin or delivery */}
+      {(hasRole('admin') || hasRole('delivery')) && (
+        <div className="lg:col-span-2 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex items-center justify-between">
+          <p>
+            <strong>Note for Admin & Delivery:</strong> The Trade Board is strictly an optional barter exchange between local growers. Admin oversight and delivery logistics do not dispatch or accept trade offers.
+          </p>
+        </div>
+      )}
       <div>
         <h1 className="text-4xl font-bold mb-2">Trade board</h1>
         <p className="text-gray-600 mb-6">Swap crates instead of cash when both listings are marked tradable.</p>
@@ -47,7 +55,7 @@ const TradesPage = () => {
             {tradable.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.seller}</option>)}
           </select>
           <textarea className="input-field" rows={3} value={note} onChange={(event) => setNote(event.target.value)} />
-          <button type="submit" className="btn-primary" disabled={!isAuthenticated}>Send trade offer</button>
+          <button type="submit" className="btn-primary" disabled={!isAuthenticated || hasRole('admin') || hasRole('delivery')}>Send trade offer</button>
         </form>
       </div>
       <div className="space-y-4">
@@ -59,7 +67,7 @@ const TradesPage = () => {
             </div>
             <p className="text-sm text-gray-600 mt-2">{trade.note}</p>
             <p className="text-xs mt-2 font-semibold">{trade.status}</p>
-            {trade.status === 'Open' && (hasRole('seller') || hasRole('admin')) && (
+            {trade.status === 'Open' && hasRole('seller') && !hasRole('admin') && !hasRole('delivery') && (
               <div className="flex gap-2 mt-3">
                 <button type="button" className="btn-primary py-2" onClick={() => respondTrade(trade.id, 'Accepted')}>Accept</button>
                 <button type="button" className="btn-outline py-2" onClick={() => respondTrade(trade.id, 'Declined')}>Decline</button>

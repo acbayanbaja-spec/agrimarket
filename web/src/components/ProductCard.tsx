@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
-import { MapPin, Star, Repeat, Coins } from 'lucide-react'
+import { MapPin, Star, Repeat, Coins, Heart, Zap, Truck } from 'lucide-react'
 import type { Product } from '../data/catalog'
 import { formatPeso } from '../lib/utils'
 import { stockLabel, stockTone } from '../data/catalog'
 import { harvestMeta } from '../lib/commerce'
 import { useCartSheet } from '../context/CartSheetContext'
+import { useStore } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
 import ProductImage from './ProductImage'
 
 type Props = {
@@ -14,28 +16,65 @@ type Props = {
 
 const ProductCard = ({ product, delay = 0 }: Props) => {
   const { openSheet } = useCartSheet()
+  const { isWishlisted, toggleWishlist } = useStore()
+  const { hasRole } = useAuth()
   const out = product.stock <= 0
   const meta = harvestMeta(product)
+  const favorited = isWishlisted(product.id)
+
+  const discountPercent = meta.originalPrice > product.price
+    ? Math.round(((meta.originalPrice - product.price) / meta.originalPrice) * 100)
+    : 0
+
+  const isAdminOrDelivery = hasRole('admin') || hasRole('delivery')
 
   return (
     <article
-      className="group bg-white/90 rounded-2xl border border-white overflow-hidden shadow-sm hover:shadow-soft hover:-translate-y-1 transition-all duration-300 animate-fade-up"
+      className="group bg-white/95 rounded-2xl border border-white/80 overflow-hidden shadow-sm hover:shadow-soft hover:-translate-y-1.5 transition-all duration-300 animate-fade-up relative flex flex-col justify-between"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <Link to={`/products/${product.id}`} className="block overflow-hidden relative">
-        <ProductImage
-          src={product.image}
-          alt={product.name}
-          className="h-48 w-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
-        />
-        <span className={`absolute top-3 left-3 chip ${stockTone(product.stock)}`}>{stockLabel(product.stock)}</span>
-        {product.tradeable && (
-          <span className="absolute top-3 right-3 chip bg-white/90 text-primary-800">
-            <Repeat className="h-3 w-3 mr-1" /> Trade
-          </span>
-        )}
-        <span className="absolute bottom-3 left-3 chip bg-soil-900/80 text-white">{meta.sold}+ sold</span>
-      </Link>
+      <div className="relative">
+        <Link to={`/products/${product.id}`} className="block overflow-hidden relative">
+          <ProductImage
+            src={product.image}
+            alt={product.name}
+            className="h-48 w-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
+          />
+          <span className={`absolute top-3 left-3 chip ${stockTone(product.stock)} shadow-sm`}>{stockLabel(product.stock)}</span>
+
+          {discountPercent > 0 && (
+            <span className="absolute bottom-3 right-3 bg-rose-600 text-white font-extrabold text-[11px] px-2 py-0.5 rounded-lg shadow-md flex items-center gap-0.5">
+              <Zap className="h-3 w-3 fill-yellow-300 text-yellow-300" /> -{discountPercent}%
+            </span>
+          )}
+
+          {/* Trade chip: strictly hidden for admin and delivery roles */}
+          {!isAdminOrDelivery && product.tradeable && (
+            <span className="absolute top-3 right-12 chip bg-white/90 text-primary-800 backdrop-blur-sm shadow-sm">
+              <Repeat className="h-3 w-3 mr-1" /> Trade
+            </span>
+          )}
+          <span className="absolute bottom-3 left-3 chip bg-soil-900/80 text-white backdrop-blur-sm">{meta.sold}+ sold</span>
+        </Link>
+
+        {/* Wishlist Heart Button (Shopee Style) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            toggleWishlist(product.id)
+          }}
+          className={`absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-md transition-all duration-200 z-10 shadow-sm ${
+            favorited
+              ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 scale-110'
+              : 'bg-white/80 text-gray-500 hover:text-rose-600 hover:bg-white'
+          }`}
+          aria-label={favorited ? 'Remove from wishlist' : 'Add to wishlist'}
+        >
+          <Heart className={`h-4 w-4 ${favorited ? 'fill-rose-500 text-rose-500 animate-pop' : ''}`} />
+        </button>
+      </div>
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div>
