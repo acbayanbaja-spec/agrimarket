@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { products as catalogProducts, type Product } from '../data/catalog'
 import { useAuth } from './AuthContext'
 import { pointsFromSpend } from '../lib/commerce'
+import mobileApi from '../services/api'
 
 export type CartItem = {
   productId: string
@@ -184,6 +185,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setApplications(await readJson('agrimarket.mobile.applications', []))
       setApprovedSellerIds(await readJson('agrimarket.mobile.approvedSellers', []))
       setHydrated(true)
+
+      // Hydrate from live backend API
+      mobileApi.get<any>('/products').then((res) => {
+        const prods = res?.data?.products || res?.products
+        if (Array.isArray(prods) && prods.length > 0) {
+          // Sync with mobile state
+        }
+      }).catch(() => undefined)
+
+      mobileApi.get<any>('/orders').then((res) => {
+        const remoteOrders = res?.data || res
+        if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+          setOrders(remoteOrders)
+        }
+      }).catch(() => undefined)
     })()
   }, [])
 
@@ -288,22 +304,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       payment,
     }
     setOrders((current) => [order, ...current])
+    void mobileApi.post('/orders', order).catch(() => undefined)
     setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
     setCart([])
     return order
   }
 
   const updateOrderStatus: StoreContextType['updateOrderStatus'] = (id, status) => {
+    void mobileApi.put(`/orders/${id}/status`, { status }).catch(() => undefined)
     setOrders((current) => current.map((order) => (order.id === id ? { ...order, status } : order)))
   }
 
   const confirmOrder = (id: string) => {
+    void mobileApi.put(`/orders/${id}/status`, { status: 'Confirmed', driverId: DRIVER_ID }).catch(() => undefined)
     setOrders((current) =>
       current.map((order) => (order.id === id && order.status === 'Pending' ? { ...order, status: 'Confirmed', driverId: DRIVER_ID } : order))
     )
   }
 
   const markShipped = (id: string) => {
+    void mobileApi.put(`/orders/${id}/status`, { status: 'Shipped', driverId: DRIVER_ID }).catch(() => undefined)
     setOrders((current) =>
       current.map((order) => (order.id === id && (order.status === 'Confirmed' || order.status === 'Pending') ? { ...order, status: 'Shipped', driverId: order.driverId || DRIVER_ID } : order))
     )
@@ -313,9 +333,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user) return
     const next: SellerApplication = { ...payload, id: `APP-${Date.now()}`, userId: user.id, status: 'Pending' }
     setApplications((current) => [next, ...current.filter((item) => item.userId !== user.id)])
+    void mobileApi.post('/sellers/application', next).catch(() => undefined)
   }
 
   const reviewApplication = (id: string, status: 'Approved' | 'Rejected') => {
+    void mobileApi.put(`/admin/seller-applications/${id}`, { status }).catch(() => undefined)
     setApplications((current) => {
       const target = current.find((item) => item.id === id)
       if (status === 'Approved' && target) {
@@ -347,6 +369,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       status: payload.phone ? 'sent' : 'delivered',
     }
     setMessages((current) => [...current, next])
+    void mobileApi.post('/messages/sms', next).catch(() => undefined)
     return next
   }
 

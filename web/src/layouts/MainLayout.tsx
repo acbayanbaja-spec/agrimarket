@@ -13,6 +13,7 @@ import DownloadAppModal from '../components/DownloadAppModal'
 import VoucherCenterModal from '../components/VoucherCenterModal'
 import DailyCoinsCheckIn from '../components/DailyCoinsCheckIn'
 import FloatingQuickActions from '../components/FloatingQuickActions'
+import AgriAiAssistant from '../components/AgriAiAssistant'
 
 const MainLayout = () => {
   const { isAuthenticated, user, logout, hasRole } = useAuth()
@@ -221,6 +222,7 @@ const MainLayout = () => {
       </main>
       <BottomNav />
       <FloatingQuickActions />
+      <AgriAiAssistant />
 
       {/* Modals */}
       <DownloadAppModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} />

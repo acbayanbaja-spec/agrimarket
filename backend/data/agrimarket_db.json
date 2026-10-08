@@ -1,0 +1,522 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@agrimarket.com",
+      "password_hash": "$2a$08$SRK3OF5CTaD2p7Ib0fBozOo36vtjiQLTQ/aBDrH/ba627X/.87xFi",
+      "first_name": "Admin",
+      "last_name": "Superuser",
+      "phone": "+639123456789",
+      "roles": [
+        "admin",
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-08T14:12:14.466Z"
+    },
+    {
+      "id": 2,
+      "email": "seller@agrimarket.com",
+      "password_hash": "$2a$08$QUtB50j2jweh2ssOANSVjuAu40dxBvo9JghSKljKgdxxaIc0M4NJq",
+      "first_name": "Maria",
+      "last_name": "Santos",
+      "phone": "+639171112233",
+      "roles": [
+        "seller",
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-08T14:12:14.467Z"
+    },
+    {
+      "id": 3,
+      "email": "buyer@agrimarket.com",
+      "password_hash": "$2a$08$GW4Eh8yHdbWmw1ksoCm1YuWC3wqPiEPT3jX9FxemQ1bLRnt0IIDKi",
+      "first_name": "Juan",
+      "last_name": "Cruz",
+      "phone": "+639189998877",
+      "roles": [
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-08T14:12:14.467Z"
+    },
+    {
+      "id": 4,
+      "email": "driver@agrimarket.com",
+      "password_hash": "$2a$08$PljUUmglOOQxPOTIXlaZ3ewI9IIpymdCEGhul9lDpkFGWhjzy9dzq",
+      "first_name": "Rico",
+      "last_name": "Driver",
+      "phone": "+639175551111",
+      "roles": [
+        "delivery"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-08T14:12:14.467Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "p-tomato",
+      "name": "Salad Tomatoes",
+      "category": "Vegetables",
+      "price": 85,
+      "unit": "kg",
+      "stock": 120,
+      "rating": 4.8,
+      "reviews": 64,
+      "seller": "Green Valley Farm",
+      "sellerId": "seller-1",
+      "sellerUserId": 2,
+      "location": "Polomolok, South Cotabato",
+      "image": "/images/tomato.jpg",
+      "photos": [
+        "/images/tomato.jpg",
+        "/images/farm.jpg"
+      ],
+      "description": "Firm, sweet salad tomatoes harvested at dawn in Polomolok. Ideal for sinigang, salsa, and everyday cooking.",
+      "organic": true,
+      "tradeable": true,
+      "lat": 6.2214,
+      "lng": 125.0647,
+      "priceHistory": [
+        {
+          "date": "2026-09-01",
+          "price": 92
+        },
+        {
+          "date": "2026-09-15",
+          "price": 88
+        },
+        {
+          "date": "2026-10-01",
+          "price": 85
+        }
+      ]
+    },
+    {
+      "id": "p-kangkong",
+      "name": "Fresh Kangkong",
+      "category": "Vegetables",
+      "price": 35,
+      "unit": "bundle",
+      "stock": 45,
+      "rating": 4.6,
+      "reviews": 28,
+      "seller": "Koronadal Harvest",
+      "sellerId": "seller-2",
+      "sellerUserId": 12,
+      "location": "Koronadal City, South Cotabato",
+      "image": "/images/kangkong.jpg",
+      "photos": [
+        "/images/kangkong.jpg"
+      ],
+      "description": "Crisp water spinach bunches from Koronadal paddies, washed and bundled the same morning.",
+      "organic": true,
+      "tradeable": true,
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "priceHistory": [
+        {
+          "date": "2026-10-01",
+          "price": 35
+        }
+      ]
+    },
+    {
+      "id": "p-mango",
+      "name": "Carabao Mangoes",
+      "category": "Fruits",
+      "price": 180,
+      "unit": "kg",
+      "stock": 60,
+      "rating": 4.9,
+      "reviews": 82,
+      "seller": "Midsayap Gold Orchard",
+      "sellerId": "seller-3",
+      "sellerUserId": 13,
+      "location": "Midsayap, Cotabato",
+      "image": "/images/mango.jpg",
+      "photos": [
+        "/images/mango.jpg",
+        "/images/farm.jpg"
+      ],
+      "description": "Export-grade sweet Carabao mangoes from Midsayap. Tree-ripened, golden yellow, and fragrant.",
+      "organic": true,
+      "tradeable": true,
+      "lat": 7.1906,
+      "lng": 124.5381,
+      "priceHistory": [
+        {
+          "date": "2026-09-01",
+          "price": 210
+        },
+        {
+          "date": "2026-09-20",
+          "price": 195
+        },
+        {
+          "date": "2026-10-01",
+          "price": 180
+        }
+      ]
+    },
+    {
+      "id": "p-banana",
+      "name": "Lakatan Bananas",
+      "category": "Fruits",
+      "price": 75,
+      "unit": "kg",
+      "stock": 50,
+      "rating": 4.7,
+      "reviews": 41,
+      "seller": "Gensan Fruit Co-op",
+      "sellerId": "seller-4",
+      "sellerUserId": 14,
+      "location": "General Santos City",
+      "image": "/images/banana.jpg",
+      "photos": [
+        "/images/banana.jpg"
+      ],
+      "description": "Sweet, golden Lakatan bananas freshly harvested from orchards near General Santos City.",
+      "organic": false,
+      "tradeable": true,
+      "lat": 6.1164,
+      "lng": 125.1716,
+      "priceHistory": [
+        {
+          "date": "2026-10-01",
+          "price": 75
+        }
+      ]
+    },
+    {
+      "id": "p-rice",
+      "name": "Dinorado Rice",
+      "category": "Rice & Grains",
+      "price": 58,
+      "unit": "kg",
+      "stock": 300,
+      "rating": 4.9,
+      "reviews": 110,
+      "seller": "Green Valley Farm",
+      "sellerId": "seller-1",
+      "sellerUserId": 2,
+      "location": "M'lang, Cotabato",
+      "image": "/images/rice.jpg",
+      "photos": [
+        "/images/rice.jpg"
+      ],
+      "description": "Aromatic whole-grain Dinorado rice from the plains of M'lang. Soft, fluffy texture when cooked.",
+      "organic": false,
+      "tradeable": true,
+      "lat": 6.9467,
+      "lng": 124.8803,
+      "priceHistory": [
+        {
+          "date": "2026-10-01",
+          "price": 58
+        }
+      ]
+    },
+    {
+      "id": "p-corn",
+      "name": "Sweet Yellow Corn",
+      "category": "Rice & Grains",
+      "price": 45,
+      "unit": "kg",
+      "stock": 80,
+      "rating": 4.7,
+      "reviews": 35,
+      "seller": "Koronadal Harvest",
+      "sellerId": "seller-2",
+      "sellerUserId": 12,
+      "location": "Koronadal City, South Cotabato",
+      "image": "/images/corn.jpg",
+      "photos": [
+        "/images/corn.jpg"
+      ],
+      "description": "Juicy, golden sweet corn cobs from South Cotabato farms. Great for boiling or grilling.",
+      "organic": false,
+      "tradeable": true,
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "priceHistory": [
+        {
+          "date": "2026-10-01",
+          "price": 45
+        }
+      ]
+    },
+    {
+      "id": "p-eggs",
+      "name": "Free-Range Brown Eggs",
+      "category": "Livestock & Poultry",
+      "price": 220,
+      "unit": "tray",
+      "stock": 75,
+      "rating": 4.8,
+      "reviews": 53,
+      "seller": "Koronadal Sunrise Poultry",
+      "sellerId": "seller-6",
+      "sellerUserId": 16,
+      "location": "Koronadal City, South Cotabato",
+      "image": "/images/eggs.jpg",
+      "photos": [
+        "/images/eggs.jpg"
+      ],
+      "description": "Fresh pastured eggs from cage-free hens in Koronadal. Thick shells, rich orange yolks.",
+      "organic": true,
+      "tradeable": true,
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "priceHistory": [
+        {
+          "date": "2026-10-01",
+          "price": 220
+        }
+      ]
+    },
+    {
+      "id": "p-tilapia",
+      "name": "Lake Sebu Fresh Tilapia",
+      "category": "Fisheries & Aquaculture",
+      "price": 160,
+      "unit": "kg",
+      "stock": 90,
+      "rating": 4.9,
+      "reviews": 67,
+      "seller": "Sebu Lake Aquatics",
+      "sellerId": "seller-7",
+      "sellerUserId": 17,
+      "location": "Lake Sebu, South Cotabato",
+      "image": "/images/tilapia.jpg",
+      "photos": [
+        "/images/tilapia.jpg"
+      ],
+      "description": "Cold-water spring tilapia freshly harvested from Lake Sebu pens. Clean taste with no mud flavor.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 6.2255,
+      "lng": 124.7088,
+      "priceHistory": [
+        {
+          "date": "2026-10-01",
+          "price": 160
+        }
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat-veg",
+      "name": "Vegetables",
+      "description": "Fresh local crops and greens",
+      "icon": "Leaf",
+      "imageUrl": "/images/kangkong.jpg"
+    },
+    {
+      "id": "cat-fruits",
+      "name": "Fruits",
+      "description": "Tree-ripened tropical harvests",
+      "icon": "Apple",
+      "imageUrl": "/images/mango.jpg"
+    },
+    {
+      "id": "cat-grains",
+      "name": "Rice & Grains",
+      "description": "Mindanao milled rice and corn",
+      "icon": "Wheat",
+      "imageUrl": "/images/rice.jpg"
+    },
+    {
+      "id": "cat-poultry",
+      "name": "Livestock & Poultry",
+      "description": "Eggs, pasture meats & poultry",
+      "icon": "Egg",
+      "imageUrl": "/images/eggs.jpg"
+    },
+    {
+      "id": "cat-fish",
+      "name": "Fisheries & Aquaculture",
+      "description": "Lake Sebu and Gensan fresh catch",
+      "icon": "Fish",
+      "imageUrl": "/images/tilapia.jpg"
+    },
+    {
+      "id": "cat-inputs",
+      "name": "Agricultural Supplies",
+      "description": "Organic fertilizers, seeds and tools",
+      "icon": "Sprout",
+      "imageUrl": "/images/compost.jpg"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-1001",
+      "receiptNo": "RCPT-1001",
+      "userId": 3,
+      "buyerName": "Juan Cruz",
+      "buyerPhone": "+639189998877",
+      "items": [
+        {
+          "productId": "p-rice",
+          "name": "Dinorado Rice",
+          "price": 58,
+          "quantity": 10,
+          "image": "/images/rice.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "M'lang, Cotabato"
+        }
+      ],
+      "subtotal": 580,
+      "shippingFee": 50,
+      "shippingDiscount": 50,
+      "couponCode": "FREESHIP",
+      "pointsEarned": 58,
+      "pointsRedeemed": 0,
+      "total": 580,
+      "status": "Delivered",
+      "createdAt": "2026-10-06T14:12:14.467Z",
+      "address": "12 Osmeña St, Koronadal City, South Cotabato",
+      "payment": "GCash",
+      "paymentRef": "GC-8821",
+      "paymentStatus": "paid",
+      "driverId": 4,
+      "lat": 6.5004,
+      "lng": 124.8436
+    },
+    {
+      "id": "ORD-1002",
+      "receiptNo": "RCPT-1002",
+      "userId": 3,
+      "buyerName": "Juan Cruz",
+      "buyerPhone": "+639189998877",
+      "items": [
+        {
+          "productId": "p-eggs",
+          "name": "Free-Range Brown Eggs",
+          "price": 220,
+          "quantity": 2,
+          "image": "/images/eggs.jpg",
+          "seller": "Koronadal Sunrise Poultry",
+          "sellerId": "seller-6",
+          "sellerUserId": 16,
+          "pickupLocation": "Koronadal City, South Cotabato"
+        }
+      ],
+      "subtotal": 440,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 44,
+      "pointsRedeemed": 0,
+      "total": 490,
+      "status": "Confirmed",
+      "createdAt": "2026-10-08T14:12:14.467Z",
+      "address": "Purok 3, Calumpang, General Santos City",
+      "payment": "GCash",
+      "paymentStatus": "escrow_held",
+      "driverId": 4,
+      "lat": 6.1164,
+      "lng": 125.1716,
+      "paymentRef": "TXN-GCASH-255050"
+    }
+  ],
+  "cart": [],
+  "seller_applications": [],
+  "reviews": [
+    {
+      "id": "r1",
+      "productId": "p-tomato",
+      "userId": 3,
+      "userName": "Juan Cruz",
+      "rating": 5,
+      "comment": "Arrived firm and sweet. Perfect for our sari-sari stall and cooking.",
+      "photos": [
+        "/images/tomato.jpg"
+      ],
+      "createdAt": "2026-10-05T14:12:14.467Z"
+    },
+    {
+      "id": "r2",
+      "productId": "p-mango",
+      "userId": 3,
+      "userName": "Juan Cruz",
+      "rating": 5,
+      "comment": "Sweet Carabao mangoes from Midsayap. Kids finished the box in two days!",
+      "photos": [
+        "/images/mango.jpg"
+      ],
+      "createdAt": "2026-09-30T14:12:14.467Z"
+    }
+  ],
+  "posts": [],
+  "trades": [],
+  "notifications": [
+    {
+      "id": "n-welcome",
+      "userId": "all",
+      "title": "🌾 SOCCSKSARGEN Harvest Board Live",
+      "message": "Welcome to AgriMarket! Discover farm-direct harvests with real-time delivery tracking.",
+      "href": "/marketplace",
+      "category": "System",
+      "readBy": [],
+      "createdAt": "2026-10-08T14:12:14.467Z"
+    }
+  ],
+  "messages": [],
+  "delivery_jobs": [
+    {
+      "id": "DEL-1002",
+      "orderId": "ORD-1002",
+      "driverId": 4,
+      "buyerName": "Juan Cruz",
+      "buyerPhone": "+639189998877",
+      "address": "Purok 3, Calumpang, General Santos City",
+      "status": "Confirmed",
+      "lat": 6.1164,
+      "lng": 125.1716,
+      "updatedAt": "2026-10-08T14:20:55.051Z"
+    }
+  ],
+  "coupons": [
+    {
+      "code": "FREESHIP",
+      "discount": 50,
+      "type": "shipping",
+      "minSpend": 300,
+      "description": "Free shipping on orders ₱300+",
+      "isActive": true
+    },
+    {
+      "code": "NEWBUYER50",
+      "discount": 50,
+      "type": "fixed",
+      "minSpend": 250,
+      "description": "₱50 off for first-time buyers",
+      "isActive": true
+    },
+    {
+      "code": "HARVEST100",
+      "discount": 100,
+      "type": "fixed",
+      "minSpend": 800,
+      "description": "₱100 off on bulk orders ₱800+",
+      "isActive": true
+    },
+    {
+      "code": "SOCCSKSARGEN20",
+      "discount": 20,
+      "type": "fixed",
+      "minSpend": 150,
+      "description": "₱20 discount on local deliveries",
+      "isActive": true
+    }
+  ]
+}

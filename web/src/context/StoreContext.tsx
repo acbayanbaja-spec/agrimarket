@@ -4,6 +4,7 @@ import { recommendScore } from '../lib/utils'
 import { filterByBudget, pointsFromSpend } from '../lib/commerce'
 import { useAuth } from './AuthContext'
 import api from '../services/api'
+import { getSocket } from '../services/socket'
 
 export type OrderItem = {
   productId: string
@@ -411,6 +412,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       })
       .catch(() => undefined)
+
+    // Hydrate backend orders
+    api.get<{ success?: boolean; data?: Order[] }>('/orders')
+      .then((res) => {
+        const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+        if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+          setOrders((current) => {
+            const map = new Map<string, Order>()
+            current.forEach((o) => map.set(o.id, o))
+            remoteOrders.forEach((o) => map.set(o.id, o))
+            return Array.from(map.values())
+          })
+        }
+      })
+      .catch(() => undefined)
+
+    // Connect real-time socket events
+    const socket = getSocket()
+    socket.on('new_product', (prod: Product) => {
+      setExtraProducts((current) => [prod, ...current.filter((p) => p.id !== prod.id)])
+    })
+    socket.on('order_update', (ord: Order) => {
+      setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
+    })
+    socket.on('notification', (notif: AppNotification) => {
+      setNotifications((current) => [notif, ...current.filter((n) => n.id !== notif.id)])
+    })
   }, [])
 
   useEffect(() => {
@@ -652,6 +680,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       driverId: undefined,
     }
     setOrders((current) => [next, ...current])
+    void api.post('/orders', next).catch(() => undefined)
     if (user) setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
     next.items.forEach((item) => {
       const product = products.find((entry) => entry.id === item.productId)
@@ -689,6 +718,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString(),
     }
     setApplications((current) => [next, ...current.filter((item) => item.userId !== next.userId)])
+    void api.post('/sellers/application', next).catch(() => undefined)
     notify({
       userId: 1,
       title: 'Seller application pending',
@@ -699,6 +729,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const reviewApplication = (id: string, status: 'Approved' | 'Rejected') => {
+    void api.put(`/admin/seller-applications/${id}`, { status }).catch(() => undefined)
     setApplications((current) => {
       const target = current.find((item) => item.id === id)
       if (status === 'Approved' && target) {
@@ -724,6 +755,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const updateOrderStatus = (id: string, status: Order['status']) => {
+    void api.put(`/orders/${id}/status`, { status }).catch(() => undefined)
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id) return order

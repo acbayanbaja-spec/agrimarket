@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import mobileApi from '../services/api';
 
 export interface User {
   id: number;
@@ -58,6 +59,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string) => {
+    try {
+      const response: any = await mobileApi.post('/auth/login', {
+        email: email.trim(),
+        password,
+      });
+      const payload = response.data || response;
+      if (payload?.user && payload?.token) {
+        const nextUser: User = {
+          id: payload.user.id,
+          email: payload.user.email,
+          firstName: payload.user.first_name || payload.user.firstName || '',
+          lastName: payload.user.last_name || payload.user.lastName || '',
+          phone: payload.user.phone,
+          roles: payload.user.roles || ['buyer'],
+        };
+        setUser(nextUser);
+        setToken(payload.token);
+        await SecureStore.setItemAsync(TOKEN_KEY, payload.token);
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
+        return nextUser;
+      }
+    } catch {
+      // Fallback to offline demo credentials if offline
+    }
+
     const match = demoAccounts.find(
       (account) => account.email.toLowerCase() === email.trim().toLowerCase() && account.password === password
     );

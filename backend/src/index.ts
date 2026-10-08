@@ -24,6 +24,10 @@ import couponRoutes from './routes/coupons';
 import reviewRoutes from './routes/reviews';
 import sellerRoutes from './routes/sellers';
 import adminRoutes from './routes/admin';
+import aiRoutes from './routes/ai';
+import paymentRoutes from './routes/payments';
+import uploadRoutes from './routes/upload';
+import path from 'path';
 
 dotenv.config();
 
@@ -54,6 +58,9 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve static uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Rate limiting
 app.use('/api/', apiLimiter);
 
@@ -76,6 +83,9 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/sellers', sellerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Error handling
 app.use(notFoundHandler);

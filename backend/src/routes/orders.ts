@@ -1,27 +1,158 @@
-import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { Router, Response } from 'express';
+import { authenticate, AuthRequest } from '../middleware/auth';
+import { db, OrderEntity } from '../database/store';
+import { successResponse, errorResponse } from '../utils/response';
+import { io } from '../index';
+import { sendOrderUpdate } from '../sockets';
 
 const router = Router();
 
 // @route   GET /api/orders
-// @desc    Get user orders
+// @desc    Get user orders or seller/admin orders
 // @access  Private
-router.get('/', authenticate, (req, res) => {
-  res.json({ message: 'Get orders endpoint - to be implemented' });
+router.get('/', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const isSeller = user.roles.includes('seller');
+    const isAdmin = user.roles.includes('admin');
+    const isDriver = user.roles.includes('delivery');
+
+    let orders: OrderEntity[] = [];
+
+    if (isAdmin) {
+      orders = db.getOrders();
+    } else if (isSeller) {
+      // Return both buyer orders and incoming seller orders
+      const buyerOrders = db.getOrdersByUserId(user.id);
+      const sellerOrders = db.getOrdersBySellerId(`seller-${user.id}`, user.id);
+      const map = new Map<string, OrderEntity>();
+      [...buyerOrders, ...sellerOrders].forEach((o) => map.set(o.id, o));
+      orders = Array.from(map.values());
+    } else if (isDriver) {
+      orders = db.getOrders().filter((o) => o.driverId === user.id || o.status === 'Shipped' || o.status === 'Out for delivery');
+    } else {
+      orders = db.getOrdersByUserId(user.id);
+    }
+
+    return res.json(successResponse(orders, 'Orders retrieved successfully'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'ORDERS_FETCH_FAILED', 500));
+  }
 });
 
 // @route   GET /api/orders/:id
-// @desc    Get order by ID
+// @desc    Get order by ID or receipt number
 // @access  Private
-router.get('/:id', authenticate, (req, res) => {
-  res.json({ message: 'Get order by ID endpoint - to be implemented' });
+router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const order = db.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
+    }
+
+    return res.json(successResponse(order, 'Order retrieved successfully'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'ORDER_FETCH_FAILED', 500));
+  }
 });
 
 // @route   POST /api/orders
 // @desc    Create new order
 // @access  Private
-router.post('/', authenticate, (req, res) => {
-  res.json({ message: 'Create order endpoint - to be implemented' });
+router.post('/', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const body = req.body;
+
+    if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+      return res.status(400).json(errorResponse('Order must contain at least one item', null, 'INVALID_ITEMS', 400));
+    }
+
+    const orderId = `ORD-${Date.now().toString().slice(-6)}`;
+    const receiptNo = `RCPT-${Date.now().toString().slice(-6)}`;
+
+    // Calculate subtotal
+    const subtotal = body.items.reduce((sum: number, it: any) => sum + Number(it.price) * Number(it.quantity), 0);
+    const shippingFee = Number(body.shippingFee ?? 50);
+    const shippingDiscount = Number(body.shippingDiscount ?? (body.couponCode === 'FREESHIP' ? 50 : 0));
+    const pointsRedeemed = Number(body.pointsRedeemed ?? 0);
+    const total = Math.max(0, subtotal + shippingFee - shippingDiscount - pointsRedeemed);
+    const pointsEarned = Math.floor(subtotal / 10);
+
+    const newOrder: OrderEntity = {
+      id: orderId,
+      receiptNo,
+      userId: user.id,
+      buyerName: body.buyerName || `${user.email.split('@')[0]}`,
+      buyerPhone: body.buyerPhone || '+639180000000',
+      items: body.items,
+      subtotal,
+      shippingFee,
+      shippingDiscount,
+      couponCode: body.couponCode,
+      pointsEarned,
+      pointsRedeemed,
+      total,
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+      address: body.address || 'SOCCSKSARGEN Delivery Address',
+      payment: body.payment || 'GCash',
+      paymentRef: body.paymentRef || `GC-${Date.now().toString().slice(-4)}`,
+      paymentStatus: body.payment === 'GCash' || body.payment === 'Maya' ? 'escrow_held' : 'pending',
+      lat: body.lat || 6.5004,
+      lng: body.lng || 124.8436,
+    };
+
+    // Deduct stock for each product
+    body.items.forEach((item: any) => {
+      const prod = db.getProductById(item.productId);
+      if (prod) {
+        const nextStock = Math.max(0, prod.stock - item.quantity);
+        db.updateProduct(prod.id, { stock: nextStock });
+      }
+    });
+
+    const created = db.addOrder(newOrder);
+
+    // Emit live WebSocket event
+    if (io) {
+      sendOrderUpdate(io, user.id, created);
+    }
+
+    return res.status(201).json(successResponse(created, 'Order placed successfully'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'ORDER_CREATION_FAILED', 500));
+  }
+});
+
+// @route   PUT /api/orders/:id/status
+// @desc    Update order status (Confirmed, Shipped, Out for delivery, Delivered)
+// @access  Private
+router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { status, driverId } = req.body;
+    if (!status) {
+      return res.status(400).json(errorResponse('Status is required', null, 'MISSING_STATUS', 400));
+    }
+
+    const extra: Partial<OrderEntity> = {};
+    if (status === 'Confirmed') extra.sellerConfirmedAt = new Date().toISOString();
+    if (status === 'Shipped') extra.shippedAt = new Date().toISOString();
+    if (driverId) extra.driverId = Number(driverId);
+
+    const updated = db.updateOrderStatus(req.params.id, status, extra);
+    if (!updated) {
+      return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
+    }
+
+    if (io) {
+      sendOrderUpdate(io, updated.userId, updated);
+    }
+
+    return res.json(successResponse(updated, 'Order status updated successfully'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'ORDER_UPDATE_FAILED', 500));
+  }
 });
 
 export default router;
