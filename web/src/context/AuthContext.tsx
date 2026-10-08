@@ -44,6 +44,12 @@ const demoAccounts: LocalAccount[] = [
   { id: 2, email: 'seller@agrimarket.com', password: 'seller123', firstName: 'Maria', lastName: 'Santos', phone: '+639171112233', roles: ['seller', 'buyer'] },
   { id: 3, email: 'buyer@agrimarket.com', password: 'buyer123', firstName: 'Juan', lastName: 'Cruz', phone: '+639189998877', roles: ['buyer'] },
   { id: 4, email: 'driver@agrimarket.com', password: 'driver123', firstName: 'Rico', lastName: 'Driver', phone: '+639175551111', roles: ['delivery'] },
+  { id: 12, email: 'seller.koronadal@agrimarket.com', password: 'seller123', firstName: 'Juanita', lastName: 'Reyes', phone: '+639172223344', roles: ['seller', 'buyer'] },
+  { id: 13, email: 'seller.midsayap@agrimarket.com', password: 'seller123', firstName: 'Eduardo', lastName: 'Dizon', phone: '+639173334455', roles: ['seller', 'buyer'] },
+  { id: 14, email: 'seller.gensan@agrimarket.com', password: 'seller123', firstName: 'Roberto', lastName: 'Tan', phone: '+639174445566', roles: ['seller', 'buyer'] },
+  { id: 15, email: 'seller.tacurong@agrimarket.com', password: 'seller123', firstName: 'Lilia', lastName: 'Mendoza', phone: '+639175556677', roles: ['seller', 'buyer'] },
+  { id: 16, email: 'seller.poultry@agrimarket.com', password: 'seller123', firstName: 'Nestor', lastName: 'Aquino', phone: '+639176667788', roles: ['seller', 'buyer'] },
+  { id: 17, email: 'seller.lakesebu@agrimarket.com', password: 'seller123', firstName: 'Danilo', lastName: 'Blaan', phone: '+639177778899', roles: ['seller', 'buyer'] },
 ]
 
 function readLocalUsers(): LocalAccount[] {

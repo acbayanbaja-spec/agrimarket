@@ -31,9 +31,19 @@ const OrdersPage = () => {
               </div>
               <ul className="text-sm text-gray-700 space-y-2 mb-4">
                 {order.items.map((item) => (
-                  <li key={item.productId} className="flex items-center gap-3">
-                    <ProductImage src={item.image} alt="" className="h-10 w-10 rounded object-cover" />
-                    {item.name} × {item.quantity}
+                  <li key={item.productId} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-gray-50/70 border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <ProductImage src={item.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                      <div>
+                        <p className="font-medium text-gray-900">{item.name} × {item.quantity}</p>
+                        <p className="text-xs text-gray-500">
+                          Seller: <strong className="text-primary-800">{item.seller || 'Green Valley Farm'}</strong>
+                        </p>
+                      </div>
+                    </div>
+                    {item.pickupLocation && (
+                      <span className="text-[11px] text-gray-400 font-medium">📍 {item.pickupLocation}</span>
+                    )}
                   </li>
                 ))}
               </ul>

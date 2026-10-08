@@ -462,12 +462,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       refreshCatalog()
     })
 
+    // 6. Live order updates across devices
     socket.on('order_update', (ord: Order) => {
       setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
     })
+    socket.on('order_updated', (ord: Order) => {
+      setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
+    })
+    socket.on('order_created', (ord: Order) => {
+      setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
+    })
+    socket.on('new_order', (ord: Order) => {
+      setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
+    })
+
     socket.on('notification', (notif: AppNotification) => {
       setNotifications((current) => [notif, ...current.filter((n) => n.id !== notif.id)])
     })
+
+    // Periodic synchronization heartbeat across all devices
+    const syncInterval = setInterval(() => {
+      void refreshCatalog()
+      api.get<{ success?: boolean; data?: Order[] }>('/orders')
+        .then((res) => {
+          const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+          if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+            setOrders((current) => {
+              const map = new Map<string, Order>()
+              current.forEach((o) => map.set(o.id, o))
+              remoteOrders.forEach((o) => map.set(o.id, o))
+              return Array.from(map.values())
+            })
+          }
+        })
+        .catch(() => undefined)
+    }, 4000)
+
+    return () => clearInterval(syncInterval)
   }, [])
 
   useEffect(() => {
@@ -626,13 +657,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [allProducts])
 
   const addProduct: StoreContextType['addProduct'] = (product) => {
+    const sellerUserId = user ? user.id : 2
+    const seller = user ? `${user.firstName} ${user.lastName}` : 'Green Valley Farm'
+    const sellerId = user ? `seller-${user.id}` : 'seller-1'
     const next: Product = {
       ...product,
       photos: product.photos?.length ? product.photos : [product.image],
-      id: `custom-${Date.now()}`,
-      seller: user ? `${user.firstName} ${user.lastName}` : 'Independent Farm',
-      sellerId: user ? `user-${user.id}` : 'seller-local',
-      sellerUserId: user?.id || 0,
+      id: `prod-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      seller,
+      sellerId,
+      sellerUserId,
       rating: 5,
       reviews: 0,
       priceHistory: [{ date: new Date().toISOString().slice(0, 10), price: product.price }],
@@ -804,6 +838,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const confirmOrder = (id: string) => {
+    void api.put(`/orders/${id}/status`, { status: 'Confirmed', driverId: DRIVER_ID }).catch(() => undefined)
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id || order.status !== 'Pending') return order
@@ -839,6 +874,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const markShipped = (id: string) => {
+    void api.put(`/orders/${id}/status`, { status: 'Shipped', driverId: DRIVER_ID }).catch(() => undefined)
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id || (order.status !== 'Confirmed' && order.status !== 'Pending')) return order
@@ -867,8 +903,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user) return []
     return allProducts.filter((product) => {
       if (product.sellerUserId === user.id) return true
-      if (product.sellerId === `user-${user.id}`) return true
-      if (user.email === 'seller@agrimarket.com' && (product.sellerId === 'seller-1' || product.sellerUserId === 2)) return true
+      if (product.sellerId === `user-${user.id}` || product.sellerId === `seller-${user.id}`) return true
+      if ((user.email === 'seller@agrimarket.com' || user.id === 2) && (product.sellerId === 'seller-1' || product.sellerUserId === 2)) return true
       return false
     })
   }, [allProducts, user])
@@ -877,7 +913,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user) return []
     const listingIds = new Set(myListings.map((product) => product.id))
     return orders.filter((order) =>
-      order.items.some((item) => listingIds.has(item.productId) || item.sellerUserId === user.id)
+      order.items.some((item) =>
+        listingIds.has(item.productId) ||
+        item.sellerUserId === user.id ||
+        ((user.email === 'seller@agrimarket.com' || user.id === 2) && (item.sellerUserId === 2 || item.sellerId === 'seller-1'))
+      )
     )
   }, [orders, myListings, user])
 

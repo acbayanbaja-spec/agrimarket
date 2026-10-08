@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { optionalAuth, AuthRequest } from '../middleware/auth';
 import { db, OrderEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
@@ -9,10 +9,15 @@ const router = Router();
 
 // @route   GET /api/orders
 // @desc    Get user orders or seller/admin orders
-// @access  Private
-router.get('/', authenticate, (req: AuthRequest, res: Response) => {
+// @access  Public / Optional Auth
+router.get('/', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const user = req.user!;
+    const user = req.user;
+    if (!user) {
+      const allOrders = db.getOrders();
+      return res.json(successResponse(allOrders, 'Orders retrieved successfully'));
+    }
+
     const isSeller = user.roles.includes('seller');
     const isAdmin = user.roles.includes('admin');
     const isDriver = user.roles.includes('delivery');
@@ -42,8 +47,8 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
 
 // @route   GET /api/orders/:id
 // @desc    Get order by ID or receipt number
-// @access  Private
-router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
+// @access  Public / Optional Auth
+router.get('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
     const order = db.getOrderById(req.params.id);
     if (!order) {
@@ -57,26 +62,30 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // @route   POST /api/orders
-// @desc    Create new order
-// @access  Private
-router.post('/', authenticate, (req: AuthRequest, res: Response) => {
+// @desc    Create new order in centralized database and notify seller & all devices
+// @access  Public / Optional Auth
+router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const user = req.user!;
     const body = req.body;
+    const user = req.user || {
+      id: Number(body.userId) || 3,
+      email: body.buyerEmail || 'buyer@agrimarket.com',
+      roles: ['buyer'],
+    };
 
     if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
       return res.status(400).json(errorResponse('Order must contain at least one item', null, 'INVALID_ITEMS', 400));
     }
 
-    const orderId = `ORD-${Date.now().toString().slice(-6)}`;
-    const receiptNo = `RCPT-${Date.now().toString().slice(-6)}`;
+    const orderId = body.id || `ORD-${Date.now().toString().slice(-6)}`;
+    const receiptNo = body.receiptNo || `RCPT-${Date.now().toString().slice(-6)}`;
 
     // Calculate subtotal
     const subtotal = body.items.reduce((sum: number, it: any) => sum + Number(it.price) * Number(it.quantity), 0);
     const shippingFee = Number(body.shippingFee ?? 50);
     const shippingDiscount = Number(body.shippingDiscount ?? (body.couponCode === 'FREESHIP' ? 50 : 0));
     const pointsRedeemed = Number(body.pointsRedeemed ?? 0);
-    const total = Math.max(0, subtotal + shippingFee - shippingDiscount - pointsRedeemed);
+    const total = Number(body.total ?? Math.max(0, subtotal + shippingFee - shippingDiscount - pointsRedeemed));
     const pointsEarned = Math.floor(subtotal / 10);
 
     const newOrder: OrderEntity = {
@@ -94,7 +103,7 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       pointsRedeemed,
       total,
       status: 'Pending',
-      createdAt: new Date().toISOString(),
+      createdAt: body.createdAt || new Date().toISOString(),
       address: body.address || 'SOCCSKSARGEN Delivery Address',
       payment: body.payment || 'GCash',
       paymentRef: body.paymentRef || `GC-${Date.now().toString().slice(-4)}`,
@@ -103,7 +112,7 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       lng: body.lng || 124.8436,
     };
 
-    // Deduct stock for each product
+    // Deduct stock for each product in centralized database
     body.items.forEach((item: any) => {
       const prod = db.getProductById(item.productId);
       if (prod) {
@@ -114,21 +123,27 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
 
     const created = db.addOrder(newOrder);
 
-    // Emit live WebSocket event
+    // INSTANT BROADCAST TO ALL DEVICES: buyer, seller, rider, admin
     if (io) {
+      io.emit('order_created', created);
+      io.emit('new_order', created);
       sendOrderUpdate(io, user.id, created);
+      const sellerUserIds = [...new Set(newOrder.items.map((i: any) => Number(i.sellerUserId)).filter(Boolean))];
+      sellerUserIds.forEach((sId: number) => {
+        sendOrderUpdate(io, sId, created);
+      });
     }
 
-    return res.status(201).json(successResponse(created, 'Order placed successfully'));
+    return res.status(201).json(successResponse(created, 'Order placed successfully and dispatched to seller'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'ORDER_CREATION_FAILED', 500));
   }
 });
 
 // @route   PUT /api/orders/:id/status
-// @desc    Update order status (Confirmed, Shipped, Out for delivery, Delivered)
-// @access  Private
-router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
+// @desc    Update order status centrally (Confirmed by seller, Shipped, Out for delivery, Delivered)
+// @access  Public / Optional Auth
+router.put('/:id/status', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
     const { status, driverId } = req.body;
     if (!status) {
@@ -145,11 +160,18 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
     }
 
+    // BROADCAST STATUS UPDATE ACROSS ALL SCREENS AND DEVICES GLOBALLY
     if (io) {
+      io.emit('order_updated', updated);
+      io.emit('order_update', updated);
       sendOrderUpdate(io, updated.userId, updated);
+      const sellerUserIds = [...new Set(updated.items.map((i: any) => Number(i.sellerUserId)).filter(Boolean))];
+      sellerUserIds.forEach((sId: number) => {
+        sendOrderUpdate(io, sId, updated);
+      });
     }
 
-    return res.json(successResponse(updated, 'Order status updated successfully'));
+    return res.json(successResponse(updated, 'Order status updated successfully in central database'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'ORDER_UPDATE_FAILED', 500));
   }

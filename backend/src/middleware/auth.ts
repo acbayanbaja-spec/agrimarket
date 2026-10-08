@@ -27,16 +27,22 @@ export const authenticate = async (
       });
     }
 
-    if (token.startsWith('local-')) {
+    if (token.startsWith('local-') || token.startsWith('demo-')) {
       const id = Number(token.split('-')[1]);
       const demo: Record<number, { email: string; roles: string[] }> = {
         1: { email: 'admin@agrimarket.com', roles: ['admin', 'buyer'] },
         2: { email: 'seller@agrimarket.com', roles: ['seller', 'buyer'] },
         3: { email: 'buyer@agrimarket.com', roles: ['buyer'] },
         4: { email: 'driver@agrimarket.com', roles: ['delivery'] },
+        12: { email: 'seller.koronadal@agrimarket.com', roles: ['seller', 'buyer'] },
+        13: { email: 'seller.midsayap@agrimarket.com', roles: ['seller', 'buyer'] },
+        14: { email: 'seller.gensan@agrimarket.com', roles: ['seller', 'buyer'] },
+        15: { email: 'seller.tacurong@agrimarket.com', roles: ['seller', 'buyer'] },
+        16: { email: 'seller.poultry@agrimarket.com', roles: ['seller', 'buyer'] },
+        17: { email: 'seller.lakesebu@agrimarket.com', roles: ['seller', 'buyer'] },
       };
       const account = demo[id] || { email: 'local@agrimarket.com', roles: ['buyer'] };
-      req.user = { id: Number.isFinite(id) ? id : Date.now(), email: account.email, roles: account.roles };
+      req.user = { id: Number.isFinite(id) ? id : 3, email: account.email, roles: account.roles };
       return next();
     }
 
@@ -55,6 +61,46 @@ export const authenticate = async (
       data: null,
       errorCode: 'AUTH_TOKEN_INVALID'
     });
+  }
+};
+
+export const optionalAuth = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return next();
+    }
+    if (token.startsWith('local-') || token.startsWith('demo-')) {
+      const id = Number(token.split('-')[1]);
+      const demo: Record<number, { email: string; roles: string[] }> = {
+        1: { email: 'admin@agrimarket.com', roles: ['admin', 'buyer'] },
+        2: { email: 'seller@agrimarket.com', roles: ['seller', 'buyer'] },
+        3: { email: 'buyer@agrimarket.com', roles: ['buyer'] },
+        4: { email: 'driver@agrimarket.com', roles: ['delivery'] },
+        12: { email: 'seller.koronadal@agrimarket.com', roles: ['seller', 'buyer'] },
+        13: { email: 'seller.midsayap@agrimarket.com', roles: ['seller', 'buyer'] },
+        14: { email: 'seller.gensan@agrimarket.com', roles: ['seller', 'buyer'] },
+        15: { email: 'seller.tacurong@agrimarket.com', roles: ['seller', 'buyer'] },
+        16: { email: 'seller.poultry@agrimarket.com', roles: ['seller', 'buyer'] },
+        17: { email: 'seller.lakesebu@agrimarket.com', roles: ['seller', 'buyer'] },
+      };
+      const account = demo[id] || { email: 'local@agrimarket.com', roles: ['buyer'] };
+      req.user = { id: Number.isFinite(id) ? id : 3, email: account.email, roles: account.roles };
+      return next();
+    }
+    const decoded = jwt.verify(token, config.jwt.secret) as {
+      id: number;
+      email: string;
+      roles: string[];
+    };
+    req.user = decoded;
+    return next();
+  } catch {
+    return next();
   }
 };
 

@@ -213,10 +213,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }).catch(() => undefined)
     })()
 
+    const syncOrders = async () => {
+      try {
+        const res: any = await mobileApi.get('/orders')
+        const remoteOrders = res?.data || (Array.isArray(res) ? res : [])
+        if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+          setOrders(remoteOrders)
+        }
+      } catch {
+        // Keep offline cached
+      }
+    }
+
     // Real-time synchronization loop across all devices
     const interval = setInterval(() => {
       void refreshCatalog()
-    }, 5000)
+      void syncOrders()
+    }, 4000)
     return () => clearInterval(interval)
   }, [])
 

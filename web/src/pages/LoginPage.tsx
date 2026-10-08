@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext'
 
 const demos = [
   { label: 'Buyer', email: 'buyer@agrimarket.com', password: 'buyer123', hint: 'Shop SOCCSKSARGEN harvests' },
-  { label: 'Seller', email: 'seller@agrimarket.com', password: 'seller123', hint: 'Confirm orders & post a feed' },
-  { label: 'Admin', email: 'admin@agrimarket.com', password: 'admin123', hint: 'Approve seller IDs' },
+  { label: 'Seller (Green Valley)', email: 'seller@agrimarket.com', password: 'seller123', hint: 'Confirm tomato & rice orders' },
+  { label: 'Seller (Poultry)', email: 'seller.poultry@agrimarket.com', password: 'seller123', hint: 'Confirm egg & poultry orders' },
+  { label: 'Admin', email: 'admin@agrimarket.com', password: 'admin123', hint: 'Audit KYC & moderate catalog' },
   { label: 'Rider', email: 'driver@agrimarket.com', password: 'driver123', hint: 'Pick up confirmed crates' },
 ]
 

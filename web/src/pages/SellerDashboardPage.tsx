@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { categories, stockLabel } from '../data/catalog'
 import { soccsksargenPlaces, findPlace } from '../data/locations'
 import { useStore, type Order } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
 import { fileToDataUrl, formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 import OrderTimeline from '../components/OrderTimeline'
 
 const SellerDashboardPage = () => {
+  const { user } = useAuth()
   const { addProduct, myListings, removeProduct, sellerOrders, confirmOrder, markShipped, addPost, updateProductStock, updateProductPrice } = useStore()
   const [form, setForm] = useState({
     name: '',
@@ -190,28 +192,47 @@ const SellerDashboardPage = () => {
       </div>
 
       <div className="card">
-        <h2 className="text-xl font-semibold mb-4">Orders for your products</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Orders for your products</h2>
+            <p className="text-xs text-gray-500">
+              Assigned Seller: <strong>{user ? `${user.firstName} ${user.lastName}` : 'Maria Santos (Green Valley Farm)'}</strong>
+            </p>
+          </div>
+          <span className="chip bg-primary-100 text-primary-800 font-bold text-xs">
+            {incoming.length} orders assigned to you
+          </span>
+        </div>
+
         {incoming.length === 0 ? (
-          <p className="text-gray-600">No orders yet. When a buyer checks out, you confirm, then the rider is notified.</p>
+          <p className="text-gray-600">No orders yet for your listings. When a buyer checks out an item from your farm, you are the designated seller who confirms it.</p>
         ) : (
           <div className="space-y-6">
             {incoming.map((order: Order) => (
               <div key={order.id} className="border-b border-gray-100 pb-5 space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold">{order.id} · {order.buyerName}</p>
-                    <p className="text-sm text-gray-500">{order.buyerPhone || 'no mobile'} · {order.address}</p>
-                    <p className="text-sm text-gray-700 mt-1">{order.items.map((item) => `${item.name} × ${item.quantity}`).join(', ')}</p>
-                    <p className="text-sm font-semibold mt-1">{formatPeso(order.total)} · {order.payment}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{order.id} · {order.buyerName}</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-0.5">{order.buyerPhone || 'no mobile'} · {order.address}</p>
+                    <div className="mt-2 p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs text-gray-800">
+                      <span className="font-semibold text-gray-700">Your Harvest Items: </span>
+                      {order.items.map((item) => `${item.name} (${item.quantity}×)`).join(', ')}
+                    </div>
+                    <p className="text-sm font-semibold mt-1 text-primary-800">{formatPeso(order.total)} · {order.payment}</p>
                   </div>
                   <div className="flex flex-col gap-2">
                     {order.status === 'Pending' && (
-                      <button type="button" className="btn-primary py-2" onClick={() => confirmOrder(order.id)}>
+                      <button type="button" className="btn-primary py-2 px-4 shadow-sm" onClick={() => confirmOrder(order.id)}>
                         Confirm & notify rider
                       </button>
                     )}
                     {order.status === 'Confirmed' && (
-                      <button type="button" className="btn-primary py-2" onClick={() => markShipped(order.id)}>
+                      <button type="button" className="btn-primary py-2 px-4 shadow-sm" onClick={() => markShipped(order.id)}>
                         Rider collected · mark shipped
                       </button>
                     )}
