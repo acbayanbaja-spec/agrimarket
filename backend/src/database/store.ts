@@ -39,6 +39,9 @@ export interface ProductEntity {
   lng: number;
   priceHistory?: Array<{ date: string; price: number }>;
   created_at?: string;
+  isActive?: boolean;
+  is_active?: boolean;
+  isUnlisted?: boolean;
 }
 
 export interface OrderItemEntity {
@@ -720,12 +723,32 @@ class DatabaseStore {
   }
 
   // --- Products ---
-  public getProducts() {
-    return this.data.products;
+  public getProducts(includeInactive: boolean = false) {
+    if (includeInactive) {
+      return this.data.products;
+    }
+    return this.data.products.filter(
+      (p) => p.isActive !== false && p.is_active !== false && !p.isUnlisted
+    );
   }
 
   public getProductById(id: string) {
     return this.data.products.find((p) => p.id === id);
+  }
+
+  public unlistProduct(id: string, unlisted: boolean = true) {
+    const idx = this.data.products.findIndex((p) => p.id === id);
+    if (idx !== -1) {
+      this.data.products[idx] = {
+        ...this.data.products[idx],
+        isUnlisted: unlisted,
+        isActive: !unlisted,
+        is_active: !unlisted,
+      };
+      this.saveData();
+      return this.data.products[idx];
+    }
+    return null;
   }
 
   public addProduct(product: ProductEntity) {

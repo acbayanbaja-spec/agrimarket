@@ -132,6 +132,7 @@ export type CouponResult = {
 }
 
 type StoreContextType = {
+  allProducts: Product[]
   products: Product[]
   orders: Order[]
   applications: SellerApplication[]
@@ -145,6 +146,8 @@ type StoreContextType = {
   updateProductStock: (id: string, stock: number) => void
   updateProductPrice: (id: string, price: number) => void
   removeProduct: (id: string) => void
+  unlistProduct: (id: string, unlisted?: boolean) => void
+  refreshCatalog: () => Promise<void>
   placeOrder: (order: Omit<Order, 'id' | 'createdAt' | 'userId' | 'status' | 'receiptNo' | 'buyerName' | 'pointsEarned'> & { pointsRedeemed?: number }) => Order
   myOrders: Order[]
   submitApplication: (payload: Omit<SellerApplication, 'id' | 'createdAt' | 'status' | 'userId' | 'name'>) => SellerApplication
@@ -323,8 +326,7 @@ function readJson<T>(key: string, fallback: T): T {
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, addRole, grantRole } = useAuth()
-  const [extraProducts, setExtraProducts] = useState<Product[]>([])
-  const [hiddenIds, setHiddenIds] = useState<string[]>([])
+  const [centralProducts, setCentralProducts] = useState<Product[]>(catalogProducts)
   const [stockOverrides, setStockOverrides] = useState<Record<string, number>>({})
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<Order[]>([])
@@ -344,9 +346,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online')
   const [hydrated, setHydrated] = useState(false)
 
+  const refreshCatalog = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: { products: Product[] }; products?: Product[] }>(
+        '/products?includeInactive=true'
+      )
+      const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
+      if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+        setCentralProducts(remoteProducts)
+      }
+    } catch (err) {
+      console.warn('Central database catalog sync error:', err)
+    }
+  }
+
   useEffect(() => {
-    setExtraProducts(readJson('agrimarket.extraProducts', []))
-    setHiddenIds(readJson('agrimarket.hiddenProducts', []))
     setStockOverrides(readJson('agrimarket.stock', {}))
     setPriceOverrides(readJson('agrimarket.prices', {}))
     const storedOrders = readJson<Order[] | null>('agrimarket.orders', null)
@@ -395,23 +409,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setFollowedCategories(readJson('agrimarket.follows', ['Vegetables', 'Fruits']))
     setHydrated(true)
 
-    // Hydrate backend products so products added by any seller sync across devices & buyers
-    api.get<{ success?: boolean; data?: { products: Product[] }; products?: Product[] }>('/products')
-      .then((res) => {
-        const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
-        if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
-          setExtraProducts((current) => {
-            const customRemote = remoteProducts.filter(
-              (p) => !catalogProducts.some((c) => c.id === p.id)
-            )
-            const map = new Map<string, Product>()
-            current.forEach((p) => map.set(p.id, p))
-            customRemote.forEach((p) => map.set(p.id, p))
-            return Array.from(map.values())
-          })
-        }
-      })
-      .catch(() => undefined)
+    // Sync products from central database on mount
+    refreshCatalog()
 
     // Hydrate backend orders
     api.get<{ success?: boolean; data?: Order[] }>('/orders')
@@ -428,11 +427,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       })
       .catch(() => undefined)
 
-    // Connect real-time socket events
+    // Connect real-time socket events across all devices (phones, laptops, tablets)
     const socket = getSocket()
-    socket.on('new_product', (prod: Product) => {
-      setExtraProducts((current) => [prod, ...current.filter((p) => p.id !== prod.id)])
+
+    // 1. When a product is created anywhere, immediately show on all devices
+    socket.on('product_created', (newProd: Product) => {
+      setCentralProducts((current) => [newProd, ...current.filter((p) => p.id !== newProd.id)])
     })
+    socket.on('new_product', (newProd: Product) => {
+      setCentralProducts((current) => [newProd, ...current.filter((p) => p.id !== newProd.id)])
+    })
+
+    // 2. When a product is updated, immediately update across all devices
+    socket.on('product_updated', (updatedProd: Product) => {
+      setCentralProducts((current) =>
+        current.map((p) => (p.id === updatedProd.id ? { ...p, ...updatedProd } : p))
+      )
+    })
+
+    // 3. When a product is unlisted by Admin, immediately update visibility across all devices
+    socket.on('product_unlisted', ({ id, isUnlisted }: { id: string; isUnlisted: boolean }) => {
+      setCentralProducts((current) =>
+        current.map((p) => (p.id === id ? { ...p, isUnlisted, isActive: !isUnlisted } : p))
+      )
+    })
+
+    // 4. When a product is deleted by Admin, immediately purge from all screens worldwide!
+    socket.on('product_deleted', ({ id }: { id: string }) => {
+      setCentralProducts((current) => current.filter((p) => p.id !== id))
+    })
+
+    // 5. Catalog change broad sync
+    socket.on('catalog_changed', () => {
+      refreshCatalog()
+    })
+
     socket.on('order_update', (ord: Order) => {
       setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
     })
@@ -441,14 +470,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })
   }, [])
 
-  useEffect(() => {
-    if (!hydrated) return
-    localStorage.setItem('agrimarket.extraProducts', JSON.stringify(extraProducts))
-  }, [extraProducts, hydrated])
-  useEffect(() => {
-    if (!hydrated) return
-    localStorage.setItem('agrimarket.hiddenProducts', JSON.stringify(hiddenIds))
-  }, [hiddenIds, hydrated])
   useEffect(() => {
     if (!hydrated) return
     localStorage.setItem('agrimarket.stock', JSON.stringify(stockOverrides))
@@ -514,7 +535,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleStorage = (event: StorageEvent) => {
       if (!event.key || !event.newValue) return
       try {
-        if (event.key === 'agrimarket.extraProducts') setExtraProducts(JSON.parse(event.newValue))
         if (event.key === 'agrimarket.stock') setStockOverrides(JSON.parse(event.newValue))
         if (event.key === 'agrimarket.prices') setPriceOverrides(JSON.parse(event.newValue))
         if (event.key === 'agrimarket.orders') setOrders(JSON.parse(event.newValue))
@@ -577,31 +597,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void api.post('/notifications', next).catch(() => undefined)
   }
 
+  const allProducts = useMemo(() => {
+    return centralProducts.map((product) => {
+      const stock = stockOverrides[product.id] ?? product.stock
+      const price = priceOverrides[product.id] ?? product.price
+      const productReviews = reviews.filter((review) => review.productId === product.id)
+      const rating = productReviews.length
+        ? Number((productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length).toFixed(1))
+        : product.rating
+      return {
+        ...product,
+        photos: product.photos?.length ? product.photos : [product.image],
+        lat: product.lat ?? 6.5004,
+        lng: product.lng ?? 124.8436,
+        sellerUserId: product.sellerUserId ?? (product.sellerId === 'seller-1' ? 2 : 0),
+        tradeable: product.tradeable ?? true,
+        priceHistory: product.priceHistory?.length ? product.priceHistory : [{ date: new Date().toISOString().slice(0, 10), price }],
+        stock,
+        price,
+        rating,
+        reviews: product.reviews + productReviews.filter((review) => !seedReviews.some((seed) => seed.id === review.id)).length,
+      }
+    })
+  }, [centralProducts, stockOverrides, priceOverrides, reviews])
+
   const products = useMemo(() => {
-    return [...extraProducts, ...catalogProducts]
-      .filter((product) => !hiddenIds.includes(product.id))
-      .map((product) => {
-        const stock = stockOverrides[product.id] ?? product.stock
-        const price = priceOverrides[product.id] ?? product.price
-        const productReviews = reviews.filter((review) => review.productId === product.id)
-        const rating = productReviews.length
-          ? Number((productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length).toFixed(1))
-          : product.rating
-        return {
-          ...product,
-          photos: product.photos?.length ? product.photos : [product.image],
-          lat: product.lat ?? 6.5004,
-          lng: product.lng ?? 124.8436,
-          sellerUserId: product.sellerUserId ?? (product.sellerId === 'seller-1' ? 2 : 0),
-          tradeable: product.tradeable ?? true,
-          priceHistory: product.priceHistory?.length ? product.priceHistory : [{ date: new Date().toISOString().slice(0, 10), price }],
-          stock,
-          price,
-          rating,
-          reviews: product.reviews + productReviews.filter((review) => !seedReviews.some((seed) => seed.id === review.id)).length,
-        }
-      })
-  }, [extraProducts, hiddenIds, stockOverrides, priceOverrides, reviews])
+    return allProducts.filter((product) => !product.isUnlisted && product.isActive !== false)
+  }, [allProducts])
 
   const addProduct: StoreContextType['addProduct'] = (product) => {
     const next: Product = {
@@ -617,8 +639,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       tradeable: product.tradeable ?? true,
       lat: product.lat || 6.5004,
       lng: product.lng || 124.8436,
+      isActive: true,
+      isUnlisted: false,
     }
-    setExtraProducts((current) => [next, ...current])
+    setCentralProducts((current) => [next, ...current.filter((p) => p.id !== next.id)])
     void api.post('/products', next).catch((err) => {
       console.warn('Backend product listing sync notice:', err)
     })
@@ -634,19 +658,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateProductStock = (id: string, stock: number) => {
     const nextStock = Math.max(0, stock)
     setStockOverrides((current) => ({ ...current, [id]: nextStock }))
+    setCentralProducts((current) =>
+      current.map((product) => (product.id === id ? { ...product, stock: nextStock } : product))
+    )
     void api.put(`/products/${id}`, { stock: nextStock }).catch(() => undefined)
   }
 
   const updateProductPrice = (id: string, price: number) => {
     const nextPrice = Math.max(1, price)
     setPriceOverrides((current) => ({ ...current, [id]: nextPrice }))
-    setExtraProducts((current) =>
+    setCentralProducts((current) =>
       current.map((product) =>
         product.id === id
           ? {
               ...product,
               price: nextPrice,
-              priceHistory: [...product.priceHistory, { date: new Date().toISOString().slice(0, 10), price: nextPrice }],
+              priceHistory: [...(product.priceHistory || []), { date: new Date().toISOString().slice(0, 10), price: nextPrice }],
             }
           : product
       )
@@ -655,11 +682,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const removeProduct = (id: string) => {
-    setExtraProducts((current) => current.filter((product) => product.id !== id))
-    if (catalogProducts.some((product) => product.id === id)) {
-      setHiddenIds((current) => [...current, id])
-    }
+    setCentralProducts((current) => current.filter((product) => product.id !== id))
     void api.delete(`/products/${id}`).catch(() => undefined)
+  }
+
+  const unlistProduct = (id: string, unlisted: boolean = true) => {
+    setCentralProducts((current) =>
+      current.map((product) =>
+        product.id === id ? { ...product, isUnlisted: unlisted, isActive: !unlisted } : product
+      )
+    )
+    void api.put(`/products/${id}/unlist`, { unlisted }).catch(() => undefined)
   }
 
   const placeOrder: StoreContextType['placeOrder'] = (order) => {
@@ -832,13 +865,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const myListings = useMemo(() => {
     if (!user) return []
-    return products.filter((product) => {
+    return allProducts.filter((product) => {
       if (product.sellerUserId === user.id) return true
       if (product.sellerId === `user-${user.id}`) return true
       if (user.email === 'seller@agrimarket.com' && (product.sellerId === 'seller-1' || product.sellerUserId === 2)) return true
       return false
     })
-  }, [products, user])
+  }, [allProducts, user])
 
   const sellerOrders = useMemo(() => {
     if (!user) return []
@@ -1069,6 +1102,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const value = useMemo<StoreContextType>(
     () => ({
+      allProducts,
       products,
       orders,
       applications,
@@ -1082,6 +1116,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateProductStock,
       updateProductPrice,
       removeProduct,
+      unlistProduct,
+      refreshCatalog,
       placeOrder,
       myOrders: orders.filter((order) => user && order.userId === user.id),
       submitApplication,
@@ -1121,6 +1157,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       categorySales,
     }),
     [
+      allProducts,
       products,
       orders,
       applications,

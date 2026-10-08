@@ -24,6 +24,8 @@ export type Product = {
   lat: number
   lng: number
   priceHistory: PricePoint[]
+  isUnlisted?: boolean
+  isActive?: boolean
 }
 
 const history = (base: number, wobble: number[]): PricePoint[] =>

@@ -26,7 +26,7 @@ import ProductImage from '../components/ProductImage'
 const statuses: Order['status'][] = ['Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered']
 
 const AdminDashboardPage = () => {
-  const { products, orders, applications, reviewApplication, removeProduct, updateOrderStatus } = useStore()
+  const { allProducts, products, orders, applications, reviewApplication, removeProduct, unlistProduct, updateOrderStatus } = useStore()
   const [orderFilter, setOrderFilter] = useState<string>('all')
   const [orderSearch, setOrderSearch] = useState<string>('')
   const [productSearch, setProductSearch] = useState<string>('')
@@ -47,7 +47,8 @@ const AdminDashboardPage = () => {
     return matchesStatus && matchesSearch
   })
 
-  const filteredProducts = products.filter((prod) =>
+  const catalogSource = allProducts && allProducts.length > 0 ? allProducts : products
+  const filteredProducts = catalogSource.filter((prod) =>
     productSearch === '' ||
     prod.name.toLowerCase().includes(productSearch.toLowerCase()) ||
     prod.seller.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -90,7 +91,7 @@ const AdminDashboardPage = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Marketplace GMV', value: formatPeso(revenue), sub: `${orders.length} total orders`, icon: TrendingUp, tone: 'from-emerald-600 to-teal-700 text-white' },
-          { label: 'Active Listings', value: products.length, sub: 'Regional harvests', icon: Package, tone: 'from-primary-700 to-emerald-800 text-white' },
+          { label: 'Active Listings', value: products.length, sub: `${catalogSource.length} in Central Database`, icon: Package, tone: 'from-primary-700 to-emerald-800 text-white' },
           { label: 'Pending Seller KYC', value: pendingApps.length, sub: 'Requires inspection', icon: FileCheck, tone: pendingApps.length > 0 ? 'from-amber-500 to-orange-600 text-white' : 'from-gray-700 to-gray-800 text-white' },
           { label: 'Delivered Parcels', value: deliveredOrders, sub: 'Completed drop-offs', icon: ShieldCheck, tone: 'from-soil-800 to-soil-950 text-white' },
         ].map((stat, idx) => (
@@ -343,36 +344,67 @@ const AdminDashboardPage = () => {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-center justify-between gap-3"
-            >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <ProductImage src={product.image} alt="" className="h-12 w-12 rounded-xl object-cover shrink-0" />
-                <div className="overflow-hidden">
-                  <Link
-                    to={`/products/${product.id}`}
-                    className="font-bold text-xs text-gray-900 hover:text-primary-700 truncate block"
+          {filteredProducts.map((product) => {
+            const isUnlisted = Boolean(product.isUnlisted || product.isActive === false)
+            return (
+              <div
+                key={product.id}
+                className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+                  isUnlisted ? 'bg-amber-50/70 border-amber-200' : 'bg-gray-50 border-gray-200/80'
+                }`}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <ProductImage src={product.image} alt="" className="h-12 w-12 rounded-xl object-cover shrink-0" />
+                  <div className="overflow-hidden">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Link
+                        to={`/products/${product.id}`}
+                        className="font-bold text-xs text-gray-900 hover:text-primary-700 truncate block"
+                      >
+                        {product.name}
+                      </Link>
+                      {isUnlisted ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200/80 text-amber-900 border border-amber-300">
+                          Unlisted
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Live Everywhere
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-500 truncate">{product.seller} · {formatPeso(product.price)}/{product.unit}</p>
+                    <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.2 rounded">
+                      Stock: {product.stock}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors border ${
+                      isUnlisted
+                        ? 'text-emerald-700 hover:text-emerald-900 bg-white hover:bg-emerald-50 border-emerald-300'
+                        : 'text-amber-700 hover:text-amber-900 bg-white hover:bg-amber-50 border-amber-300'
+                    }`}
+                    onClick={() => unlistProduct(product.id, !isUnlisted)}
+                    title={isUnlisted ? 'Relist immediately across all devices' : 'Unlist immediately from all devices'}
                   >
-                    {product.name}
-                  </Link>
-                  <p className="text-[11px] text-gray-500 truncate">{product.seller} · {formatPeso(product.price)}/{product.unit}</p>
-                  <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.2 rounded">
-                    Stock: {product.stock}
-                  </span>
+                    {isUnlisted ? 'Relist' : 'Unlist'}
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs font-bold text-rose-600 hover:text-rose-800 bg-white hover:bg-rose-50 px-2 py-1.5 rounded-lg transition-colors border border-rose-200"
+                    onClick={() => removeProduct(product.id)}
+                    title="Permanently delete from central database"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-
-              <button
-                type="button"
-                className="text-xs font-bold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors shrink-0"
-                onClick={() => removeProduct(product.id)}
-              >
-                Unlist
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

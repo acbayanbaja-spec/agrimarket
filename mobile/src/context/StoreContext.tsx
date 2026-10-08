@@ -73,6 +73,7 @@ export type SmsMessage = {
 
 type StoreContextType = {
   products: Product[]
+  refreshCatalog: () => Promise<void>
   cart: CartItem[]
   cartCount: number
   cartTotal: number
@@ -162,6 +163,7 @@ async function readJson<T>(key: string, fallback: T): Promise<T> {
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, addRole } = useAuth()
+  const [products, setProducts] = useState<Product[]>(catalogProducts)
   const [cart, setCart] = useState<CartItem[]>([])
   const [orders, setOrders] = useState<Order[]>(seedOrders)
   const [messages, setMessages] = useState<SmsMessage[]>(seedMessages)
@@ -172,6 +174,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ])
   const [hydrated, setHydrated] = useState(false)
   const [loyaltyPoints, setLoyaltyPoints] = useState(40)
+
+  const refreshCatalog = async () => {
+    try {
+      const res = await mobileApi.get<any>('/products')
+      const prods = res?.data?.products || res?.products
+      if (Array.isArray(prods) && prods.length > 0) {
+        const live = prods.filter((p: any) => !p.isUnlisted && p.isActive !== false)
+        setProducts(live)
+        setCart((curr) => curr.filter((c) => live.some((p: any) => p.id === c.productId)))
+      }
+    } catch {
+      // Keep offline/cached products
+    }
+  }
 
   useEffect(() => {
     ;(async () => {
@@ -186,13 +202,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setApprovedSellerIds(await readJson('agrimarket.mobile.approvedSellers', []))
       setHydrated(true)
 
-      // Hydrate from live backend API
-      mobileApi.get<any>('/products').then((res) => {
-        const prods = res?.data?.products || res?.products
-        if (Array.isArray(prods) && prods.length > 0) {
-          // Sync with mobile state
-        }
-      }).catch(() => undefined)
+      // Hydrate catalog from central database
+      await refreshCatalog()
 
       mobileApi.get<any>('/orders').then((res) => {
         const remoteOrders = res?.data || res
@@ -201,6 +212,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }).catch(() => undefined)
     })()
+
+    // Real-time synchronization loop across all devices
+    const interval = setInterval(() => {
+      void refreshCatalog()
+    }, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -376,7 +393,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart])
 
   const value: StoreContextType = {
-    products: catalogProducts,
+    products,
+    refreshCatalog,
     cart,
     cartCount: cart.reduce((sum, item) => sum + item.quantity, 0),
     cartTotal,

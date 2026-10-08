@@ -6,13 +6,13 @@ import { io } from '../index';
 const router = Router();
 
 // @route   GET /api/products
-// @desc    Get all products with filters
+// @desc    Get all products from central database with filters (supports includeInactive=true for Admin)
 // @access  Public
 router.get('/', (req: Request, res: Response) => {
   try {
-    const { category, search, sellerId, minPrice, maxPrice } = req.query;
+    const { category, search, sellerId, minPrice, maxPrice, includeInactive } = req.query;
 
-    let results = db.getProducts();
+    let results = db.getProducts(includeInactive === 'true');
 
     if (category && category !== 'All') {
       results = results.filter((p) => p.category.toLowerCase() === String(category).toLowerCase());
@@ -47,7 +47,7 @@ router.get('/', (req: Request, res: Response) => {
           products: results,
           total: results.length,
         },
-        'Products retrieved successfully'
+        'Products retrieved successfully from central database'
       )
     );
   } catch (error: any) {
@@ -56,7 +56,7 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // @route   GET /api/products/:id
-// @desc    Get product by ID
+// @desc    Get product by ID from central database
 // @access  Public
 router.get('/:id', (req: Request, res: Response) => {
   try {
@@ -72,7 +72,7 @@ router.get('/:id', (req: Request, res: Response) => {
 });
 
 // @route   POST /api/products
-// @desc    Create new product listing
+// @desc    Create new product listing in central database and broadcast to all users
 // @access  Public / Authenticated
 router.post('/', (req: Request, res: Response) => {
   try {
@@ -103,19 +103,24 @@ router.post('/', (req: Request, res: Response) => {
       lng: Number(body.lng || 124.8436),
       priceHistory: body.priceHistory || [{ date: new Date().toISOString().slice(0, 10), price: Number(body.price) }],
       created_at: new Date().toISOString(),
+      isActive: true,
+      is_active: true,
+      isUnlisted: false,
     };
 
     const saved = db.addProduct(newProduct);
 
-    // Broadcast new product to all connected shoppers
+    // INSTANT BROADCAST TO ALL CONNECTED DEVICES (PHONES, COMPUTERS, TABLETS)
     if (io) {
+      io.emit('product_created', saved);
       io.emit('new_product', saved);
+      io.emit('catalog_changed', { action: 'created', product: saved });
     }
 
     return res.status(201).json(
       successResponse(
         { product: saved },
-        'Product created and listed successfully across SOCCSKSARGEN'
+        'Product created and listed successfully across all devices in central database'
       )
     );
   } catch (error: any) {
@@ -123,8 +128,39 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
+// @route   PUT /api/products/:id/unlist
+// @desc    Unlist or disable product centrally (immediately disappears from all buyers)
+// @access  Public / Authenticated
+router.put('/:id/unlist', (req: Request, res: Response) => {
+  try {
+    const unlisted = req.body.unlisted !== undefined ? Boolean(req.body.unlisted) : true;
+    const updated = db.unlistProduct(req.params.id, unlisted);
+    if (!updated) {
+      return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
+    }
+
+    // INSTANT BROADCAST: Disappears from all devices immediately
+    if (io) {
+      io.emit('product_unlisted', { id: req.params.id, isUnlisted: unlisted, product: updated });
+      io.emit('product_updated', updated);
+      io.emit('catalog_changed', { action: 'unlisted', id: req.params.id, isUnlisted: unlisted, product: updated });
+    }
+
+    return res.json(
+      successResponse(
+        { product: updated },
+        unlisted
+          ? 'Product unlisted and immediately disabled on all devices'
+          : 'Product relisted and now visible on all devices'
+      )
+    );
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'PRODUCT_UNLIST_FAILED', 500));
+  }
+});
+
 // @route   PUT /api/products/:id
-// @desc    Update product stock or details
+// @desc    Update product stock, price, or details centrally in database
 // @access  Public / Authenticated
 router.put('/:id', (req: Request, res: Response) => {
   try {
@@ -133,14 +169,25 @@ router.put('/:id', (req: Request, res: Response) => {
       return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
     }
 
-    return res.json(successResponse({ product: updated }, 'Product updated successfully'));
+    // INSTANT BROADCAST TO ALL DEVICES
+    if (io) {
+      io.emit('product_updated', updated);
+      io.emit('catalog_changed', { action: 'updated', product: updated });
+    }
+
+    return res.json(
+      successResponse(
+        { product: updated },
+        'Product updated successfully in central database and synced across all devices'
+      )
+    );
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'PRODUCT_UPDATE_FAILED', 500));
   }
 });
 
 // @route   DELETE /api/products/:id
-// @desc    Delete product
+// @desc    Permanently delete product from central database (immediately vanishes on all devices)
 // @access  Public / Authenticated
 router.delete('/:id', (req: Request, res: Response) => {
   try {
@@ -149,7 +196,18 @@ router.delete('/:id', (req: Request, res: Response) => {
       return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
     }
 
-    return res.json(successResponse({ id: req.params.id }, 'Product removed from marketplace'));
+    // INSTANT BROADCAST: Remove from every buyer & seller device in real time!
+    if (io) {
+      io.emit('product_deleted', { id: req.params.id });
+      io.emit('catalog_changed', { action: 'deleted', id: req.params.id });
+    }
+
+    return res.json(
+      successResponse(
+        { id: req.params.id },
+        'Product permanently deleted from central database and removed from all devices'
+      )
+    );
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'PRODUCT_DELETE_FAILED', 500));
   }
