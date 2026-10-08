@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { db } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
+import { io } from '../index';
 
 const router = Router();
 
@@ -106,6 +107,15 @@ router.put('/seller-applications/:id', (req: AuthRequest, res: Response) => {
       readBy: [],
       createdAt: new Date().toISOString(),
     });
+
+    // Real-time broadcast: update buyer and all devices immediately
+    if (io) {
+      io.emit('seller_application_reviewed', updated);
+      io.emit('seller_application_updated', updated);
+      if (status === 'Approved') {
+        io.emit('role_granted', { userId: updated.userId, role: 'seller' });
+      }
+    }
 
     return res.json(successResponse(updated, `Seller application has been ${status.toLowerCase()}`));
   } catch (error: any) {

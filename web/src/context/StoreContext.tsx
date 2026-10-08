@@ -360,6 +360,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }
 
+  const syncApplications = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: SellerApplication[] }>('/sellers/applications')
+      const remoteApps = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+      if (Array.isArray(remoteApps) && remoteApps.length > 0) {
+        setApplications((current) => {
+          const map = new Map<string, SellerApplication>()
+          current.forEach((app) => map.set(app.id, app))
+          remoteApps.forEach((app) => map.set(app.id, app))
+          return Array.from(map.values())
+        })
+        const approvedIds = remoteApps.filter((app) => app.status === 'Approved').map((app) => app.userId)
+        if (approvedIds.length > 0) {
+          setApprovedSellerIds((prev) => Array.from(new Set([...prev, ...approvedIds])))
+        }
+      }
+    } catch {
+      /* ignore sync error in offline mode */
+    }
+  }
+
   useEffect(() => {
     setStockOverrides(readJson('agrimarket.stock', {}))
     setPriceOverrides(readJson('agrimarket.prices', {}))
@@ -409,8 +430,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setFollowedCategories(readJson('agrimarket.follows', ['Vegetables', 'Fruits']))
     setHydrated(true)
 
-    // Sync products from central database on mount
+    // Sync products and seller applications from central database on mount
     refreshCatalog()
+    syncApplications()
 
     // Hydrate backend orders
     api.get<{ success?: boolean; data?: Order[] }>('/orders')
@@ -476,6 +498,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
     })
 
+    // 7. Seller application real-time sync across devices
+    socket.on('seller_application_submitted', (app: SellerApplication) => {
+      setApplications((current) => [app, ...current.filter((a) => a.id !== app.id)])
+    })
+    socket.on('application_created', (app: SellerApplication) => {
+      setApplications((current) => [app, ...current.filter((a) => a.id !== app.id)])
+    })
+    socket.on('seller_application_reviewed', (app: SellerApplication) => {
+      setApplications((current) => current.map((a) => (a.id === app.id ? { ...a, ...app } : a)))
+      if (app.status === 'Approved') {
+        setApprovedSellerIds((prev) => (prev.includes(app.userId) ? prev : [...prev, app.userId]))
+      }
+    })
+    socket.on('seller_application_updated', (app: SellerApplication) => {
+      setApplications((current) => current.map((a) => (a.id === app.id ? { ...a, ...app } : a)))
+    })
+    socket.on('role_granted', ({ userId, role }: { userId: number; role: string }) => {
+      if (role === 'seller') {
+        setApprovedSellerIds((prev) => (prev.includes(userId) ? prev : [...prev, userId]))
+      }
+    })
+
     socket.on('notification', (notif: AppNotification) => {
       setNotifications((current) => [notif, ...current.filter((n) => n.id !== notif.id)])
     })
@@ -483,6 +527,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Periodic synchronization heartbeat across all devices
     const syncInterval = setInterval(() => {
       void refreshCatalog()
+      void syncApplications()
       api.get<{ success?: boolean; data?: Order[] }>('/orders')
         .then((res) => {
           const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
@@ -590,8 +635,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [])
 
   useEffect(() => {
-    if (user && approvedSellerIds.includes(user.id)) addRole('seller')
-  }, [user, approvedSellerIds, addRole])
+    if (!user) return
+    const isApproved =
+      approvedSellerIds.includes(user.id) ||
+      applications.some((app) => app.userId === user.id && app.status === 'Approved')
+    if (isApproved && !user.roles.includes('seller')) {
+      addRole('seller')
+    }
+  }, [user, approvedSellerIds, applications, addRole])
 
   useEffect(() => {
     if (!hydrated) return
@@ -779,24 +830,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const next: SellerApplication = {
       ...payload,
       id: `APP-${Date.now().toString().slice(-8)}`,
-      userId: user?.id || 0,
-      name: user ? `${user.firstName} ${user.lastName}` : 'Guest',
+      userId: user?.id || 3,
+      name: user ? `${user.firstName} ${user.lastName}` : 'Buyer Member',
       status: 'Pending',
       createdAt: new Date().toISOString(),
     }
     setApplications((current) => [next, ...current.filter((item) => item.userId !== next.userId)])
-    void api.post('/sellers/application', next).catch(() => undefined)
+    api.post<{ success?: boolean; data?: SellerApplication }>('/sellers/application', next)
+      .then((res) => {
+        if (res.data?.data) {
+          const saved = res.data.data
+          setApplications((current) => [saved, ...current.filter((item) => item.id !== saved.id && item.userId !== saved.userId)])
+        }
+      })
+      .catch(() => undefined)
     notify({
       userId: 1,
-      title: 'Seller application pending',
-      message: `${next.name} applied as ${next.farmName}.`,
+      title: 'Seller application pending review',
+      message: `${next.name} applied for farm verification as ${next.farmName}. Check Admin KYC.`,
       href: '/admin-dashboard',
     })
     return next
   }
 
   const reviewApplication = (id: string, status: 'Approved' | 'Rejected') => {
-    void api.put(`/admin/seller-applications/${id}`, { status }).catch(() => undefined)
+    api.put(`/sellers/application/${id}/review`, { status }).catch(() => {
+      return api.put(`/admin/seller-applications/${id}`, { status }).catch(() => undefined)
+    })
     setApplications((current) => {
       const target = current.find((item) => item.id === id)
       if (status === 'Approved' && target) {
@@ -804,16 +864,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         grantRole(target.userId, 'seller')
         notify({
           userId: target.userId,
-          title: 'You can sell now',
-          message: `${target.farmName} is approved. List your first harvest.`,
+          title: '🎉 You are now an approved Seller!',
+          message: `${target.farmName} was approved. You can now post harvest listings and manage orders.`,
           href: '/seller-dashboard',
         })
       }
       if (status === 'Rejected' && target) {
         notify({
           userId: target.userId,
-          title: 'Seller application needs work',
-          message: 'An admin declined the application. Update documents and resubmit.',
+          title: 'Seller application status update',
+          message: 'Your application was not approved. Please review requirements and resubmit.',
           href: '/become-seller',
         })
       }
@@ -1161,7 +1221,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       placeOrder,
       myOrders: orders.filter((order) => user && order.userId === user.id),
       submitApplication,
-      myApplication: applications.find((item) => user && item.userId === user.id),
+      myApplication: [...applications].reverse().find((item) => user && item.userId === user.id),
       reviewApplication,
       updateOrderStatus,
       confirmOrder,
