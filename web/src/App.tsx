@@ -46,13 +46,13 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <StoreProvider>
-            <Router>
-            <ScrollToTop />
-            <ToastProvider>
-            <CartSheetProvider>
+      <Router>
+        <AuthProvider>
+          <CartProvider>
+            <StoreProvider>
+              <ScrollToTop />
+              <ToastProvider>
+              <CartSheetProvider>
               <Routes>
                 <Route path="/" element={<MainLayout />}>
                   <Route index element={<HomePage />} />
@@ -87,12 +87,12 @@ function App() {
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Routes>
-            </CartSheetProvider>
-            </ToastProvider>
-            </Router>
-          </StoreProvider>
-        </CartProvider>
-      </AuthProvider>
+              </CartSheetProvider>
+              </ToastProvider>
+              </StoreProvider>
+            </CartProvider>
+          </AuthProvider>
+        </Router>
     </QueryClientProvider>
   )
 }

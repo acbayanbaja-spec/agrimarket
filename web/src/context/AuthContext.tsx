@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { getErrorMessage } from '../lib/utils'
+import { scrollToTopNow } from '../components/ScrollToTop'
 
 export interface User {
   id: number
@@ -110,6 +112,7 @@ function findLocalAccount(email: string, password: string) {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate()
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
@@ -184,7 +187,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    window.location.href = '/login'
+    scrollToTopNow()
+    try {
+      navigate('/login')
+    } catch {
+      window.location.href = '/login'
+    }
   }
 
   const updateProfile = (updates: Partial<Pick<User, 'firstName' | 'lastName' | 'phone'>>) => {
@@ -234,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!user,
       hasRole: (role: string) => user?.roles.includes(role) || false,
     }),
-    [user, token, ready]
+    [user, token, ready, navigate]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
