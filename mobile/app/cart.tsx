@@ -10,9 +10,19 @@ import { pointsFromSpend } from '../src/lib/commerce';
 export default function CartScreen() {
   const { cart, cartTotal, removeFromCart, updateCartQuantity } = useStore();
   const { isAuthenticated, hasRole } = useAuth();
-  const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'));
+  const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller'));
   const shipping = cartTotal >= 300 ? 0 : 50;
   const points = pointsFromSpend(cartTotal);
+
+  if (hasRole('admin')) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back</Text></Pressable>
+        <Text style={styles.title}>Ordering Restricted</Text>
+        <Text style={styles.empty}>Administrators cannot place orders. The admin role is for platform management only.</Text>
+      </SafeAreaView>
+    );
+  }
 
   if (!canShop) {
     return (

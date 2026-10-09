@@ -9,7 +9,7 @@ import { pointsFromSpend } from '../src/lib/commerce';
 import { soccsksargenPlaces } from '../src/data/locations';
 
 export default function CheckoutScreen() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, hasRole } = useAuth();
   const { cart, cartTotal, placeOrder, loyaltyPoints } = useStore();
   const [city, setCity] = useState(soccsksargenPlaces[0].label);
   const [address, setAddress] = useState('Purok 2, Zone 1');
@@ -22,9 +22,19 @@ export default function CheckoutScreen() {
   const total = cartTotal + Math.max(0, shippingFee - redeemed);
   const earned = pointsFromSpend(cartTotal);
 
+  if (hasRole('admin')) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back</Text></Pressable>
+        <Text style={styles.title}>Ordering Restricted</Text>
+        <Text style={styles.empty}>Administrators cannot place orders. The admin role is for platform management only.</Text>
+      </SafeAreaView>
+    );
+  }
+
   const submit = () => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    if (!isAuthenticated || hasRole('admin')) {
+      if (!isAuthenticated) router.push('/login');
       return;
     }
     const order = placeOrder({ address: `${address}, ${city}`, payment, usePoints });

@@ -1,17 +1,26 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Store, ShoppingCart, ClipboardList, User } from 'lucide-react'
+import { Home, Store, ShoppingCart, ClipboardList, User, LayoutDashboard } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 
 const BottomNav = () => {
   const { pathname } = useLocation()
   const { count } = useCart()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, hasRole } = useAuth()
+  const isAdmin = hasRole('admin')
+
+  const handleNavClick = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior })
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }
 
   const items = [
     { to: '/', label: 'Home', icon: Home, match: (path: string) => path === '/' },
     { to: isAuthenticated ? '/marketplace' : '/login', label: 'Shop', icon: Store, match: (path: string) => path.startsWith('/marketplace') || path.startsWith('/products') },
-    { to: '/cart', label: 'Cart', icon: ShoppingCart, match: (path: string) => path === '/cart' },
+    isAdmin
+      ? { to: '/admin-dashboard', label: 'Admin', icon: LayoutDashboard, match: (path: string) => path.startsWith('/admin-dashboard') }
+      : { to: '/cart', label: 'Cart', icon: ShoppingCart, match: (path: string) => path === '/cart' },
     { to: '/orders', label: 'Orders', icon: ClipboardList, match: (path: string) => path.startsWith('/orders') },
     { to: isAuthenticated ? '/profile' : '/login', label: 'Me', icon: User, match: (path: string) => path.startsWith('/profile') || path.startsWith('/login') },
   ]
@@ -26,6 +35,7 @@ const BottomNav = () => {
             <Link
               key={item.label}
               to={item.to}
+              onClick={handleNavClick}
               className={`relative flex flex-col items-center py-2 text-[11px] font-semibold ${active ? 'text-primary-700' : 'text-gray-500'}`}
             >
               <Icon className={`h-5 w-5 mb-0.5 ${active ? 'animate-pop' : ''}`} />

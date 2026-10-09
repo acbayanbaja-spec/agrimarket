@@ -184,6 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    window.location.href = '/login'
   }
 
   const updateProfile = (updates: Partial<Pick<User, 'firstName' | 'lastName' | 'phone'>>) => {

@@ -5,9 +5,12 @@ import { productPhoto } from '../lib/images'
 import { formatPeso, stockLabel } from '../lib/utils'
 import { harvestMeta } from '../lib/commerce'
 import { useCartSheet } from '../context/CartSheetContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function ProductCard({ product }: { product: Product }) {
   const { openSheet } = useCartSheet()
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole('admin')
   const out = product.stock <= 0
   const meta = harvestMeta(product)
 
@@ -41,13 +44,19 @@ export default function ProductCard({ product }: { product: Product }) {
             </Text>
             <Text style={styles.was}>{formatPeso(meta.originalPrice)}</Text>
           </View>
-          <Pressable
-            style={[styles.add, out && styles.addDisabled]}
-            disabled={out}
-            onPress={() => openSheet(product)}
-          >
-            <Text style={styles.addText}>{out ? 'Sold out' : 'Add'}</Text>
-          </Pressable>
+          {isAdmin ? (
+            <View style={[styles.add, { backgroundColor: '#f3f4f6' }]}>
+              <Text style={[styles.addText, { color: '#6b7280' }]}>Manage</Text>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.add, out && styles.addDisabled]}
+              disabled={out}
+              onPress={() => openSheet(product)}
+            >
+              <Text style={styles.addText}>{out ? 'Sold out' : 'Add'}</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </View>

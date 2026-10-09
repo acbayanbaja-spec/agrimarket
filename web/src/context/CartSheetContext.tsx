@@ -26,7 +26,11 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const openSheet = (next: Product) => {
     if (next.stock <= 0) return
-    const allowed = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'))
+    if (hasRole('admin')) {
+      toast('Admins cannot place orders. The admin role is for management only.')
+      return
+    }
+    const allowed = isAuthenticated && (hasRole('buyer') || hasRole('seller'))
     if (!allowed) {
       navigate('/login', { state: { from: `/products/${next.id}` } })
       return
@@ -40,6 +44,11 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const confirm = () => {
     if (!product) return
+    if (hasRole('admin')) {
+      toast('Admins cannot place orders. The admin role is for management only.')
+      setProduct(null)
+      return
+    }
     addItem(product, quantity)
     toast(`Added to cart · ${product.name}`, '/cart')
     setProduct(null)

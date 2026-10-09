@@ -73,6 +73,10 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
       roles: ['buyer'],
     };
 
+    if (user.roles && user.roles.includes('admin')) {
+      return res.status(403).json(errorResponse('Administrators cannot place orders. The admin role is for platform management only.', null, 'ADMIN_CANNOT_ORDER', 403));
+    }
+
     if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
       return res.status(400).json(errorResponse('Order must contain at least one item', null, 'INVALID_ITEMS', 400));
     }

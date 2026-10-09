@@ -108,9 +108,15 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
             <span className="text-sm font-medium text-gray-500"> / {product.unit}</span>
             <span className="block text-xs font-medium text-gray-400 line-through">{formatPeso(meta.originalPrice)}</span>
           </p>
-          <button type="button" className="btn-primary px-3 py-2 text-sm" disabled={out} onClick={() => openSheet(product)}>
-            {out ? 'Sold out' : 'Add'}
-          </button>
+          {hasRole('admin') ? (
+            <span className="text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1.5 rounded-xl cursor-default" title="Admins cannot order products (management only account)">
+              Manage only
+            </span>
+          ) : (
+            <button type="button" className="btn-primary px-3 py-2 text-sm" disabled={out} onClick={() => openSheet(product)}>
+              {out ? 'Sold out' : 'Add'}
+            </button>
+          )}
         </div>
       </div>
     </article>

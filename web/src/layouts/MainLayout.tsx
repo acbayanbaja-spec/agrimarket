@@ -96,14 +96,16 @@ const MainLayout = () => {
                 <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-1 rounded">SYNC</span>
               </button>
 
-              <Link to="/cart" className="relative btn-ghost">
-                <ShoppingCart className="h-5 w-5" />
-                {count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-[11px] rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center animate-pop font-bold">
-                    {count}
-                  </span>
-                )}
-              </Link>
+              {!hasRole('admin') && (
+                <Link to="/cart" className="relative btn-ghost" title="Cart">
+                  <ShoppingCart className="h-5 w-5" />
+                  {count > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-[11px] rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center animate-pop font-bold">
+                      {count}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               <NotificationBell />
 
@@ -195,7 +197,9 @@ const MainLayout = () => {
             </button>
 
             <Link to="/prices" onClick={() => setOpen(false)} className="block py-2 font-medium">Price monitor</Link>
-            <Link to="/cart" onClick={() => setOpen(false)} className="block py-2 font-medium">Cart ({count})</Link>
+            {!hasRole('admin') && (
+              <Link to="/cart" onClick={() => setOpen(false)} className="block py-2 font-medium">Cart ({count})</Link>
+            )}
 
             <div className="pt-3 border-t border-gray-100 space-y-2">
               {isAuthenticated ? (

@@ -781,6 +781,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const placeOrder: StoreContextType['placeOrder'] = (order) => {
+    if (user?.roles?.includes('admin')) {
+      throw new Error('Administrators cannot place orders. The admin role is for platform management only.')
+    }
     const stamp = Date.now().toString().slice(-8)
     const redeemed = user ? Math.max(0, Math.min(order.pointsRedeemed || 0, loyaltyPoints)) : 0
     const earned = user ? pointsFromSpend(order.subtotal) : 0

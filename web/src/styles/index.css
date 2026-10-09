@@ -3,10 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-
   body {
     @apply bg-soil-50 text-gray-900 antialiased;
     background-image:

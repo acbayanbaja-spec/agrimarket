@@ -92,7 +92,7 @@ export const AgriAiAssistant: React.FC = () => {
   return (
     <>
       {/* Floating Launcher Button */}
-      <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-50">
+      <div className="fixed bottom-20 left-4 md:bottom-8 md:left-8 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white px-4 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-emerald-400/50"

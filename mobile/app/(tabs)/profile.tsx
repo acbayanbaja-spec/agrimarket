@@ -50,7 +50,7 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/cart')}>
             <Text style={styles.menuItemText}>Cart</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={logout}>
+          <TouchableOpacity style={styles.menuItem} onPress={async () => { await logout(); router.replace('/login') }}>
             <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
           </TouchableOpacity>
         </View>

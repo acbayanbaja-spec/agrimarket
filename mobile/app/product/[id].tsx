@@ -56,25 +56,35 @@ export default function ProductDetailScreen() {
           <Text style={styles.was}>{formatPeso(meta.originalPrice)}</Text>
           <Text style={styles.copy}>{product.description}</Text>
           <Text style={styles.points}>{meta.freshness} · {meta.eta} · +{meta.points * quantity} harvest pts</Text>
-          <View style={styles.stepper}>
-            <Pressable style={styles.stepBtn} disabled={quantity <= 1} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
-              <Text style={styles.stepText}>−</Text>
-            </Pressable>
-            <Text style={styles.qty}>{quantity}</Text>
-            <Pressable style={styles.stepBtn} disabled={quantity >= product.stock} onPress={() => setQuantity(Math.min(product.stock, quantity + 1))}>
-              <Text style={styles.stepText}>+</Text>
-            </Pressable>
-          </View>
-          <Pressable
-            style={[styles.add, out && styles.disabled]}
-            disabled={out}
-            onPress={() => {
-              addToCart(product, quantity);
-              toast(`Added to cart · ${product.name}`);
-            }}
-          >
-            <Text style={styles.addText}>{out ? 'Sold out' : `Confirm add · ${formatPeso(product.price * quantity)}`}</Text>
-          </Pressable>
+          {hasRole('admin') ? (
+            <View style={{ backgroundColor: '#fef3c7', padding: 12, borderRadius: 12, marginTop: 12, borderWidth: 1, borderColor: '#fde68a' }}>
+              <Text style={{ color: '#92400e', fontWeight: '700', fontSize: 13, textAlign: 'center' }}>
+                Admin View (Management Only): Ordering is disabled for administrators.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.stepper}>
+                <Pressable style={styles.stepBtn} disabled={quantity <= 1} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
+                  <Text style={styles.stepText}>−</Text>
+                </Pressable>
+                <Text style={styles.qty}>{quantity}</Text>
+                <Pressable style={styles.stepBtn} disabled={quantity >= product.stock} onPress={() => setQuantity(Math.min(product.stock, quantity + 1))}>
+                  <Text style={styles.stepText}>+</Text>
+                </Pressable>
+              </View>
+              <Pressable
+                style={[styles.add, out && styles.disabled]}
+                disabled={out}
+                onPress={() => {
+                  addToCart(product, quantity);
+                  toast(`Added to cart · ${product.name}`);
+                }}
+              >
+                <Text style={styles.addText}>{out ? 'Sold out' : `Confirm add · ${formatPeso(product.price * quantity)}`}</Text>
+              </Pressable>
+            </>
+          )}
           {sellerFeed.map((post) => (
             <View key={post.id} style={{ marginTop: 16 }}>
               <Text style={{ fontWeight: '800', color: '#14532d' }}>Seller feed</Text>

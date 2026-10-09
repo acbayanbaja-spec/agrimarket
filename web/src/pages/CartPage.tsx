@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Coins } from 'lucide-react'
+import { Coins, ShieldAlert } from 'lucide-react'
 import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
 import { pointsFromSpend } from '../lib/commerce'
 import ProductImage from '../components/ProductImage'
@@ -8,8 +9,24 @@ import QuantityStepper from '../components/QuantityStepper'
 
 const CartPage = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
+  const { hasRole } = useAuth()
   const shipping = subtotal >= 500 ? 0 : 50
   const points = pointsFromSpend(subtotal)
+
+  if (hasRole('admin')) {
+    return (
+      <div className="page-shell max-w-2xl text-center">
+        <div className="card p-8 animate-fade-up">
+          <ShieldAlert className="h-12 w-12 text-amber-600 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold mb-3">Ordering Restricted</h1>
+          <p className="text-gray-600 mb-6">
+            Administrators cannot place orders because the admin role is reserved for platform management and moderation only.
+          </p>
+          <Link to="/admin-dashboard" className="btn-primary">Go to Admin Control Center</Link>
+        </div>
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     return (

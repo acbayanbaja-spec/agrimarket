@@ -34,7 +34,7 @@ const HomePage = () => {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 md:pb-8">
       <Seo
         title="Fresh harvests from SOCCSKSARGEN farms"
         description="Shop Region XII harvests. Log in as a buyer or seller, then order. Sellers confirm before riders pick up."

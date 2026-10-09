@@ -14,7 +14,7 @@ import ProductImage from '../components/ProductImage'
 const CheckoutPage = () => {
   const { items, subtotal, clear } = useCart()
   const { placeOrder, applyCoupon, loyaltyPoints } = useStore()
-  const { user } = useAuth()
+  const { user, hasRole } = useAuth()
   const [usePoints, setUsePoints] = useState(true)
   const [address, setAddress] = useState('')
   const [city, setCity] = useState(soccsksargenPlaces[0].label)
@@ -59,6 +59,20 @@ const CheckoutPage = () => {
     )
   }
 
+  if (hasRole('admin')) {
+    return (
+      <div className="page-shell max-w-2xl text-center">
+        <div className="card p-8 animate-fade-up">
+          <h1 className="text-3xl font-bold mb-3">Ordering Restricted</h1>
+          <p className="text-gray-600 mb-6">
+            Administrators cannot place orders because the admin role is reserved for platform management and moderation only.
+          </p>
+          <Link to="/admin-dashboard" className="btn-primary">Go to Admin Control Center</Link>
+        </div>
+      </div>
+    )
+  }
+
   if (items.length === 0 && !placed) {
     return (
       <div className="page-shell text-center">
@@ -87,6 +101,7 @@ const CheckoutPage = () => {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
+    if (hasRole('admin')) return
     if (payment === 'GCash' && gcashRef.trim().length < 4) return
     const selected = soccsksargenPlaces.find((item) => item.label === city) || place
     const order = placeOrder({

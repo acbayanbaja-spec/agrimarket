@@ -53,6 +53,10 @@ const ProductDetailPage = () => {
   }
 
   const addToCart = () => {
+    if (hasRole('admin')) {
+      toast('Admins cannot place orders. The admin role is for management only.')
+      return
+    }
     addItem(product, quantity)
     toast(`Added to cart · ${product.name}`, '/cart')
   }
@@ -106,10 +110,19 @@ const ProductDetailPage = () => {
             />
           </div>
           <div className="flex flex-wrap items-center gap-4 mt-8">
-            <QuantityStepper value={quantity} max={Math.max(product.stock, 1)} onChange={setQuantity} disabled={out} />
-            <button type="button" className="btn-primary" disabled={out} onClick={addToCart}>
-              {out ? 'Out of stock' : `Confirm add · ${formatPeso(product.price * quantity)}`}
-            </button>
+            {hasRole('admin') ? (
+              <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl text-sm font-semibold">
+                <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
+                <span>Admin View (Management Only): Administrators cannot order harvests.</span>
+              </div>
+            ) : (
+              <>
+                <QuantityStepper value={quantity} max={Math.max(product.stock, 1)} onChange={setQuantity} disabled={out} />
+                <button type="button" className="btn-primary" disabled={out} onClick={addToCart}>
+                  {out ? 'Out of stock' : `Confirm add · ${formatPeso(product.price * quantity)}`}
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => toggleWishlist(product.id)}

@@ -312,7 +312,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const clearCart = () => setCart([])
 
   const placeOrder: StoreContextType['placeOrder'] = ({ address, payment, usePoints = true }) => {
-    if (!user || cart.length === 0) return null
+    if (!user || cart.length === 0 || user.roles.includes('admin')) return null
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const shippingFee = subtotal >= 300 ? 0 : 50
     const earned = pointsFromSpend(subtotal)

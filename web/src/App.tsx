@@ -30,6 +30,7 @@ import DeliveryDashboardPage from './pages/DeliveryDashboardPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import PriceMonitorPage from './pages/PriceMonitorPage'
 import GetTheAppPage from './pages/GetTheAppPage'
+import ScrollToTop from './components/ScrollToTop'
 import { ToastProvider } from './context/ToastContext'
 import { CartSheetProvider } from './context/CartSheetContext'
 
@@ -49,6 +50,7 @@ function App() {
         <CartProvider>
           <StoreProvider>
             <Router>
+            <ScrollToTop />
             <ToastProvider>
             <CartSheetProvider>
               <Routes>
@@ -56,8 +58,8 @@ function App() {
                   <Route index element={<HomePage />} />
                   <Route path="marketplace" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><MarketplacePage /></ProtectedRoute>} />
                   <Route path="products/:id" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><ProductDetailPage /></ProtectedRoute>} />
-                  <Route path="cart" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><CartPage /></ProtectedRoute>} />
-                  <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+                  <Route path="cart" element={<ProtectedRoute roles={['buyer', 'seller']}><CartPage /></ProtectedRoute>} />
+                  <Route path="checkout" element={<ProtectedRoute roles={['buyer', 'seller']}><CheckoutPage /></ProtectedRoute>} />
                   <Route path="login" element={<LoginPage />} />
                   <Route path="register" element={<RegisterPage />} />
                   <Route path="forgot-password" element={<ForgotPasswordPage />} />
