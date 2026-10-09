@@ -14,6 +14,7 @@ import VoucherCenterModal from '../components/VoucherCenterModal'
 import DailyCoinsCheckIn from '../components/DailyCoinsCheckIn'
 import FloatingQuickActions from '../components/FloatingQuickActions'
 import AgriAiAssistant from '../components/AgriAiAssistant'
+import { scrollToTopNow } from '../components/ScrollToTop'
 
 const MainLayout = () => {
   const { isAuthenticated, user, logout, hasRole } = useAuth()
@@ -171,11 +172,11 @@ const MainLayout = () => {
             </div>
 
             <ShopNowLink className="block py-2 font-medium">Shop Harvests</ShopNowLink>
-            <Link to="/feed" onClick={() => setOpen(false)} className="block py-2 font-medium">Seller feed</Link>
+            <Link to="/feed" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Seller feed</Link>
 
             {/* Trade hidden in mobile menu for admin and delivery */}
             {!isAdminOrDelivery && (
-              <Link to="/trades" onClick={() => setOpen(false)} className="block py-2 font-medium">Trade board</Link>
+              <Link to="/trades" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Trade board</Link>
             )}
 
             <button
@@ -196,24 +197,24 @@ const MainLayout = () => {
               <span className="font-bold bg-amber-100 px-2 py-0.5 rounded-full text-xs">{loyaltyPoints} pts</span>
             </button>
 
-            <Link to="/prices" onClick={() => setOpen(false)} className="block py-2 font-medium">Price monitor</Link>
+            <Link to="/prices" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Price monitor</Link>
             {!hasRole('admin') && (
-              <Link to="/cart" onClick={() => setOpen(false)} className="block py-2 font-medium">Cart ({count})</Link>
+              <Link to="/cart" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Cart ({count})</Link>
             )}
 
             <div className="pt-3 border-t border-gray-100 space-y-2">
               {isAuthenticated ? (
                 <>
-                  <Link to="/orders" onClick={() => setOpen(false)} className="block py-1.5 font-medium">My Orders</Link>
-                  <Link to="/messages" onClick={() => setOpen(false)} className="block py-1.5 font-medium">Messages</Link>
-                  <Link to="/profile" onClick={() => setOpen(false)} className="block py-1.5 font-medium">Profile</Link>
-                  <Link to={dashboardLink} onClick={() => setOpen(false)} className="block py-1.5 font-bold text-primary-700">Dashboard</Link>
+                  <Link to="/orders" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">My Orders</Link>
+                  <Link to="/messages" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Messages</Link>
+                  <Link to="/profile" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Profile</Link>
+                  <Link to={dashboardLink} onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-bold text-primary-700">Dashboard</Link>
                   <button type="button" className="btn-outline w-full mt-3" onClick={() => { logout(); setOpen(false) }}>Log out</button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setOpen(false)} className="block py-1.5 font-medium">Log in</Link>
-                  <Link to="/register" onClick={() => setOpen(false)} className="btn-primary w-full text-center">Sign up</Link>
+                  <Link to="/login" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Log in</Link>
+                  <Link to="/register" onClick={() => { setOpen(false); scrollToTopNow() }} className="btn-primary w-full text-center">Sign up</Link>
                 </>
               )}
             </div>
@@ -249,26 +250,26 @@ const MainLayout = () => {
               <h3 className="font-semibold mb-4">Marketplace</h3>
               <ul className="space-y-2 text-gray-400 text-sm">
                 <li><ShopNowLink className="hover:text-white">Browse products</ShopNowLink></li>
-                <li><Link to="/categories" className="hover:text-white">Categories</Link></li>
-                <li><Link to="/sellers" className="hover:text-white">Sellers</Link></li>
-                <li><Link to="/prices" className="hover:text-white">Price monitor</Link></li>
+                <li><Link to="/categories" onClick={scrollToTopNow} className="hover:text-white">Categories</Link></li>
+                <li><Link to="/sellers" onClick={scrollToTopNow} className="hover:text-white">Sellers</Link></li>
+                <li><Link to="/prices" onClick={scrollToTopNow} className="hover:text-white">Price monitor</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Community</h3>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/feed" className="hover:text-white">Harvest feed</Link></li>
-                <li><Link to="/trades" className="hover:text-white">Trade board</Link></li>
-                <li><Link to="/shipping" className="hover:text-white">Shipping coupons</Link></li>
-                <li><Link to="/get-app" className="hover:text-white inline-flex items-center gap-1"><Smartphone className="h-3.5 w-3.5" /> Get the app</Link></li>
+                <li><Link to="/feed" onClick={scrollToTopNow} className="hover:text-white">Harvest feed</Link></li>
+                <li><Link to="/trades" onClick={scrollToTopNow} className="hover:text-white">Trade board</Link></li>
+                <li><Link to="/shipping" onClick={scrollToTopNow} className="hover:text-white">Shipping coupons</Link></li>
+                <li><Link to="/get-app" onClick={scrollToTopNow} className="hover:text-white inline-flex items-center gap-1"><Smartphone className="h-3.5 w-3.5" /> Get the app</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Legal</h3>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><Link to="/terms" className="hover:text-white">Terms of Service</Link></li>
-                <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
-                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="/terms" onClick={scrollToTopNow} className="hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/privacy" onClick={scrollToTopNow} className="hover:text-white">Privacy Policy</Link></li>
+                <li><Link to="/help" onClick={scrollToTopNow} className="hover:text-white">Help Center</Link></li>
               </ul>
             </div>
           </div>

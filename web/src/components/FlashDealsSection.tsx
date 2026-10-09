@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom'
 import { Zap, Flame, Clock, ChevronRight, ShoppingCart } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useCartSheet } from '../context/CartSheetContext'
+import { useAuth } from '../context/AuthContext'
+import { scrollToTopNow } from './ScrollToTop'
 import { formatPeso } from '../lib/utils'
 import ProductImage from './ProductImage'
 
 export const FlashDealsSection = () => {
   const { products } = useStore()
   const { openSheet } = useCartSheet()
+  const { hasRole } = useAuth()
 
   // Calculate live countdown timer ending at next 6-hour interval
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number }>({
@@ -94,6 +97,7 @@ export const FlashDealsSection = () => {
 
             <Link
               to="/marketplace"
+              onClick={scrollToTopNow}
               className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold bg-white/20 hover:bg-white/30 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/20 transition-all text-white hover:translate-x-0.5"
             >
               See All Deals <ChevronRight className="h-4 w-4" />
@@ -108,7 +112,7 @@ export const FlashDealsSection = () => {
                 className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 text-gray-900 group flex flex-col justify-between"
               >
                 <div className="relative">
-                  <Link to={`/products/${product.id}`} className="block overflow-hidden">
+                  <Link to={`/products/${product.id}`} onClick={scrollToTopNow} className="block overflow-hidden">
                     <ProductImage
                       src={product.image}
                       alt={product.name}
@@ -135,6 +139,7 @@ export const FlashDealsSection = () => {
                     </p>
                     <Link
                       to={`/products/${product.id}`}
+                      onClick={scrollToTopNow}
                       className="font-bold text-sm text-gray-900 hover:text-orange-600 line-clamp-1 transition-colors"
                     >
                       {product.name}
@@ -168,13 +173,19 @@ export const FlashDealsSection = () => {
                   </div>
 
                   {/* Action Button */}
-                  <button
-                    type="button"
-                    onClick={() => openSheet(product)}
-                    className="w-full btn-primary bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white text-xs py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm font-bold"
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" /> Grab Deal
-                  </button>
+                  {hasRole('admin') ? (
+                    <div className="w-full text-center text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 py-2 rounded-xl">
+                      Manage only
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openSheet(product)}
+                      className="w-full btn-primary bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white text-xs py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm font-bold"
+                    >
+                      <ShoppingCart className="h-3.5 w-3.5" /> Grab Deal
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

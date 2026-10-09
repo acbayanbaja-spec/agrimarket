@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -15,7 +15,12 @@ export default function ProductDetailScreen() {
   const { isAuthenticated, hasRole } = useAuth();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
+  const scrollRef = useRef<ScrollView>(null);
   const product = products.find((item) => item.id === id);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [id]);
 
   if (!product) {
     return (
@@ -45,7 +50,7 @@ export default function ProductDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView ref={scrollRef}>
         <Image source={productPhoto(product.image)} style={styles.hero} />
         <View style={styles.body}>
           <Pressable onPress={() => router.back()}><Text style={styles.back}>← Back</Text></Pressable>

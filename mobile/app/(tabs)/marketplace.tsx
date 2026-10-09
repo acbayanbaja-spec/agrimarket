@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -16,6 +16,11 @@ export default function MarketplaceScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(params.category || 'All');
   const [location, setLocation] = useState('');
+  const listRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ y: 0, animated: false });
+  }, [category, location]);
 
   const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'));
 
@@ -83,7 +88,7 @@ export default function MarketplaceScreen() {
           </Pressable>
         ))}
       </ScrollView>
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScrollView ref={listRef} contentContainerStyle={styles.list}>
         {posts.slice(0, 2).map((post) => (
           <View key={post.id} style={styles.feedCard}>
             <Text style={styles.feedTitle}>{post.sellerName}{post.productName ? ` · ${post.productName}` : ''}</Text>

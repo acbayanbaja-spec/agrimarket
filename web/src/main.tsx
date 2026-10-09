@@ -5,6 +5,12 @@ import './styles/index.css'
 
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  try {
+    window.history.scrollRestoration = 'manual'
+  } catch {}
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>

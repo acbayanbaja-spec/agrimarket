@@ -151,6 +151,7 @@ export const SoccsksargenDeliveryMap = ({
           className="w-full h-full border-0"
           src={mapEngine === 'osm' ? osmUrl : googleEmbedUrl}
           loading="lazy"
+          tabIndex={-1}
           allowFullScreen
         />
 

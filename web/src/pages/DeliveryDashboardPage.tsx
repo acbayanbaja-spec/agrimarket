@@ -299,6 +299,7 @@ const DeliveryDashboardPage = () => {
                       className="w-full h-full border-0"
                       src={`https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.03}%2C${lat - 0.03}%2C${lng + 0.03}%2C${lat + 0.03}&layer=mapnik&marker=${lat}%2C${lng}`}
                       loading="lazy"
+                      tabIndex={-1}
                     />
                     <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-[10px] font-bold text-gray-800 shadow-sm border border-gray-100">
                       📍 SOCCSKSARGEN Drop-off: {order.address.split(',')[0]}

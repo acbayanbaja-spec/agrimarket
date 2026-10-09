@@ -1,4 +1,4 @@
-const CACHE = 'agrimarket-v1'
+const CACHE = 'agrimarket-v3'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

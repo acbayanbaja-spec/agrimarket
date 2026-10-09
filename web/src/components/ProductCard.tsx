@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Star, Repeat, Coins, Heart, Zap, Truck } from 'lucide-react'
 import type { Product } from '../data/catalog'
 import { formatPeso } from '../lib/utils'
@@ -7,6 +7,7 @@ import { harvestMeta } from '../lib/commerce'
 import { useCartSheet } from '../context/CartSheetContext'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
+import { scrollToTopNow } from './ScrollToTop'
 import ProductImage from './ProductImage'
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 }
 
 const ProductCard = ({ product, delay = 0 }: Props) => {
+  const navigate = useNavigate()
   const { openSheet } = useCartSheet()
   const { isWishlisted, toggleWishlist } = useStore()
   const { hasRole } = useAuth()
@@ -28,13 +30,23 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
 
   const isAdminOrDelivery = hasRole('admin') || hasRole('delivery')
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return
+    }
+    scrollToTopNow()
+    navigate(`/products/${product.id}`)
+  }
+
   return (
     <article
-      className="group bg-white/95 rounded-2xl border border-white/80 overflow-hidden shadow-sm hover:shadow-soft hover:-translate-y-1.5 transition-all duration-300 animate-fade-up relative flex flex-col justify-between"
+      onClick={handleCardClick}
+      className="group bg-white/95 rounded-2xl border border-white/80 overflow-hidden shadow-sm hover:shadow-soft hover:-translate-y-1.5 transition-all duration-300 animate-fade-up relative flex flex-col justify-between cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="relative">
-        <Link to={`/products/${product.id}`} className="block overflow-hidden relative">
+        <Link to={`/products/${product.id}`} onClick={scrollToTopNow} className="block overflow-hidden relative">
           <ProductImage
             src={product.image}
             alt={product.name}
@@ -79,7 +91,7 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">{product.category}</p>
-            <Link to={`/products/${product.id}`} className="font-display text-lg font-semibold text-gray-900 hover:text-primary-700">
+            <Link to={`/products/${product.id}`} onClick={scrollToTopNow} className="font-display text-lg font-semibold text-gray-900 hover:text-primary-700">
               {product.name}
             </Link>
           </div>
@@ -113,7 +125,15 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
               Manage only
             </span>
           ) : (
-            <button type="button" className="btn-primary px-3 py-2 text-sm" disabled={out} onClick={() => openSheet(product)}>
+            <button
+              type="button"
+              className="btn-primary px-3 py-2 text-sm"
+              disabled={out}
+              onClick={(e) => {
+                e.stopPropagation()
+                openSheet(product)
+              }}
+            >
               {out ? 'Sold out' : 'Add'}
             </button>
           )}

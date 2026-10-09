@@ -3,12 +3,15 @@
 @tailwind utilities;
 
 @layer base {
+  html, body {
+    scroll-behavior: auto !important;
+  }
+
   body {
     @apply bg-soil-50 text-gray-900 antialiased;
     background-image:
       radial-gradient(900px 400px at 10% -10%, rgba(74, 222, 128, 0.16), transparent 60%),
       radial-gradient(700px 300px at 100% 0%, rgba(250, 204, 21, 0.12), transparent 55%);
-    background-attachment: fixed;
   }
 
   h1, h2, h3 {

@@ -11,6 +11,7 @@ import FlashDealsSection from '../components/FlashDealsSection'
 import DownloadAppModal from '../components/DownloadAppModal'
 import VoucherCenterModal from '../components/VoucherCenterModal'
 import DailyCoinsCheckIn from '../components/DailyCoinsCheckIn'
+import { scrollToTopNow } from '../components/ScrollToTop'
 
 const HomePage = () => {
   const { products, recommended, loyaltyPoints } = useStore()
@@ -110,7 +111,7 @@ const HomePage = () => {
 
               if (bubble.to) {
                 return (
-                  <Link key={bubble.label} to={bubble.to}>
+                  <Link key={bubble.label} to={bubble.to} onClick={scrollToTopNow}>
                     {content}
                   </Link>
                 )
@@ -188,7 +189,7 @@ const HomePage = () => {
               <h2 className="text-3xl font-bold">Shop by category</h2>
               <p className="text-gray-600 mt-1">Follow a category on the feed to get pinged when sellers post.</p>
             </div>
-            <Link to="/categories" className="hidden sm:inline-flex items-center text-primary-700 font-semibold">
+            <Link to="/categories" onClick={scrollToTopNow} className="hidden sm:inline-flex items-center text-primary-700 font-semibold">
               All categories <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
@@ -197,6 +198,7 @@ const HomePage = () => {
               <Link
                 key={category.name}
                 to={`/marketplace?category=${encodeURIComponent(category.name)}`}
+                onClick={scrollToTopNow}
                 className="card hover:shadow-soft hover:-translate-y-1 transition-all text-center"
               >
                 <ProductImage src={category.image} alt="" className="h-16 w-16 mx-auto rounded-2xl object-cover mb-2" />
@@ -251,10 +253,10 @@ const HomePage = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link to="/become-seller" className="btn-primary bg-white text-primary-800 hover:bg-primary-50">
+            <Link to="/become-seller" onClick={scrollToTopNow} className="btn-primary bg-white text-primary-800 hover:bg-primary-50">
               <Store className="h-4 w-4 mr-2" /> Become a seller
             </Link>
-            <Link to="/prices" className="btn-outline border-white text-white hover:bg-white/10">
+            <Link to="/prices" onClick={scrollToTopNow} className="btn-outline border-white text-white hover:bg-white/10">
               <Wallet className="h-4 w-4 mr-2" /> Price monitor
             </Link>
           </div>

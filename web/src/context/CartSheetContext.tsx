@@ -7,6 +7,7 @@ import { harvestMeta } from '../lib/commerce'
 import { formatPeso } from '../lib/utils'
 import { useCart } from './CartContext'
 import { useToast } from './ToastContext'
+import { scrollToTopNow } from '../components/ScrollToTop'
 import ProductImage from '../components/ProductImage'
 import QuantityStepper from '../components/QuantityStepper'
 
@@ -97,7 +98,7 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             <button type="button" className="btn-primary w-full mt-5 py-3 text-base animate-pulse-soft" onClick={confirm}>
               Confirm add to cart
             </button>
-            <Link to={`/products/${product.id}`} className="block text-center text-sm font-semibold text-primary-700 mt-3" onClick={() => setProduct(null)}>
+            <Link to={`/products/${product.id}`} className="block text-center text-sm font-semibold text-primary-700 mt-3" onClick={() => { setProduct(null); scrollToTopNow() }}>
               See full product details
             </Link>
           </div>

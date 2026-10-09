@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { scrollToTopNow } from './ScrollToTop'
 
 type Props = {
   className?: string
@@ -10,9 +11,7 @@ const ShopNowLink = ({ className, children = 'Shop Now' }: Props) => {
   const { isAuthenticated, hasRole } = useAuth()
   const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'))
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior })
-    document.documentElement.scrollTop = 0
-    document.body.scrollTop = 0
+    scrollToTopNow()
   }
 
   if (canShop) return <Link to="/marketplace" onClick={scrollToTop} className={className}>{children}</Link>

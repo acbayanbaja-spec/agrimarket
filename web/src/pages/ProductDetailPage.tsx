@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useLayoutEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { MapPin, Star, Truck, Repeat, Coins, ShieldCheck, Clock, Heart, Zap } from 'lucide-react'
@@ -9,6 +9,7 @@ import { useToast } from '../context/ToastContext'
 import { fileToDataUrl, formatPeso, mapsUrl } from '../lib/utils'
 import { stockLabel, stockTone } from '../data/catalog'
 import { harvestMeta } from '../lib/commerce'
+import { scrollToTopNow } from '../components/ScrollToTop'
 import ProductCard from '../components/ProductCard'
 import ProductImage from '../components/ProductImage'
 import QuantityStepper from '../components/QuantityStepper'
@@ -23,6 +24,17 @@ const ProductDetailPage = () => {
   const { isAuthenticated, user, hasRole } = useAuth()
   const [quantity, setQuantity] = useState(1)
   const [photoIndex, setPhotoIndex] = useState(0)
+  const [showMap, setShowMap] = useState(false)
+
+  useLayoutEffect(() => {
+    scrollToTopNow()
+    const t1 = setTimeout(scrollToTopNow, 40)
+    const t2 = setTimeout(scrollToTopNow, 150)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [id])
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
@@ -99,16 +111,29 @@ const ProductDetailPage = () => {
             <p className="rounded-xl bg-soil-100 px-3 py-2 inline-flex items-center gap-2"><Truck className="h-4 w-4" /> {meta.guarantee}</p>
           </div>
           <p className="mt-4 text-sm text-gray-500">Sold by <Link className="font-semibold text-primary-700" to={`/marketplace?seller=${encodeURIComponent(product.seller)}`}>{product.seller}</Link> · {product.stock} {product.unit} available · SOCCSKSARGEN</p>
-          <a className="mt-3 inline-flex text-sm font-semibold text-primary-700" href={mapsUrl(product.lat, product.lng)} target="_blank" rel="noreferrer">
-            Open GPS pin on Google Maps
-          </a>
-          <div className="mt-4 h-48 rounded-2xl overflow-hidden border">
-            <iframe
-              title="Product location"
-              className="h-full w-full"
-              src={`https://maps.google.com/maps?q=${product.lat},${product.lng}&z=9&output=embed`}
-            />
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:underline" href={mapsUrl(product.lat, product.lng)} target="_blank" rel="noreferrer">
+              <MapPin className="h-4 w-4" /> Open GPS pin on Google Maps
+            </a>
+            <button
+              type="button"
+              onClick={() => setShowMap(!showMap)}
+              className="text-xs font-semibold text-gray-500 hover:text-gray-700 underline"
+            >
+              {showMap ? 'Hide map preview' : 'Preview map location'}
+            </button>
           </div>
+          {showMap && (
+            <div className="mt-3 h-48 rounded-2xl overflow-hidden border">
+              <iframe
+                title="Product location"
+                loading="lazy"
+                tabIndex={-1}
+                className="h-full w-full"
+                src={`https://maps.google.com/maps?q=${product.lat},${product.lng}&z=9&output=embed`}
+              />
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-4 mt-8">
             {hasRole('admin') ? (
               <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl text-sm font-semibold">
