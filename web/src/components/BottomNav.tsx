@@ -26,7 +26,7 @@ const BottomNav = () => {
         { to: '/', label: 'Home', icon: Home, match: (path: string) => path === '/' },
         { to: '/feed', label: 'Feed', icon: Store, match: (path: string) => path.startsWith('/feed') },
         { to: '/delivery', label: 'Deliveries', icon: Bike, match: (path: string) => path.startsWith('/delivery') },
-        { to: '/messages', label: 'Messages', icon: MessageSquare, match: (path: string) => path.startsWith('/messages') },
+        { to: '/rider-dashboard', label: 'Dashboard', icon: LayoutDashboard, match: (path: string) => path.startsWith('/rider-dashboard') },
         { to: isAuthenticated ? '/profile' : '/login', label: 'Me', icon: User, match: (path: string) => path.startsWith('/profile') || path.startsWith('/login') },
       ]
     : [

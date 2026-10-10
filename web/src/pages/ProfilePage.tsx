@@ -476,21 +476,39 @@ const ProfilePage = () => {
 
           {/* Delivery Desk */}
           {hasRole('delivery') && (
-            <Link
-              to="/delivery"
-              className="py-3.5 flex items-center justify-between hover:bg-emerald-50/50 -mx-3 px-3 rounded-xl transition-colors"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-primary-700 flex items-center justify-center shrink-0">
-                  <Bike className="h-5 w-5" />
+            <>
+              <Link
+                to="/delivery"
+                className="py-3.5 flex items-center justify-between hover:bg-emerald-50/50 -mx-3 px-3 rounded-xl transition-colors"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-primary-700 flex items-center justify-center shrink-0">
+                    <Bike className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Delivery Command Desk</div>
+                    <div className="text-xs text-gray-500">Live parcel pickups, GPS route navigation, and buyer SMS</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-gray-900">Delivery Command Desk</div>
-                  <div className="text-xs text-gray-500">Region XII pickup parcels, buyer GPS and drop-off navigation</div>
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              </Link>
+
+              <Link
+                to="/rider-dashboard"
+                className="py-3.5 flex items-center justify-between hover:bg-emerald-50/50 -mx-3 px-3 rounded-xl transition-colors"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-soil-100 text-soil-900 flex items-center justify-center shrink-0">
+                    <LayoutDashboard className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Rider Performance & Earnings Dashboard</div>
+                    <div className="text-xs text-gray-500">Delivery fees, COD collections, ratings, and drop-off records</div>
+                  </div>
                 </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            </Link>
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              </Link>
+            </>
           )}
 
           {/* Admin Control Center */}

@@ -27,6 +27,7 @@ import FeedPage from './pages/FeedPage'
 import TradesPage from './pages/TradesPage'
 import MessagesPage from './pages/MessagesPage'
 import DeliveryDashboardPage from './pages/DeliveryDashboardPage'
+import RiderDashboardPage from './pages/RiderDashboardPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import PriceMonitorPage from './pages/PriceMonitorPage'
 import GetTheAppPage from './pages/GetTheAppPage'
@@ -69,10 +70,11 @@ function App() {
                   <Route path="seller-dashboard" element={<ProtectedRoute roles={['seller', 'admin']}><SellerDashboardPage /></ProtectedRoute>} />
                   <Route path="admin-dashboard" element={<ProtectedRoute roles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
                   <Route path="delivery" element={<ProtectedRoute roles={['delivery', 'admin']}><DeliveryDashboardPage /></ProtectedRoute>} />
+                  <Route path="rider-dashboard" element={<ProtectedRoute roles={['delivery', 'admin']}><RiderDashboardPage /></ProtectedRoute>} />
                   <Route path="analytics" element={<ProtectedRoute roles={['seller', 'admin']}><AnalyticsPage /></ProtectedRoute>} />
                   <Route path="become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
                   <Route path="messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-                  <Route path="feed" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><FeedPage /></ProtectedRoute>} />
+                  <Route path="feed" element={<ProtectedRoute roles={['buyer', 'seller', 'admin', 'delivery']}><FeedPage /></ProtectedRoute>} />
                   <Route path="trades" element={<TradesPage />} />
                   <Route path="prices" element={<PriceMonitorPage />} />
                   <Route path="categories" element={<CategoriesPage />} />

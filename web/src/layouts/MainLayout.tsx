@@ -24,7 +24,7 @@ const MainLayout = () => {
     : hasRole('seller')
       ? '/seller-dashboard'
       : hasRole('delivery')
-        ? '/delivery'
+        ? '/rider-dashboard'
         : '/orders'
 
   const isAdminOrDelivery = hasRole('admin') || hasRole('delivery')
@@ -85,12 +85,12 @@ const MainLayout = () => {
               {isAuthenticated ? (
                 <>
                   {hasRole('delivery') && (
-                    <Link to="/delivery" className="btn-ghost text-primary-700" title="Delivery Desk"><Bike className="h-5 w-5" /></Link>
+                    <Link to="/delivery" className="btn-ghost text-primary-700" title="Delivery Command Desk (GPS & Pickups)"><Bike className="h-5 w-5" /></Link>
                   )}
                   {(hasRole('admin') || hasRole('seller')) && (
                     <Link to="/analytics" className="btn-ghost" title="Analytics"><LineChart className="h-5 w-5" /></Link>
                   )}
-                  <Link to={dashboardLink} className="btn-ghost" title="Dashboard">
+                  <Link to={dashboardLink} className="btn-ghost" title={hasRole('delivery') ? 'Rider Performance & Earnings Dashboard' : 'Dashboard'}>
                     <LayoutDashboard className="h-5 w-5" />
                   </Link>
                   <Link to="/profile" className="btn-ghost">
