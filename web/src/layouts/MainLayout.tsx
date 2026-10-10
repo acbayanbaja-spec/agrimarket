@@ -1,17 +1,14 @@
 import { useState } from 'react'
 import { Outlet, Link } from 'react-router-dom'
-import { ShoppingCart, User, Menu, Leaf, X, LayoutDashboard, Bike, LineChart, MessageSquare, Coins, Smartphone, Ticket, Sparkles, Download } from 'lucide-react'
+import { ShoppingCart, User, Menu, Leaf, X, LayoutDashboard, Bike, LineChart, Smartphone, Sparkles, Download } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { useStore } from '../context/StoreContext'
 import NotificationBell from '../components/NotificationBell'
 import SearchBar from '../components/SearchBar'
 import InstallBanner from '../components/InstallBanner'
 import ShopNowLink from '../components/ShopNowLink'
 import BottomNav from '../components/BottomNav'
 import DownloadAppModal from '../components/DownloadAppModal'
-import VoucherCenterModal from '../components/VoucherCenterModal'
-import DailyCoinsCheckIn from '../components/DailyCoinsCheckIn'
 import FloatingQuickActions from '../components/FloatingQuickActions'
 import AgriAiAssistant from '../components/AgriAiAssistant'
 import { scrollToTopNow } from '../components/ScrollToTop'
@@ -19,11 +16,8 @@ import { scrollToTopNow } from '../components/ScrollToTop'
 const MainLayout = () => {
   const { isAuthenticated, user, logout, hasRole } = useAuth()
   const { count } = useCart()
-  const { loyaltyPoints } = useStore()
   const [open, setOpen] = useState(false)
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
-  const [isVoucherOpen, setIsVoucherOpen] = useState(false)
-  const [isCoinsOpen, setIsCoinsOpen] = useState(false)
 
   const dashboardLink = hasRole('admin')
     ? '/admin-dashboard'
@@ -64,32 +58,6 @@ const MainLayout = () => {
                 <Link to="/trades" className="btn-ghost">Trade</Link>
               )}
 
-              {/* Shopee Style Vouchers Wallet Button - hidden for delivery rider */}
-              {!hasRole('delivery') && (
-                <button
-                  type="button"
-                  onClick={() => setIsVoucherOpen(true)}
-                  className="btn-ghost text-orange-600 hover:text-orange-700 hover:bg-orange-50 font-semibold inline-flex items-center gap-1.5"
-                  title="Vouchers Wallet"
-                >
-                  <Ticket className="h-4 w-4" />
-                  <span>Vouchers</span>
-                </button>
-              )}
-
-              {/* Shopee Style Daily Coins Check-In Button - hidden for delivery rider */}
-              {!hasRole('delivery') && (
-                <button
-                  type="button"
-                  onClick={() => setIsCoinsOpen(true)}
-                  className="btn-ghost text-amber-700 hover:text-amber-800 hover:bg-amber-50 font-bold inline-flex items-center gap-1.5"
-                  title="Daily Coins Check-In"
-                >
-                  <Coins className="h-4 w-4 text-amber-500" />
-                  <span>{loyaltyPoints}</span>
-                </button>
-              )}
-
               {/* Prominent Download Mobile App Button */}
               <button
                 type="button"
@@ -122,7 +90,6 @@ const MainLayout = () => {
                   {(hasRole('admin') || hasRole('seller')) && (
                     <Link to="/analytics" className="btn-ghost" title="Analytics"><LineChart className="h-5 w-5" /></Link>
                   )}
-                  <Link to="/messages" className="btn-ghost" title="Messages"><MessageSquare className="h-5 w-5" /></Link>
                   <Link to={dashboardLink} className="btn-ghost" title="Dashboard">
                     <LayoutDashboard className="h-5 w-5" />
                   </Link>
@@ -183,28 +150,6 @@ const MainLayout = () => {
               <Link to="/trades" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Trade board</Link>
             )}
 
-            {!hasRole('delivery') && (
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setIsVoucherOpen(true) }}
-                className="w-full text-left py-2 font-medium text-orange-600 flex items-center justify-between"
-              >
-                <span>Vouchers Wallet</span>
-                <Ticket className="h-4 w-4" />
-              </button>
-            )}
-
-            {!hasRole('delivery') && (
-              <button
-                type="button"
-                onClick={() => { setOpen(false); setIsCoinsOpen(true) }}
-                className="w-full text-left py-2 font-medium text-amber-700 flex items-center justify-between"
-              >
-                <span>Daily Coins Check-In</span>
-                <span className="font-bold bg-amber-100 px-2 py-0.5 rounded-full text-xs">{loyaltyPoints} pts</span>
-              </button>
-            )}
-
             <Link to="/prices" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Price monitor</Link>
             {!hasRole('admin') && !hasRole('delivery') && (
               <Link to="/cart" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Cart ({count})</Link>
@@ -239,8 +184,6 @@ const MainLayout = () => {
 
       {/* Modals */}
       <DownloadAppModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} />
-      <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />
-      <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />
 
       <footer className="bg-soil-900 text-white mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
