@@ -38,6 +38,23 @@ export const soccsksargenPlaces: SoccsksargenPlace[] = [
 
 export const defaultPlace = soccsksargenPlaces[0]
 
-export function findPlace(label: string) {
-  return soccsksargenPlaces.find((place) => place.label === label || place.city === label) || defaultPlace
+export function findPlace(label: string): SoccsksargenPlace {
+  if (!label) return defaultPlace
+  const clean = label.toLowerCase().trim()
+
+  // Match specific city keywords first
+  for (const place of soccsksargenPlaces) {
+    if (clean.includes(place.city.toLowerCase())) {
+      return place
+    }
+  }
+
+  // Match province keywords
+  for (const place of soccsksargenPlaces) {
+    if (clean.includes(place.province.toLowerCase())) {
+      return place
+    }
+  }
+
+  return defaultPlace
 }

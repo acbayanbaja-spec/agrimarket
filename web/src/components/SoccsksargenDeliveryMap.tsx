@@ -45,16 +45,23 @@ export const SoccsksargenDeliveryMap = ({
   const [selectedHub, setSelectedHub] = useState<SoccsksargenPlace>(REGIONAL_HUBS[0])
   const [mapEngine, setMapEngine] = useState<'osm' | 'google'>('osm')
 
-  const targetLat = activeLocation?.lat || selectedHub.lat
-  const targetLng = activeLocation?.lng || selectedHub.lng
+  const rawLat = activeLocation?.lat ?? selectedHub.lat
+  const rawLng = activeLocation?.lng ?? selectedHub.lng
+
+  // Strictly enforce SOCCSKSARGEN (Region XII) geographic bounds:
+  // Region XII spans latitudes 5.5°N - 7.5°N and longitudes 124.0°E - 125.8°E.
+  // Metro Manila / Quezon City is located at ~14.6°N, 121.0°E.
+  // Clamping prevents fallback to Manila or Quezon City.
+  const targetLat = rawLat >= 5.5 && rawLat <= 7.5 ? rawLat : 6.5004
+  const targetLng = rawLng >= 124.0 && rawLng <= 125.8 ? rawLng : 124.8436
   const targetLabel = activeLocation?.title || activeLocation?.address || selectedHub.label
 
   // OpenStreetMap bbox bounding coordinates centered squarely on Region XII / location
   const delta = compact ? 0.04 : 0.08
   const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${targetLng - delta}%2C${targetLat - delta}%2C${targetLng + delta}%2C${targetLat + delta}&layer=mapnik&marker=${targetLat}%2C${targetLng}`
 
-  // Google Maps explicit Region XII query to ensure it never defaults outside SOCCSKSARGEN
-  const googleEmbedUrl = `https://maps.google.com/maps?q=${targetLat},${targetLng}+(${encodeURIComponent(targetLabel + ', SOCCSKSARGEN, Philippines')})&t=&z=13&ie=UTF8&iwloc=&output=embed`
+  // Google Maps explicit coordinate query locked to Region XII coordinates
+  const googleEmbedUrl = `https://maps.google.com/maps?q=${targetLat},${targetLng}&z=14&ie=UTF8&iwloc=&output=embed`
 
   const gmapsDirections = `https://www.google.com/maps/dir/?api=1&destination=${targetLat},${targetLng}`
   const wazeDirections = `https://www.waze.com/ul?ll=${targetLat},${targetLng}&navigate=yes`

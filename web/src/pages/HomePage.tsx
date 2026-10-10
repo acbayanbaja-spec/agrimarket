@@ -31,7 +31,7 @@ const HomePage = () => {
     { label: 'Vegetables', icon: Leaf, tone: 'bg-green-600 text-white', to: '/marketplace?category=Vegetables' },
     { label: 'Fresh Fruits', icon: Sparkles, tone: 'bg-yellow-500 text-white', to: '/marketplace?category=Fruits' },
     { label: 'Rice & Grains', icon: Store, tone: 'bg-soil-700 text-white', to: '/marketplace?category=Rice%20%26%20Grains' },
-    { label: 'Mobile App', icon: Smartphone, tone: 'bg-primary-700 text-white', action: () => setIsDownloadOpen(true), badge: 'SYNC' },
+    { label: 'Price Monitor', icon: Store, tone: 'bg-primary-700 text-white', to: '/prices' },
   ]
 
   return (

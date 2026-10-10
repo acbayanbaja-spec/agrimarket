@@ -384,6 +384,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   useEffect(() => {
+    const storedProducts = readJson<Product[] | null>('agrimarket.products', null)
+    if (storedProducts && storedProducts.length > 0) {
+      const storedIds = new Set(storedProducts.map((p) => p.id))
+      setCentralProducts([...storedProducts, ...catalogProducts.filter((p) => !storedIds.has(p.id))])
+    }
     setStockOverrides(readJson('agrimarket.stock', {}))
     setPriceOverrides(readJson('agrimarket.prices', {}))
     const storedOrders = readJson<Order[] | null>('agrimarket.orders', null)
@@ -625,6 +630,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (!hydrated) return
+    localStorage.setItem('agrimarket.products', JSON.stringify(centralProducts))
+  }, [centralProducts, hydrated])
+  useEffect(() => {
+    if (!hydrated) return
     localStorage.setItem('agrimarket.stock', JSON.stringify(stockOverrides))
   }, [stockOverrides, hydrated])
   useEffect(() => {
@@ -688,6 +697,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleStorage = (event: StorageEvent) => {
       if (!event.key || !event.newValue) return
       try {
+        if (event.key === 'agrimarket.products') setCentralProducts(JSON.parse(event.newValue))
         if (event.key === 'agrimarket.stock') setStockOverrides(JSON.parse(event.newValue))
         if (event.key === 'agrimarket.prices') setPriceOverrides(JSON.parse(event.newValue))
         if (event.key === 'agrimarket.orders') setOrders(JSON.parse(event.newValue))

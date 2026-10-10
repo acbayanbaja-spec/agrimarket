@@ -27,23 +27,6 @@ export const FloatingQuickActions = () => {
   return (
     <>
       <aside aria-label="Quick Actions" className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex flex-col items-end gap-2.5">
-        {/* Floating Download Mobile App Pill */}
-        <button
-          type="button"
-          onClick={() => setIsDownloadOpen(true)}
-          className="group flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-primary-700 hover:from-emerald-500 hover:to-primary-600 text-white pl-3 pr-3.5 py-2 rounded-full shadow-lg shadow-emerald-900/20 hover:shadow-xl transition-all duration-300 hover:scale-105 border border-white/20 text-xs font-bold animate-fade-up"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-300 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400"></span>
-          </span>
-          <Smartphone className="h-4 w-4" />
-          <span className="hidden sm:inline">Download App</span>
-          <span className="text-[10px] bg-yellow-400 text-emerald-950 font-extrabold px-1.5 py-0.2 rounded-full uppercase">
-            Sync
-          </span>
-        </button>
-
         {/* Floating Wishlist Shortcut - hidden for delivery rider */}
         {!hasRole('delivery') && wishlist.length > 0 && (
           <Link

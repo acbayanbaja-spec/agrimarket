@@ -58,17 +58,6 @@ const MainLayout = () => {
                 <Link to="/trades" className="btn-ghost">Trade</Link>
               )}
 
-              {/* Prominent Download Mobile App Button */}
-              <button
-                type="button"
-                onClick={() => setIsDownloadOpen(true)}
-                className="btn-ghost text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-bold inline-flex items-center gap-1.5 border border-emerald-200/80 rounded-xl px-2.5 py-1.5"
-              >
-                <Smartphone className="h-4 w-4 text-emerald-600 animate-pulse" />
-                <span>App</span>
-                <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-1 rounded">SYNC</span>
-              </button>
-
               {!hasRole('admin') && !hasRole('delivery') && (
                 <Link to="/cart" className="relative btn-ghost" title="Cart">
                   <ShoppingCart className="h-5 w-5" />
@@ -126,21 +115,6 @@ const MainLayout = () => {
               </button>
             </div>
             <SearchBar compact onSubmitted={() => setOpen(false)} />
-
-            {/* Mobile App Download Card */}
-            <div
-              onClick={() => { setOpen(false); setIsDownloadOpen(true) }}
-              className="bg-gradient-to-r from-emerald-600 to-primary-700 text-white p-3.5 rounded-2xl cursor-pointer shadow-md flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2.5">
-                <Smartphone className="h-5 w-5" />
-                <div>
-                  <div className="font-bold text-xs">Download Mobile App</div>
-                  <div className="text-[10px] text-emerald-100">Full standalone app & live sync</div>
-                </div>
-              </div>
-              <Download className="h-4 w-4" />
-            </div>
 
             <ShopNowLink className="block py-2 font-medium">Shop Harvests</ShopNowLink>
             <Link to="/feed" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Seller feed</Link>
