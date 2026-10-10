@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
-import { useStore } from '../context/StoreContext'
+import { useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
@@ -10,24 +11,84 @@ const OrdersPage = () => {
   const { myOrders } = useStore()
   const { hasRole } = useAuth()
   const isDelivery = hasRole('delivery')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('status') || 'all'
+
+  const filteredOrders = useMemo(() => {
+    if (activeTab === 'to_pay' || activeTab === 'Pending') {
+      return myOrders.filter((o) => o.status === 'Pending')
+    }
+    if (activeTab === 'to_ship' || activeTab === 'Confirmed') {
+      return myOrders.filter((o) => o.status === 'Confirmed')
+    }
+    if (activeTab === 'to_receive' || activeTab === 'shipped' || activeTab === 'out_for_delivery') {
+      return myOrders.filter((o) => o.status === 'Shipped' || o.status === 'Out for delivery')
+    }
+    if (activeTab === 'to_rate' || activeTab === 'Delivered') {
+      return myOrders.filter((o) => o.status === 'Delivered')
+    }
+    return myOrders
+  }, [myOrders, activeTab])
+
+  const tabs = [
+    { id: 'all', label: 'All', count: myOrders.length },
+    { id: 'to_pay', label: 'To Pay', count: myOrders.filter((o) => o.status === 'Pending').length },
+    { id: 'to_ship', label: 'To Ship', count: myOrders.filter((o) => o.status === 'Confirmed').length },
+    { id: 'to_receive', label: 'To Receive', count: myOrders.filter((o) => o.status === 'Shipped' || o.status === 'Out for delivery').length },
+    { id: 'to_rate', label: 'To Rate', count: myOrders.filter((o) => o.status === 'Delivered').length },
+  ]
 
   return (
     <div className="page-shell">
       <Seo title="Purchase history" description="Track every harvest you bought, reprint receipts, and open rider messages." path="/orders" />
-      <h1 className="text-4xl font-bold mb-2">Purchase history</h1>
-      <p className="text-gray-600 mb-8">Receipts, payment method, and delivery status for every crate you ordered.</p>
-      {myOrders.length === 0 ? (
-        <div className="card text-center">
-          <p className="text-gray-600 mb-4">You have not placed an order yet.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold">My Purchases</h1>
+          <p className="text-gray-600 text-sm mt-1">Receipts, regional drop-off status, and seller confirmation for every crate.</p>
+        </div>
+      </div>
+
+      {/* Shopee-style Order Status Tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto no-scrollbar mb-6 pt-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setSearchParams(tab.id === 'all' ? {} : { status: tab.id })}
+            className={`pb-3 px-3 text-sm font-semibold whitespace-nowrap transition-colors relative ${
+              activeTab === tab.id
+                ? 'text-orange-600 border-b-2 border-orange-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                activeTab === tab.id ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {filteredOrders.length === 0 ? (
+        <div className="card text-center py-12">
+          <p className="text-gray-600 mb-4 font-medium">
+            {activeTab === 'all'
+              ? 'You have not placed an order yet.'
+              : `No orders in "${tabs.find((t) => t.id === activeTab)?.label || activeTab}" right now.`}
+          </p>
           {isDelivery ? (
             <Link to="/delivery" className="btn-primary">Open Delivery Desk</Link>
           ) : (
-            <Link to="/marketplace" className="btn-primary">Shop the marketplace</Link>
+            <Link to="/marketplace" className="btn-primary">Shop fresh harvests</Link>
           )}
         </div>
       ) : (
         <div className="space-y-4">
-          {myOrders.map((order) => (
+          {filteredOrders.map((order) => (
             <article key={order.id} className="card">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
