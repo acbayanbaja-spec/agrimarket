@@ -27,7 +27,7 @@ const TOKEN_KEY = 'user_token';
 const USER_KEY = 'user_data';
 
 const demoAccounts = [
-  { id: 1, email: 'admin@agrimarket.com', password: 'admin123', firstName: 'Admin', lastName: 'User', phone: '+639123456789', roles: ['admin', 'buyer'] },
+  { id: 1, email: 'admin@agrimarket.com', password: 'admin123', firstName: 'Admin', lastName: 'User', phone: '+639123456789', roles: ['admin'] },
   { id: 2, email: 'seller@agrimarket.com', password: 'seller123', firstName: 'Maria', lastName: 'Santos', phone: '+639171112233', roles: ['seller', 'buyer'] },
   { id: 3, email: 'buyer@agrimarket.com', password: 'buyer123', firstName: 'Juan', lastName: 'Cruz', phone: '+639189998877', roles: ['buyer'] },
   { id: 4, email: 'driver@agrimarket.com', password: 'driver123', firstName: 'Rico', lastName: 'Driver', phone: '+639175551111', roles: ['delivery'] },

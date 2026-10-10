@@ -31,7 +31,7 @@ export const authenticate = async (
     if (token.startsWith('local-') || token.startsWith('demo-')) {
       const id = Number(token.split('-')[1]);
       const demo: Record<number, { email: string; roles: string[] }> = {
-        1: { email: 'admin@agrimarket.com', roles: ['admin', 'buyer'] },
+        1: { email: 'admin@agrimarket.com', roles: ['admin'] },
         2: { email: 'seller@agrimarket.com', roles: ['seller', 'buyer'] },
         3: { email: 'buyer@agrimarket.com', roles: ['buyer'] },
         4: { email: 'driver@agrimarket.com', roles: ['delivery'] },
@@ -93,7 +93,7 @@ export const optionalAuth = async (
     if (token.startsWith('local-') || token.startsWith('demo-')) {
       const id = Number(token.split('-')[1]);
       const demo: Record<number, { email: string; roles: string[] }> = {
-        1: { email: 'admin@agrimarket.com', roles: ['admin', 'buyer'] },
+        1: { email: 'admin@agrimarket.com', roles: ['admin'] },
         2: { email: 'seller@agrimarket.com', roles: ['seller', 'buyer'] },
         3: { email: 'buyer@agrimarket.com', roles: ['buyer'] },
         4: { email: 'driver@agrimarket.com', roles: ['delivery'] },

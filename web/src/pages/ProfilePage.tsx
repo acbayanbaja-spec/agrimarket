@@ -39,6 +39,7 @@ const ProfilePage = () => {
   const { myOrders, loyaltyPoints, claimedVouchers, myApplication } = useStore()
   const { count } = useCart()
   const navigate = useNavigate()
+  const isAdmin = hasRole('admin')
 
   // Dismissable Security Banner
   const [showSecurityBanner, setShowSecurityBanner] = useState(true)
@@ -108,7 +109,11 @@ const ProfilePage = () => {
 
   return (
     <div className="page-shell max-w-5xl mx-auto space-y-6">
-      <Seo title="My Profile & Purchases" description="Track harvest orders, loyalty rewards, vouchers, and account settings." path="/profile" />
+      <Seo
+        title={isAdmin ? "Admin Profile & Governance" : "My Profile & Purchases"}
+        description={isAdmin ? "Platform governance, system moderation tools, and account settings." : "Track harvest orders, loyalty rewards, vouchers, and account settings."}
+        path="/profile"
+      />
 
       {/* 1. Header Card - Styled in AgriMarket Emerald Theme */}
       <section className="relative bg-gradient-to-br from-emerald-800 via-primary-700 to-emerald-900 text-white rounded-3xl p-6 sm:p-8 shadow-soft border border-emerald-600/30 overflow-hidden">
@@ -208,20 +213,28 @@ const ProfilePage = () => {
             </div>
 
             {/* Quick stats on desktop */}
-            <div className="flex items-center gap-6 sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
-              <div className="text-center sm:text-left">
-                <div className="text-2xl font-extrabold text-white">{myOrders.length}</div>
-                <div className="text-xs text-emerald-200">Total Orders</div>
+            {!isAdmin ? (
+              <div className="flex items-center gap-6 sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
+                <div className="text-center sm:text-left">
+                  <div className="text-2xl font-extrabold text-white">{myOrders.length}</div>
+                  <div className="text-xs text-emerald-200">Total Orders</div>
+                </div>
+                <div className="text-center sm:text-left">
+                  <div className="text-2xl font-extrabold text-amber-300">{loyaltyPoints}</div>
+                  <div className="text-xs text-emerald-200">AgriCoins</div>
+                </div>
+                <div className="text-center sm:text-left">
+                  <div className="text-2xl font-extrabold text-white">{claimedVouchers.length}</div>
+                  <div className="text-xs text-emerald-200">Vouchers</div>
+                </div>
               </div>
-              <div className="text-center sm:text-left">
-                <div className="text-2xl font-extrabold text-amber-300">{loyaltyPoints}</div>
-                <div className="text-xs text-emerald-200">AgriCoins</div>
+            ) : (
+              <div className="sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
+                <div className="text-xs text-emerald-200 uppercase tracking-wider font-bold">Admin Governance</div>
+                <div className="text-base font-extrabold text-white mt-0.5">Platform Operations Hub</div>
+                <div className="text-xs text-emerald-200/90 mt-0.5">Management & Moderation Only</div>
               </div>
-              <div className="text-center sm:text-left">
-                <div className="text-2xl font-extrabold text-white">{claimedVouchers.length}</div>
-                <div className="text-xs text-emerald-200">Vouchers</div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -269,153 +282,222 @@ const ProfilePage = () => {
         </section>
       )}
 
-      {/* 3. My Purchases Section (Functional Order Pipeline) */}
-      <section className="card bg-white p-5 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-          <div>
-            <h2 className="font-bold text-base sm:text-lg text-gray-900">My Purchases</h2>
-            <p className="text-xs text-gray-500">Track and manage every harvest package you ordered</p>
-          </div>
-          <Link
-            to="/orders"
-            className="text-xs sm:text-sm text-primary-700 hover:text-primary-800 font-semibold flex items-center gap-1 group"
-          >
-            <span>View Purchase History</span>
-            <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-2">
-          {/* To Pay */}
-          <button
-            type="button"
-            onClick={() => navigate('/orders?status=to_pay')}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
-          >
-            <div className="relative mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
-                <Wallet className="h-6 w-6" strokeWidth={1.8} />
-              </div>
-              {pendingCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm">
-                  {pendingCount}
-                </span>
-              )}
-            </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Pay</span>
-            <span className="text-[11px] text-gray-500 mt-0.5">Awaiting Payment</span>
-          </button>
-
-          {/* To Ship */}
-          <button
-            type="button"
-            onClick={() => navigate('/orders?status=to_ship')}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
-          >
-            <div className="relative mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
-                <Package className="h-6 w-6" strokeWidth={1.8} />
-              </div>
-              {confirmedCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm">
-                  {confirmedCount}
-                </span>
-              )}
-            </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Ship</span>
-            <span className="text-[11px] text-gray-500 mt-0.5">Preparing Crates</span>
-          </button>
-
-          {/* To Receive */}
-          <button
-            type="button"
-            onClick={() => navigate('/orders?status=to_receive')}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
-          >
-            <div className="relative mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
-                <Truck className="h-6 w-6" strokeWidth={1.8} />
-              </div>
-              {toReceiveCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm animate-pulse">
-                  {toReceiveCount}
-                </span>
-              )}
-            </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Receive</span>
-            <span className="text-[11px] text-gray-500 mt-0.5">Rider in Transit</span>
-          </button>
-
-          {/* To Rate */}
-          <button
-            type="button"
-            onClick={() => navigate('/orders?status=to_rate')}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
-          >
-            <div className="relative mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
-                <Star className="h-6 w-6" strokeWidth={1.8} />
-              </div>
-              {deliveredCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm">
-                  {deliveredCount}
-                </span>
-              )}
-            </div>
-            <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Rate</span>
-            <span className="text-[11px] text-gray-500 mt-0.5">Delivered Crops</span>
-          </button>
-        </div>
-      </section>
-
-      {/* 4. Rewards, Coins & Vouchers Section (Clean, System-Fitted) */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* AgriCoins Card */}
-        <div
-          onClick={() => setIsCoinsOpen(true)}
-          className="card bg-white p-5 hover:border-emerald-300 transition-all cursor-pointer group flex items-center justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-              <Coins className="h-6 w-6" />
-            </div>
+      {/* 3. My Purchases Section (Functional Order Pipeline - Non-Admin Only) */}
+      {!isAdmin && (
+        <section className="card bg-white p-5 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-sm sm:text-base text-gray-900">AgriCoins Balance</h3>
-                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Daily Check-in
-                </span>
-              </div>
-              <p className="text-2xl font-black text-amber-600 mt-0.5">{loyaltyPoints} Coins</p>
-              <p className="text-xs text-gray-500">Tap to check in and earn daily rewards</p>
+              <h2 className="font-bold text-base sm:text-lg text-gray-900">My Purchases</h2>
+              <p className="text-xs text-gray-500">Track and manage every harvest package you ordered</p>
             </div>
+            <Link
+              to="/orders"
+              className="text-xs sm:text-sm text-primary-700 hover:text-primary-800 font-semibold flex items-center gap-1 group"
+            >
+              <span>View Purchase History</span>
+              <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
-        </div>
 
-        {/* AgriVouchers Card */}
-        <div
-          onClick={() => setIsVoucherOpen(true)}
-          className="card bg-white p-5 hover:border-emerald-300 transition-all cursor-pointer group flex items-center justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-primary-600 group-hover:scale-110 transition-transform">
-              <Ticket className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-sm sm:text-base text-gray-900">Discount Vouchers</h3>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Claim Now
-                </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-2">
+            {/* To Pay */}
+            <button
+              type="button"
+              onClick={() => navigate('/orders?status=to_pay')}
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
+            >
+              <div className="relative mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
+                  <Wallet className="h-6 w-6" strokeWidth={1.8} />
+                </div>
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm">
+                    {pendingCount}
+                  </span>
+                )}
               </div>
-              <p className="text-2xl font-black text-primary-700 mt-0.5">{claimedVouchers.length} Active</p>
-              <p className="text-xs text-gray-500">Free shipping & produce discount codes</p>
-            </div>
+              <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Pay</span>
+              <span className="text-[11px] text-gray-500 mt-0.5">Awaiting Payment</span>
+            </button>
+
+            {/* To Ship */}
+            <button
+              type="button"
+              onClick={() => navigate('/orders?status=to_ship')}
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
+            >
+              <div className="relative mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
+                  <Package className="h-6 w-6" strokeWidth={1.8} />
+                </div>
+                {confirmedCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm">
+                    {confirmedCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Ship</span>
+              <span className="text-[11px] text-gray-500 mt-0.5">Preparing Crates</span>
+            </button>
+
+            {/* To Receive */}
+            <button
+              type="button"
+              onClick={() => navigate('/orders?status=to_receive')}
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
+            >
+              <div className="relative mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
+                  <Truck className="h-6 w-6" strokeWidth={1.8} />
+                </div>
+                {toReceiveCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm animate-pulse">
+                    {toReceiveCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Receive</span>
+              <span className="text-[11px] text-gray-500 mt-0.5">Rider in Transit</span>
+            </button>
+
+            {/* To Rate */}
+            <button
+              type="button"
+              onClick={() => navigate('/orders?status=to_rate')}
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-soil-50/70 hover:bg-emerald-50/60 border border-gray-100 hover:border-emerald-200 transition-all group"
+            >
+              <div className="relative mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-gray-700 group-hover:text-primary-600 transition-colors">
+                  <Star className="h-6 w-6" strokeWidth={1.8} />
+                </div>
+                {deliveredCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shadow-sm">
+                    {deliveredCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-primary-700">To Rate</span>
+              <span className="text-[11px] text-gray-500 mt-0.5">Delivered Crops</span>
+            </button>
           </div>
-          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Admin Platform Operations Desk (Admin Only) */}
+      {isAdmin && (
+        <section className="card bg-white p-5 sm:p-6 space-y-4 border-purple-100 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+            <div>
+              <h2 className="font-bold text-base sm:text-lg text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-purple-600" />
+                <span>Platform Management Desk</span>
+              </h2>
+              <p className="text-xs text-gray-500">
+                Administrative operations, seller verification, catalog moderation, and platform governance.
+              </p>
+            </div>
+            <Link
+              to="/admin-dashboard"
+              className="btn-primary text-xs py-2 px-3.5 font-bold inline-flex items-center gap-1.5 shadow-sm"
+            >
+              <span>Admin Control Center</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <Link
+              to="/admin-dashboard"
+              className="p-4 rounded-2xl bg-purple-50/70 hover:bg-purple-100/70 border border-purple-100 transition-all flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white text-purple-700 flex items-center justify-center shadow-sm">
+                <LayoutDashboard className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-900">Admin Control Hub</div>
+                <div className="text-[11px] text-gray-500">Users, KYC & listings</div>
+              </div>
+            </Link>
+
+            <Link
+              to="/analytics"
+              className="p-4 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-100 transition-all flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white text-emerald-700 flex items-center justify-center shadow-sm">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-900">Sales Analytics</div>
+                <div className="text-[11px] text-gray-500">Regional farm revenue</div>
+              </div>
+            </Link>
+
+            <Link
+              to="/prices"
+              className="p-4 rounded-2xl bg-sky-50/70 hover:bg-sky-100/70 border border-sky-100 transition-all flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white text-sky-700 flex items-center justify-center shadow-sm">
+                <Tag className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-900">Market Price Monitor</div>
+                <div className="text-[11px] text-gray-500">DA Region XII benchmarks</div>
+              </div>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* 4. Rewards, Coins & Vouchers Section (Non-Admin Only) */}
+      {!isAdmin && (
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* AgriCoins Card */}
+          <div
+            onClick={() => setIsCoinsOpen(true)}
+            className="card bg-white p-5 hover:border-emerald-300 transition-all cursor-pointer group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+                <Coins className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-bold text-sm sm:text-base text-gray-900">AgriCoins Balance</h3>
+                  <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    Daily Check-in
+                  </span>
+                </div>
+                <p className="text-2xl font-black text-amber-600 mt-0.5">{loyaltyPoints} Coins</p>
+                <p className="text-xs text-gray-500">Tap to check in and earn daily rewards</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
+          </div>
+
+          {/* AgriVouchers Card */}
+          <div
+            onClick={() => setIsVoucherOpen(true)}
+            className="card bg-white p-5 hover:border-emerald-300 transition-all cursor-pointer group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-primary-600 group-hover:scale-110 transition-transform">
+                <Ticket className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-bold text-sm sm:text-base text-gray-900">Discount Vouchers</h3>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    Claim Now
+                  </span>
+                </div>
+                <p className="text-2xl font-black text-primary-700 mt-0.5">{claimedVouchers.length} Active</p>
+                <p className="text-xs text-gray-500">Free shipping & produce discount codes</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-1 transition-all" />
+          </div>
+        </section>
+      )}
 
       {/* 5. Workspaces, Roles & Platform Tools */}
       <section className="card bg-white p-5 sm:p-6 space-y-3">
@@ -590,10 +672,10 @@ const ProfilePage = () => {
       {/* --- REUSABLE MODALS --- */}
 
       {/* Voucher Center Modal */}
-      <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />
+      {!isAdmin && <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />}
 
       {/* Daily Coins Check-In Modal */}
-      <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />
+      {!isAdmin && <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />}
 
       {/* Account Settings / Edit Profile Modal */}
       {isSettingsOpen && (

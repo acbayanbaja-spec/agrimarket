@@ -8,8 +8,7 @@
       "last_name": "Superuser",
       "phone": "+639123456789",
       "roles": [
-        "admin",
-        "buyer"
+        "admin"
       ],
       "is_verified": true,
       "is_active": true,
