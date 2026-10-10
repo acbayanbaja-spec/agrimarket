@@ -48,7 +48,7 @@ const OrdersPage = () => {
         </div>
       </div>
 
-      {/* Shopee-style Order Status Tabs */}
+      {/* Order Status Tabs */}
       <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto no-scrollbar mb-6 pt-2">
         {tabs.map((tab) => (
           <button
@@ -57,14 +57,14 @@ const OrdersPage = () => {
             onClick={() => setSearchParams(tab.id === 'all' ? {} : { status: tab.id })}
             className={`pb-3 px-3 text-sm font-semibold whitespace-nowrap transition-colors relative ${
               activeTab === tab.id
-                ? 'text-orange-600 border-b-2 border-orange-600'
+                ? 'text-primary-700 border-b-2 border-primary-600 font-bold'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             {tab.label}
             {tab.count > 0 && (
               <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-                activeTab === tab.id ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+                activeTab === tab.id ? 'bg-primary-100 text-primary-800 font-bold' : 'bg-gray-100 text-gray-600'
               }`}>
                 {tab.count}
               </span>
