@@ -18,7 +18,6 @@ import {
   XCircle,
   MessageSquare,
   Send,
-  Bike,
   Truck,
   FileText,
   Search,
@@ -443,12 +442,6 @@ const SellerDashboardPage = () => {
           >
             <Plus className="h-4 w-4" /> Add Harvest Product
           </button>
-          <Link
-            to="/delivery"
-            className="btn-outline py-2 px-4 text-xs font-bold inline-flex items-center gap-1.5 bg-white shadow-sm"
-          >
-            <Bike className="h-4 w-4 text-primary-700" /> Delivery Fleet Desk
-          </Link>
         </div>
       </div>
 
