@@ -20,7 +20,6 @@ import {
   HelpCircle,
   CheckCircle2,
   KeyRound,
-  Crown,
   Tag,
   ArrowRight,
   ShieldCheck,
@@ -49,8 +48,6 @@ const ProfilePage = () => {
   const [isCoinsOpen, setIsCoinsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false)
-  const [isTierModalOpen, setIsTierModalOpen] = useState(false)
-  const [isVipModalOpen, setIsVipModalOpen] = useState(false)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
 
   // Edit Profile Form State
@@ -181,15 +178,6 @@ const ProfilePage = () => {
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{displayName}</h1>
-                  <button
-                    type="button"
-                    onClick={() => setIsTierModalOpen(true)}
-                    className="bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-300/40 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 transition-colors"
-                  >
-                    <Crown className="h-3.5 w-3.5 text-amber-300" />
-                    <span>Silver Member</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </button>
                 </div>
 
                 <p className="text-xs sm:text-sm text-emerald-100/90 font-mono">{user?.email}</p>
@@ -233,25 +221,6 @@ const ProfilePage = () => {
                 <div className="text-2xl font-extrabold text-white">{claimedVouchers.length}</div>
                 <div className="text-xs text-emerald-200">Vouchers</div>
               </div>
-            </div>
-          </div>
-
-          {/* VIP Harvest Club Ribbon */}
-          <div
-            onClick={() => setIsVipModalOpen(true)}
-            className="mt-6 bg-gradient-to-r from-amber-400/90 via-amber-300 to-yellow-400 text-soil-900 rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm cursor-pointer hover:opacity-95 transition-all"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="bg-soil-900 text-amber-300 text-[11px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                <Crown className="h-3.5 w-3.5 fill-amber-300" /> VIP+
-              </span>
-              <span className="text-xs sm:text-sm font-bold tracking-tight">
-                Harvest VIP Club: Get Extra 20% Off & Free Regional Shipping
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-bold text-soil-900">
-              <span className="hidden sm:inline">View Perks</span>
-              <ChevronRight className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -806,104 +775,7 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {/* Silver Member Tier Modal */}
-      {isTierModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-sheet-up">
-            <div className="flex items-center justify-between border-b pb-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-amber-500" />
-                <h3 className="font-bold text-base text-gray-900">Silver Membership</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTierModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="space-y-3 text-xs text-gray-600">
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-4 rounded-2xl text-emerald-950">
-                <p className="font-bold text-sm">Silver Member Privileges</p>
-                <p className="text-[11px] text-emerald-700 mt-1">Complete 3 more orders to unlock <strong>Gold Member</strong> status!</p>
-              </div>
-
-              <ul className="space-y-2.5 pt-1">
-                <li className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary-600 shrink-0" />
-                  <span>Free shipping voucher every Monday inside SOCCSKSARGEN</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary-600 shrink-0" />
-                  <span>Earn 1 AgriCoin for every ₱10 harvest spend</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary-600 shrink-0" />
-                  <span>Direct SMS access with local growers and verified dispatch riders</span>
-                </li>
-              </ul>
-
-              <button
-                type="button"
-                onClick={() => setIsTierModalOpen(false)}
-                className="w-full mt-3 btn-primary py-2.5 text-xs font-bold"
-              >
-                Understood
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIP+ Harvest Club Modal */}
-      {isVipModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-sheet-up">
-            <div className="flex items-center justify-between border-b pb-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-amber-500 fill-amber-500" />
-                <h3 className="font-bold text-base text-gray-900">AgriMarket VIP+ Club</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsVipModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs text-gray-600">
-              <div className="bg-gradient-to-r from-amber-400 to-yellow-500 p-4 rounded-2xl text-soil-900">
-                <p className="font-black text-sm">Extra 20% Off Every Day</p>
-                <p className="text-[11px] mt-1 opacity-90">Unlimited free shipping discounts & 20% discount on certified organic crops.</p>
-              </div>
-
-              <div className="border border-emerald-100 bg-emerald-50/50 rounded-xl p-3 space-y-1.5 text-gray-700">
-                <p className="font-bold text-emerald-950">Exclusive VIP Benefits:</p>
-                <p>• ₱0 Minimum Spend Free Shipping on Region XII deliveries</p>
-                <p>• 2× Daily Coins check-in multiplier</p>
-                <p>• Priority harvest packing from Koronadal & Polomolok farms</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  alert('🎉 VIP+ Membership Activated for your account!')
-                  setIsVipModalOpen(false)
-                }}
-                className="w-full mt-2 btn-secondary py-2.5 text-xs font-bold"
-              >
-                Join VIP+ for Free Today
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Help Centre Modal */}
       {isHelpOpen && (
