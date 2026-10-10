@@ -14,6 +14,8 @@ const DEVICE_CLIENT_ID = `dev-${Date.now().toString(36)}-${Math.random().toStrin
 export type SyncEventType =
   | 'ORDER_CREATED'
   | 'ORDER_STATUS_UPDATED'
+  | 'ORDER_ITEM_PREP_UPDATED'
+  | 'ORDER_PACKED'
   | 'PRODUCT_ADDED'
   | 'PRODUCT_UPDATED'
   | 'PRODUCT_STOCK_UPDATED'

@@ -44,6 +44,7 @@ export interface ProductEntity {
   isActive?: boolean;
   is_active?: boolean;
   isUnlisted?: boolean;
+  availabilityStatus?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'temporarily_unavailable';
   moderationStatus?: 'approved' | 'flagged' | 'rejected' | 'pending';
   moderationReason?: string;
   moderatedAt?: string;
@@ -60,6 +61,9 @@ export interface OrderItemEntity {
   sellerId: string;
   sellerUserId: number;
   pickupLocation: string;
+  prepStatus?: 'unpacked' | 'packing' | 'packed';
+  prepNotes?: string;
+  packedAt?: string;
 }
 
 export interface OrderEntity {
@@ -87,6 +91,9 @@ export interface OrderEntity {
   lng?: number;
   sellerConfirmedAt?: string;
   shippedAt?: string;
+  prepStatus?: 'unpacked' | 'packing' | 'packed';
+  packingNotes?: string;
+  packedAt?: string;
 }
 
 export interface CartItemEntity {

@@ -18,6 +18,9 @@ export type OrderItem = {
   sellerId: string
   sellerUserId: number
   pickupLocation: string
+  prepStatus?: 'unpacked' | 'packing' | 'packed'
+  prepNotes?: string
+  packedAt?: string
 }
 
 export type Order = {
@@ -45,6 +48,9 @@ export type Order = {
   sellerConfirmedAt?: string
   shippedAt?: string
   trackingNumber?: string
+  prepStatus?: 'unpacked' | 'packing' | 'packed'
+  packingNotes?: string
+  packedAt?: string
 }
 
 export type SellerApplication = {
@@ -169,7 +175,7 @@ export type AppNotification = {
 export type SmsMessage = {
   id: string
   orderId: string
-  fromRole: 'delivery' | 'buyer' | 'system'
+  fromRole: 'delivery' | 'buyer' | 'system' | 'seller' | 'admin'
   fromName: string
   fromUserId?: number
   toUserId: number
@@ -199,8 +205,10 @@ type StoreContextType = {
   messages: SmsMessage[]
   followedCategories: string[]
   addProduct: (product: Omit<Product, 'id' | 'sellerId' | 'seller' | 'sellerUserId' | 'rating' | 'reviews' | 'priceHistory' | 'photos'> & { photos?: string[] }) => Product
+  updateProduct: (id: string, updates: Partial<Product>) => void
   updateProductStock: (id: string, stock: number) => void
   updateProductPrice: (id: string, price: number) => void
+  setProductAvailability: (id: string, status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'temporarily_unavailable') => void
   removeProduct: (id: string) => void
   unlistProduct: (id: string, unlisted?: boolean) => void
   refreshCatalog: () => Promise<void>
@@ -210,6 +218,8 @@ type StoreContextType = {
   myApplication: SellerApplication | undefined
   reviewApplication: (id: string, status: 'Approved' | 'Rejected' | 'Needs Revision', reviewNotes?: string) => void
   updateOrderStatus: (id: string, status: Order['status']) => void
+  updateOrderItemPrep: (orderId: string, productId: string, prepStatus: 'unpacked' | 'packing' | 'packed', notes?: string) => void
+  packOrder: (orderId: string, packingNotes?: string) => void
   confirmOrder: (id: string, driverId?: number) => void
   markShipped: (id: string) => void
   assignDriver: (orderId: string, driverId: number) => Promise<void>
@@ -980,6 +990,62 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return next
   }
 
+  const updateProduct: StoreContextType['updateProduct'] = (id, updates) => {
+    setCentralProducts((current) =>
+      current.map((product) => {
+        if (product.id !== id) return product
+        const nextPrice = updates.price !== undefined ? Math.max(1, updates.price) : product.price
+        const priceChanged = updates.price !== undefined && updates.price !== product.price
+        const priceHistory = priceChanged
+          ? [...(product.priceHistory || []), { date: new Date().toISOString().slice(0, 10), price: nextPrice }]
+          : product.priceHistory
+        const nextStock = updates.stock !== undefined ? Math.max(0, updates.stock) : product.stock
+        return {
+          ...product,
+          ...updates,
+          price: nextPrice,
+          priceHistory,
+          stock: nextStock,
+        }
+      })
+    )
+    if (updates.stock !== undefined) {
+      setStockOverrides((current) => ({ ...current, [id]: Math.max(0, updates.stock!) }))
+    }
+    if (updates.price !== undefined) {
+      setPriceOverrides((current) => ({ ...current, [id]: Math.max(1, updates.price!) }))
+    }
+    void publishSyncEvent('PRODUCT_UPDATED', { productId: id, updates })
+    void api.put(`/products/${id}`, updates).catch(() => undefined)
+  }
+
+  const setProductAvailability: StoreContextType['setProductAvailability'] = (id, status) => {
+    const product = allProducts.find((p) => p.id === id)
+    if (!product) return
+
+    let nextStock = product.stock
+    let isUnlisted = false
+    let isActive = true
+
+    if (status === 'out_of_stock') {
+      nextStock = 0
+    } else if (status === 'low_stock') {
+      nextStock = product.stock > 0 && product.stock <= 20 ? product.stock : 10
+    } else if (status === 'in_stock') {
+      nextStock = product.stock > 20 ? product.stock : 50
+    } else if (status === 'temporarily_unavailable') {
+      isUnlisted = true
+      isActive = false
+    }
+
+    updateProduct(id, {
+      availabilityStatus: status,
+      stock: nextStock,
+      isUnlisted,
+      isActive,
+    })
+  }
+
   const updateProductStock = (id: string, stock: number) => {
     const nextStock = Math.max(0, stock)
     setStockOverrides((current) => ({ ...current, [id]: nextStock }))
@@ -1442,6 +1508,67 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     )
   }
 
+  const updateOrderItemPrep: StoreContextType['updateOrderItemPrep'] = (orderId, productId, prepStatus, notes) => {
+    setOrders((current) =>
+      current.map((order) => {
+        if (order.id !== orderId) return order
+        const updatedItems = order.items.map((item) => {
+          if (item.productId === productId) {
+            return {
+              ...item,
+              prepStatus,
+              prepNotes: notes !== undefined ? notes : item.prepNotes,
+              packedAt: prepStatus === 'packed' ? new Date().toISOString() : item.packedAt,
+            }
+          }
+          return item
+        })
+        const allItemsPacked = updatedItems.every((item) => item.prepStatus === 'packed')
+        const anyItemPacking = updatedItems.some((item) => item.prepStatus === 'packing' || item.prepStatus === 'packed')
+        const orderPrepStatus = allItemsPacked ? 'packed' : anyItemPacking ? 'packing' : 'unpacked'
+
+        return {
+          ...order,
+          items: updatedItems,
+          prepStatus: orderPrepStatus,
+          packedAt: allItemsPacked ? new Date().toISOString() : order.packedAt,
+        }
+      })
+    )
+    void publishSyncEvent('ORDER_ITEM_PREP_UPDATED', { orderId, productId, prepStatus, notes })
+    void api.put(`/orders/${orderId}/prepare`, { prepStatus, packingNotes: notes }).catch(() => undefined)
+  }
+
+  const packOrder: StoreContextType['packOrder'] = (orderId, packingNotes) => {
+    setOrders((current) =>
+      current.map((order) => {
+        if (order.id !== orderId) return order
+        const packedItems = order.items.map((item) => ({
+          ...item,
+          prepStatus: 'packed' as const,
+          packedAt: new Date().toISOString(),
+        }))
+        const nextStatus = order.status === 'Pending' ? 'Confirmed' : order.status
+        return {
+          ...order,
+          items: packedItems,
+          prepStatus: 'packed' as const,
+          packingNotes: packingNotes || order.packingNotes,
+          packedAt: new Date().toISOString(),
+          status: nextStatus,
+        }
+      })
+    )
+    notify({
+      userId: 'all',
+      title: `Order ${orderId} packed & ready`,
+      message: `Agricultural goods for ${orderId} have been freshly inspected and packed.`,
+      href: `/orders`,
+    })
+    void publishSyncEvent('ORDER_PACKED', { orderId, packingNotes })
+    void api.put(`/orders/${orderId}/prepare`, { prepStatus: 'packed', packingNotes }).catch(() => undefined)
+  }
+
   const myListings = useMemo(() => {
     if (!user) return []
     return allProducts.filter((product) => {
@@ -1605,7 +1732,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void publishSyncEvent('MESSAGE_SENT', { message: next })
     notify({
       userId: payload.toUserId,
-      title: payload.fromRole === 'delivery' ? 'SMS from your rider' : 'New message',
+      title:
+        payload.fromRole === 'delivery'
+          ? 'SMS from your rider'
+          : payload.fromRole === 'seller'
+          ? `Message from Seller (${payload.fromName})`
+          : 'New message',
       message: payload.body,
       href: '/messages',
     })
@@ -1722,8 +1854,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       messages,
       followedCategories,
       addProduct,
+      updateProduct,
       updateProductStock,
       updateProductPrice,
+      setProductAvailability,
       removeProduct,
       unlistProduct,
       refreshCatalog,
@@ -1733,6 +1867,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       myApplication: [...applications].reverse().find((item) => user && item.userId === user.id),
       reviewApplication,
       updateOrderStatus,
+      updateOrderItemPrep,
+      packOrder,
       confirmOrder,
       markShipped,
       assignDriver,

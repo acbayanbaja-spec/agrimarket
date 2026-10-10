@@ -26,6 +26,7 @@ export type Product = {
   priceHistory: PricePoint[]
   isUnlisted?: boolean
   isActive?: boolean
+  availabilityStatus?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'temporarily_unavailable'
   moderationStatus?: 'approved' | 'flagged' | 'rejected'
   moderationReason?: string
   moderatedAt?: string
@@ -51,16 +52,26 @@ export const categories = [
   { name: 'Fish', emoji: '🐟', description: 'Fresh catch and pond fish', image: photo('tilapia') },
 ]
 
-export function stockLabel(stock: number) {
-  if (stock <= 0) return 'Out of stock'
-  if (stock <= 20) return 'Low stock'
+export function stockLabel(stock: number, availabilityStatus?: string, isActive?: boolean, isUnlisted?: boolean) {
+  if (isUnlisted || isActive === false || availabilityStatus === 'temporarily_unavailable') {
+    return 'Temporarily unavailable'
+  }
+  if (availabilityStatus === 'out_of_stock' || stock <= 0) return 'Out of stock'
+  if (availabilityStatus === 'low_stock' || stock <= 20) return 'Low stock'
   return 'In stock'
 }
 
-export function stockTone(stock: number) {
-  if (stock <= 0) return 'bg-red-100 text-red-800'
-  if (stock <= 20) return 'bg-amber-100 text-amber-800'
-  return 'bg-primary-100 text-primary-800'
+export function stockTone(stock: number, availabilityStatus?: string, isActive?: boolean, isUnlisted?: boolean) {
+  if (isUnlisted || isActive === false || availabilityStatus === 'temporarily_unavailable') {
+    return 'bg-gray-100 text-gray-700 border-gray-300'
+  }
+  if (availabilityStatus === 'out_of_stock' || stock <= 0) {
+    return 'bg-rose-100 text-rose-800 border-rose-200'
+  }
+  if (availabilityStatus === 'low_stock' || stock <= 20) {
+    return 'bg-amber-100 text-amber-800 border-amber-200'
+  }
+  return 'bg-emerald-100 text-emerald-800 border-emerald-200'
 }
 
 export const products: Product[] = [

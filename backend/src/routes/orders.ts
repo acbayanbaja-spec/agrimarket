@@ -281,4 +281,45 @@ router.put('/:id/assign-rider', authenticate, (req: AuthRequest, res: Response) 
   }
 });
 
+// @route   PUT /api/orders/:id/prepare
+// @desc    Update order items preparation status and packaging notes (Seller Packing & Preparation)
+// @access  Public / Optional Auth
+router.put('/:id/prepare', optionalAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const { prepStatus, packingNotes, items } = req.body;
+    const order = db.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
+    }
+
+    const extra: Partial<OrderEntity> = {
+      prepStatus: prepStatus || 'packed',
+      packingNotes: packingNotes !== undefined ? packingNotes : order.packingNotes,
+      packedAt: new Date().toISOString(),
+    };
+
+    if (items && Array.isArray(items)) {
+      extra.items = items;
+    }
+
+    // Packing by seller automatically confirms the order if it was Pending
+    const newStatus = order.status === 'Pending' ? 'Confirmed' : order.status;
+    const updated = db.updateOrderStatus(req.params.id, newStatus, extra);
+
+    if (io && updated) {
+      io.emit('order_updated', updated);
+      io.emit('order_packed', updated);
+      sendOrderUpdate(io, updated.userId, updated);
+      const sellerUserIds = [...new Set(updated.items.map((i: any) => Number(i.sellerUserId)).filter(Boolean))];
+      sellerUserIds.forEach((sId: number) => {
+        sendOrderUpdate(io, sId, updated);
+      });
+    }
+
+    return res.json(successResponse(updated, 'Agricultural product packing and preparation updated successfully'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'ORDER_PREPARE_FAILED', 500));
+  }
+});
+
 export default router;
