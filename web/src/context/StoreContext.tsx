@@ -5,6 +5,7 @@ import { filterByBudget, pointsFromSpend } from '../lib/commerce'
 import { useAuth } from './AuthContext'
 import api from '../services/api'
 import { getSocket } from '../services/socket'
+import { initCentralSync, publishSyncEvent, subscribeToSync } from '../services/centralSync'
 
 export type OrderItem = {
   productId: string
@@ -42,6 +43,7 @@ export type Order = {
   lng?: number
   sellerConfirmedAt?: string
   shippedAt?: string
+  trackingNumber?: string
 }
 
 export type SellerApplication = {
@@ -524,6 +526,77 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setNotifications((current) => [notif, ...current.filter((n) => n.id !== notif.id)])
     })
 
+    // 8. Real-Time Central Cloud Sync across all devices (phones, PCs, tablets)
+    const unsubscribeCentralSync = subscribeToSync((payload) => {
+      if (payload.type === 'ORDER_CREATED') {
+        const ord = payload.data?.order as Order
+        if (ord?.id) {
+          setOrders((current) => [ord, ...current.filter((o) => o.id !== ord.id)])
+        }
+      } else if (payload.type === 'ORDER_STATUS_UPDATED') {
+        const { orderId, status, driverId } = payload.data || {}
+        if (orderId && status) {
+          setOrders((current) =>
+            current.map((o) =>
+              o.id === orderId
+                ? { ...o, status, ...(driverId ? { driverId } : {}) }
+                : o
+            )
+          )
+        }
+      } else if (payload.type === 'PRODUCT_ADDED') {
+        const prod = payload.data?.product as Product
+        if (prod?.id) {
+          setCentralProducts((current) => [prod, ...current.filter((p) => p.id !== prod.id)])
+        }
+      } else if (payload.type === 'PRODUCT_UPDATED') {
+        const prod = payload.data?.product as Product
+        if (prod?.id) {
+          setCentralProducts((current) => current.map((p) => (p.id === prod.id ? { ...p, ...prod } : p)))
+        }
+      } else if (payload.type === 'PRODUCT_STOCK_UPDATED') {
+        const { productId, stock } = payload.data || {}
+        if (productId !== undefined && stock !== undefined) {
+          setStockOverrides((current) => ({ ...current, [productId]: stock }))
+        }
+      } else if (payload.type === 'APPLICATION_SUBMITTED') {
+        const app = payload.data?.application as SellerApplication
+        if (app?.id) {
+          setApplications((current) => [app, ...current.filter((a) => a.id !== app.id)])
+        }
+      } else if (payload.type === 'APPLICATION_REVIEWED') {
+        const { id, status, userId } = payload.data || {}
+        if (id && status) {
+          setApplications((current) => current.map((a) => (a.id === id ? { ...a, status } : a)))
+          if (status === 'Approved' && userId) {
+            setApprovedSellerIds((ids) => (ids.includes(userId) ? ids : [...ids, userId]))
+          }
+        }
+      } else if (payload.type === 'MESSAGE_SENT') {
+        const msg = payload.data?.message as SmsMessage
+        if (msg?.id) {
+          setMessages((current) => [...current.filter((m) => m.id !== msg.id), msg])
+        }
+      } else if (payload.type === 'NOTIFICATION_CREATED') {
+        const notif = payload.data?.notification as AppNotification
+        if (notif?.id) {
+          setNotifications((current) => [notif, ...current.filter((n) => n.id !== notif.id)])
+        }
+      } else if (payload.type === 'REVIEW_ADDED') {
+        const rev = payload.data?.review as Review
+        if (rev?.id) {
+          setReviews((current) => [rev, ...current.filter((r) => r.id !== rev.id)])
+        }
+      } else if (payload.type === 'POST_CREATED') {
+        const post = payload.data?.post as Post
+        if (post?.id) {
+          setPosts((current) => [post, ...current.filter((p) => p.id !== post.id)])
+        }
+      }
+    })
+
+    const stopCentralSync = initCentralSync()
+
     // Periodic synchronization heartbeat across all devices
     const syncInterval = setInterval(() => {
       void refreshCatalog()
@@ -543,7 +616,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .catch(() => undefined)
     }, 4000)
 
-    return () => clearInterval(syncInterval)
+    return () => {
+      clearInterval(syncInterval)
+      unsubscribeCentralSync()
+      if (stopCentralSync) stopCentralSync()
+    }
   }, [])
 
   useEffect(() => {
@@ -677,6 +754,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
     void api.post('/notifications', next).catch(() => undefined)
+    void publishSyncEvent('NOTIFICATION_CREATED', { notification: next })
   }
 
   const allProducts = useMemo(() => {
@@ -728,6 +806,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isUnlisted: false,
     }
     setCentralProducts((current) => [next, ...current.filter((p) => p.id !== next.id)])
+    void publishSyncEvent('PRODUCT_ADDED', { product: next })
     void api.post('/products', next).catch((err) => {
       console.warn('Backend product listing sync notice:', err)
     })
@@ -746,6 +825,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCentralProducts((current) =>
       current.map((product) => (product.id === id ? { ...product, stock: nextStock } : product))
     )
+    void publishSyncEvent('PRODUCT_STOCK_UPDATED', { productId: id, stock: nextStock })
     void api.put(`/products/${id}`, { stock: nextStock }).catch(() => undefined)
   }
 
@@ -801,6 +881,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       driverId: undefined,
     }
     setOrders((current) => [next, ...current])
+    void publishSyncEvent('ORDER_CREATED', { order: next })
     void api.post('/orders', next).catch(() => undefined)
     if (user) setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
     next.items.forEach((item) => {
@@ -839,6 +920,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString(),
     }
     setApplications((current) => [next, ...current.filter((item) => item.userId !== next.userId)])
+    void publishSyncEvent('APPLICATION_SUBMITTED', { application: next })
     api.post<{ success?: boolean; data?: SellerApplication }>('/sellers/application', next)
       .then((res) => {
         if (res.data?.data) {
@@ -862,6 +944,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })
     setApplications((current) => {
       const target = current.find((item) => item.id === id)
+      void publishSyncEvent('APPLICATION_REVIEWED', { id, status, userId: target?.userId })
       if (status === 'Approved' && target) {
         setApprovedSellerIds((ids) => (ids.includes(target.userId) ? ids : [...ids, target.userId]))
         grantRole(target.userId, 'seller')
@@ -886,6 +969,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateOrderStatus = (id: string, status: Order['status']) => {
     void api.put(`/orders/${id}/status`, { status }).catch(() => undefined)
+    void publishSyncEvent('ORDER_STATUS_UPDATED', { orderId: id, status })
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id) return order
@@ -902,6 +986,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const confirmOrder = (id: string) => {
     void api.put(`/orders/${id}/status`, { status: 'Confirmed', driverId: DRIVER_ID }).catch(() => undefined)
+    void publishSyncEvent('ORDER_STATUS_UPDATED', { orderId: id, status: 'Confirmed', driverId: DRIVER_ID })
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id || order.status !== 'Pending') return order
@@ -938,6 +1023,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const markShipped = (id: string) => {
     void api.put(`/orders/${id}/status`, { status: 'Shipped', driverId: DRIVER_ID }).catch(() => undefined)
+    void publishSyncEvent('ORDER_STATUS_UPDATED', { orderId: id, status: 'Shipped', driverId: DRIVER_ID })
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id || (order.status !== 'Confirmed' && order.status !== 'Pending')) return order
@@ -994,6 +1080,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString(),
     }
     setReviews((current) => [next, ...current])
+    void publishSyncEvent('REVIEW_ADDED', { review: next })
   }
 
   const addPost: StoreContextType['addPost'] = (payload) => {
@@ -1005,6 +1092,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString(),
     }
     setPosts((current) => [next, ...current])
+    void publishSyncEvent('POST_CREATED', { post: next })
     notify({
       userId: 'all',
       title: `${payload.category} update`,
@@ -1120,6 +1208,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       fromUserId: payload.fromUserId || user?.id,
     }
     setMessages((current) => [...current, next])
+    void publishSyncEvent('MESSAGE_SENT', { message: next })
     notify({
       userId: payload.toUserId,
       title: payload.fromRole === 'delivery' ? 'SMS from your rider' : 'New message',
@@ -1138,13 +1227,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const visibleNotifications = useMemo(
-    () =>
-      notifications.filter((item) => {
+    () => {
+      const isDeliveryUser = Boolean(user && user.roles?.includes('delivery'))
+      return notifications.filter((item) => {
+        // Delivery riders: ONLY receive notifications about orders & deliveries
+        if (isDeliveryUser) {
+          const forRider = item.userId === 'all' || (user && item.userId === user.id) || item.userId === DRIVER_ID
+          if (!forRider) return false
+
+          const text = `${item.title} ${item.message} ${item.href || ''}`.toLowerCase()
+          const isOrderRelated =
+            Boolean(item.href?.includes('/orders') || item.href?.includes('/delivery')) ||
+            text.includes('order') ||
+            text.includes('delivery') ||
+            text.includes('dispatch') ||
+            text.includes('pickup') ||
+            text.includes('drop-off') ||
+            text.includes('rider') ||
+            text.includes('shipped') ||
+            text.includes('delivered') ||
+            text.includes('parcel') ||
+            text.includes('crate')
+          return isOrderRelated
+        }
+
         const forUser = item.userId === 'all' || (user && item.userId === user.id) || (user && user.roles.includes('admin') && item.userId === 1)
         if (!forUser) return false
         if (item.category && followedCategories.length > 0 && !followedCategories.includes(item.category)) return false
         return true
-      }),
+      })
+    },
     [notifications, user, followedCategories]
   )
 

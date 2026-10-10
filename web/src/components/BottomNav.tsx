@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Store, ShoppingCart, ClipboardList, User, LayoutDashboard } from 'lucide-react'
+import { Home, Store, ShoppingCart, ClipboardList, User, LayoutDashboard, Bike, MessageSquare } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 
@@ -10,6 +10,7 @@ const BottomNav = () => {
   const { count } = useCart()
   const { isAuthenticated, hasRole } = useAuth()
   const isAdmin = hasRole('admin')
+  const isDelivery = hasRole('delivery')
 
   const handleNavClick = (to: string) => {
     scrollToTopNow()
@@ -20,15 +21,23 @@ const BottomNav = () => {
     }
   }
 
-  const items = [
-    { to: '/', label: 'Home', icon: Home, match: (path: string) => path === '/' },
-    { to: isAuthenticated ? '/marketplace' : '/login', label: 'Shop', icon: Store, match: (path: string) => path.startsWith('/marketplace') || path.startsWith('/products') },
-    isAdmin
-      ? { to: '/admin-dashboard', label: 'Admin', icon: LayoutDashboard, match: (path: string) => path.startsWith('/admin-dashboard') }
-      : { to: '/cart', label: 'Cart', icon: ShoppingCart, match: (path: string) => path === '/cart' },
-    { to: '/orders', label: 'Orders', icon: ClipboardList, match: (path: string) => path.startsWith('/orders') },
-    { to: isAuthenticated ? '/profile' : '/login', label: 'Me', icon: User, match: (path: string) => path.startsWith('/profile') || path.startsWith('/login') },
-  ]
+  const items = isDelivery
+    ? [
+        { to: '/', label: 'Home', icon: Home, match: (path: string) => path === '/' },
+        { to: '/feed', label: 'Feed', icon: Store, match: (path: string) => path.startsWith('/feed') },
+        { to: '/delivery', label: 'Deliveries', icon: Bike, match: (path: string) => path.startsWith('/delivery') },
+        { to: '/messages', label: 'Messages', icon: MessageSquare, match: (path: string) => path.startsWith('/messages') },
+        { to: isAuthenticated ? '/profile' : '/login', label: 'Me', icon: User, match: (path: string) => path.startsWith('/profile') || path.startsWith('/login') },
+      ]
+    : [
+        { to: '/', label: 'Home', icon: Home, match: (path: string) => path === '/' },
+        { to: isAuthenticated ? '/marketplace' : '/login', label: 'Shop', icon: Store, match: (path: string) => path.startsWith('/marketplace') || path.startsWith('/products') },
+        isAdmin
+          ? { to: '/admin-dashboard', label: 'Admin', icon: LayoutDashboard, match: (path: string) => path.startsWith('/admin-dashboard') }
+          : { to: '/cart', label: 'Cart', icon: ShoppingCart, match: (path: string) => path === '/cart' },
+        { to: '/orders', label: 'Orders', icon: ClipboardList, match: (path: string) => path.startsWith('/orders') },
+        { to: isAuthenticated ? '/profile' : '/login', label: 'Me', icon: User, match: (path: string) => path.startsWith('/profile') || path.startsWith('/login') },
+      ]
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 pb-[env(safe-area-inset-bottom)]">

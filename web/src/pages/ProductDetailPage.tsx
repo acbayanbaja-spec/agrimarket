@@ -69,6 +69,10 @@ const ProductDetailPage = () => {
       toast('Admins cannot place orders. The admin role is for management only.')
       return
     }
+    if (hasRole('delivery')) {
+      toast('Delivery riders do not place orders. Manage parcels in your Delivery Desk.')
+      return
+    }
     addItem(product, quantity)
     toast(`Added to cart · ${product.name}`, '/cart')
   }
@@ -140,6 +144,12 @@ const ProductDetailPage = () => {
                 <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
                 <span>Admin View (Management Only): Administrators cannot order harvests.</span>
               </div>
+            ) : hasRole('delivery') ? (
+              <div className="flex items-center gap-3 bg-primary-50 border border-primary-200 text-primary-900 px-4 py-3 rounded-2xl text-sm font-semibold w-full">
+                <Truck className="h-5 w-5 text-primary-600 shrink-0" />
+                <span>Rider View: Deliveries are managed through the Delivery Command Desk.</span>
+                <Link to="/delivery" className="btn-primary text-xs py-1.5 px-3 ml-auto">Go to Desk</Link>
+              </div>
             ) : (
               <>
                 <QuantityStepper value={quantity} max={Math.max(product.stock, 1)} onChange={setQuantity} disabled={out} />
@@ -148,18 +158,20 @@ const ProductDetailPage = () => {
                 </button>
               </>
             )}
-            <button
-              type="button"
-              onClick={() => toggleWishlist(product.id)}
-              className={`p-3 rounded-2xl border transition-all ${
-                isWishlisted(product.id)
-                  ? 'bg-rose-50 border-rose-300 text-rose-600 scale-105 shadow-sm'
-                  : 'bg-white border-gray-200 text-gray-500 hover:text-rose-600 hover:border-rose-200'
-              }`}
-              title="Add to Wishlist"
-            >
-              <Heart className={`h-5 w-5 ${isWishlisted(product.id) ? 'fill-rose-500' : ''}`} />
-            </button>
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => toggleWishlist(product.id)}
+                className={`p-3 rounded-2xl border transition-all ${
+                  isWishlisted(product.id)
+                    ? 'bg-rose-50 border-rose-300 text-rose-600 scale-105 shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-500 hover:text-rose-600 hover:border-rose-200'
+                }`}
+                title="Add to Wishlist"
+              >
+                <Heart className={`h-5 w-5 ${isWishlisted(product.id) ? 'fill-rose-500' : ''}`} />
+              </button>
+            )}
             {/* Offer a trade is hidden from admin and delivery roles */}
             {product.tradeable && !hasRole('admin') && !hasRole('delivery') && (
               <Link to={`/trades?want=${product.id}`} className="btn-outline">

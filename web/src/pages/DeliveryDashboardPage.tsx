@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Truck,
   MapPin,
@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   Send,
   Compass,
+  Search,
+  X,
 } from 'lucide-react'
 import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
@@ -27,6 +29,8 @@ const riderStatuses: Order['status'][] = ['Out for delivery', 'Delivered']
 const DeliveryDashboardPage = () => {
   const { orders, updateOrderStatus, sendSms, messages } = useStore()
   const { user, hasRole } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchQuery = searchParams.get('q') || ''
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [flash, setFlash] = useState<Record<string, string>>({})
   const [selectedCityFilter, setSelectedCityFilter] = useState<string>('all')
@@ -34,7 +38,7 @@ const DeliveryDashboardPage = () => {
 
   // Allow admin and any delivery rider to view and accept jobs
   const jobs = useMemo(() => {
-    const list = orders.filter((order) => {
+    let list = orders.filter((order) => {
       if (order.status === 'Pending') return false
       if (hasRole('admin')) return true
       if (hasRole('delivery')) return true
@@ -42,14 +46,33 @@ const DeliveryDashboardPage = () => {
       return order.driverId === user.id
     })
 
-    if (selectedCityFilter === 'all') {
-      return [...list].sort((a, b) => Number(a.status === 'Delivered') - Number(b.status === 'Delivered'))
+    if (selectedCityFilter !== 'all') {
+      list = list.filter((order) => order.address.toLowerCase().includes(selectedCityFilter.toLowerCase()))
     }
 
-    return list
-      .filter((order) => order.address.toLowerCase().includes(selectedCityFilter.toLowerCase()))
-      .sort((a, b) => Number(a.status === 'Delivered') - Number(b.status === 'Delivered'))
-  }, [orders, user, hasRole, selectedCityFilter])
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      list = list.filter((order) =>
+        order.id.toLowerCase().includes(q) ||
+        (order.receiptNo && order.receiptNo.toLowerCase().includes(q)) ||
+        (order.trackingNumber && order.trackingNumber.toLowerCase().includes(q)) ||
+        order.buyerName.toLowerCase().includes(q) ||
+        (order.buyerPhone && order.buyerPhone.includes(q)) ||
+        order.address.toLowerCase().includes(q) ||
+        order.items.some((item) => item.name.toLowerCase().includes(q))
+      )
+    }
+
+    return [...list].sort((a, b) => Number(a.status === 'Delivered') - Number(b.status === 'Delivered'))
+  }, [orders, user, hasRole, selectedCityFilter, searchQuery])
+
+  useEffect(() => {
+    if (searchQuery.trim() && jobs.length > 0) {
+      const match = jobs.find((j) => j.id.toLowerCase() === searchQuery.toLowerCase().trim())
+      if (match) setActiveJobId(match.id)
+      else setActiveJobId(jobs[0].id)
+    }
+  }, [searchQuery, jobs])
 
   // Active coordinates for the regional dispatch map
   const activeOrder = jobs.find((j) => j.id === activeJobId) || jobs.find((j) => j.status === 'Out for delivery') || jobs[0]
@@ -177,6 +200,29 @@ const DeliveryDashboardPage = () => {
           activeLocation={resolvedCoords}
           allOrders={jobs}
         />
+      </div>
+
+      {/* Dedicated Order Search Bar for Delivery Rider */}
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200 shadow-soft flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchParams(e.target.value ? { q: e.target.value } : {})}
+            placeholder="Search orders by order #, receipt, buyer, or drop-off address..."
+            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none bg-gray-50 focus:bg-white"
+          />
+        </div>
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchParams({})}
+            className="btn-outline text-xs py-2 px-3 inline-flex items-center gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <X className="h-3.5 w-3.5" /> Clear search
+          </button>
+        )}
       </div>
 
       {/* Job Filter Controls */}

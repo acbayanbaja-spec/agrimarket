@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useStore } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
@@ -7,6 +8,8 @@ import OrderTimeline from '../components/OrderTimeline'
 
 const OrdersPage = () => {
   const { myOrders } = useStore()
+  const { hasRole } = useAuth()
+  const isDelivery = hasRole('delivery')
 
   return (
     <div className="page-shell">
@@ -16,7 +19,11 @@ const OrdersPage = () => {
       {myOrders.length === 0 ? (
         <div className="card text-center">
           <p className="text-gray-600 mb-4">You have not placed an order yet.</p>
-          <Link to="/marketplace" className="btn-primary">Shop the marketplace</Link>
+          {isDelivery ? (
+            <Link to="/delivery" className="btn-primary">Open Delivery Desk</Link>
+          ) : (
+            <Link to="/marketplace" className="btn-primary">Shop the marketplace</Link>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

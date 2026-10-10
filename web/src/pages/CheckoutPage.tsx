@@ -73,6 +73,20 @@ const CheckoutPage = () => {
     )
   }
 
+  if (hasRole('delivery')) {
+    return (
+      <div className="page-shell max-w-2xl text-center">
+        <div className="card p-8 animate-fade-up">
+          <h1 className="text-3xl font-bold mb-3">Delivery Rider Desk</h1>
+          <p className="text-gray-600 mb-6">
+            Delivery riders do not place orders. Manage assigned deliveries in your Delivery Command Desk.
+          </p>
+          <Link to="/delivery" className="btn-primary">Open Delivery Command Desk</Link>
+        </div>
+      </div>
+    )
+  }
+
   if (items.length === 0 && !placed) {
     return (
       <div className="page-shell text-center">

@@ -64,27 +64,31 @@ const MainLayout = () => {
                 <Link to="/trades" className="btn-ghost">Trade</Link>
               )}
 
-              {/* Shopee Style Vouchers Wallet Button */}
-              <button
-                type="button"
-                onClick={() => setIsVoucherOpen(true)}
-                className="btn-ghost text-orange-600 hover:text-orange-700 hover:bg-orange-50 font-semibold inline-flex items-center gap-1.5"
-                title="Vouchers Wallet"
-              >
-                <Ticket className="h-4 w-4" />
-                <span>Vouchers</span>
-              </button>
+              {/* Shopee Style Vouchers Wallet Button - hidden for delivery rider */}
+              {!hasRole('delivery') && (
+                <button
+                  type="button"
+                  onClick={() => setIsVoucherOpen(true)}
+                  className="btn-ghost text-orange-600 hover:text-orange-700 hover:bg-orange-50 font-semibold inline-flex items-center gap-1.5"
+                  title="Vouchers Wallet"
+                >
+                  <Ticket className="h-4 w-4" />
+                  <span>Vouchers</span>
+                </button>
+              )}
 
-              {/* Shopee Style Daily Coins Check-In Button */}
-              <button
-                type="button"
-                onClick={() => setIsCoinsOpen(true)}
-                className="btn-ghost text-amber-700 hover:text-amber-800 hover:bg-amber-50 font-bold inline-flex items-center gap-1.5"
-                title="Daily Coins Check-In"
-              >
-                <Coins className="h-4 w-4 text-amber-500" />
-                <span>{loyaltyPoints}</span>
-              </button>
+              {/* Shopee Style Daily Coins Check-In Button - hidden for delivery rider */}
+              {!hasRole('delivery') && (
+                <button
+                  type="button"
+                  onClick={() => setIsCoinsOpen(true)}
+                  className="btn-ghost text-amber-700 hover:text-amber-800 hover:bg-amber-50 font-bold inline-flex items-center gap-1.5"
+                  title="Daily Coins Check-In"
+                >
+                  <Coins className="h-4 w-4 text-amber-500" />
+                  <span>{loyaltyPoints}</span>
+                </button>
+              )}
 
               {/* Prominent Download Mobile App Button */}
               <button
@@ -97,7 +101,7 @@ const MainLayout = () => {
                 <span className="text-[10px] bg-emerald-600 text-white font-extrabold px-1 rounded">SYNC</span>
               </button>
 
-              {!hasRole('admin') && (
+              {!hasRole('admin') && !hasRole('delivery') && (
                 <Link to="/cart" className="relative btn-ghost" title="Cart">
                   <ShoppingCart className="h-5 w-5" />
                   {count > 0 && (
@@ -179,26 +183,30 @@ const MainLayout = () => {
               <Link to="/trades" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Trade board</Link>
             )}
 
-            <button
-              type="button"
-              onClick={() => { setOpen(false); setIsVoucherOpen(true) }}
-              className="w-full text-left py-2 font-medium text-orange-600 flex items-center justify-between"
-            >
-              <span>Vouchers Wallet</span>
-              <Ticket className="h-4 w-4" />
-            </button>
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setIsVoucherOpen(true) }}
+                className="w-full text-left py-2 font-medium text-orange-600 flex items-center justify-between"
+              >
+                <span>Vouchers Wallet</span>
+                <Ticket className="h-4 w-4" />
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => { setOpen(false); setIsCoinsOpen(true) }}
-              className="w-full text-left py-2 font-medium text-amber-700 flex items-center justify-between"
-            >
-              <span>Daily Coins Check-In</span>
-              <span className="font-bold bg-amber-100 px-2 py-0.5 rounded-full text-xs">{loyaltyPoints} pts</span>
-            </button>
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => { setOpen(false); setIsCoinsOpen(true) }}
+                className="w-full text-left py-2 font-medium text-amber-700 flex items-center justify-between"
+              >
+                <span>Daily Coins Check-In</span>
+                <span className="font-bold bg-amber-100 px-2 py-0.5 rounded-full text-xs">{loyaltyPoints} pts</span>
+              </button>
+            )}
 
             <Link to="/prices" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Price monitor</Link>
-            {!hasRole('admin') && (
+            {!hasRole('admin') && !hasRole('delivery') && (
               <Link to="/cart" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-2 font-medium">Cart ({count})</Link>
             )}
 

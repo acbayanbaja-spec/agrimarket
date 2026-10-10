@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Coins, ShieldAlert } from 'lucide-react'
+import { Coins, ShieldAlert, Truck } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
@@ -23,6 +23,21 @@ const CartPage = () => {
             Administrators cannot place orders because the admin role is reserved for platform management and moderation only.
           </p>
           <Link to="/admin-dashboard" className="btn-primary">Go to Admin Control Center</Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (hasRole('delivery')) {
+    return (
+      <div className="page-shell max-w-2xl text-center">
+        <div className="card p-8 animate-fade-up">
+          <Truck className="h-12 w-12 text-primary-600 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold mb-3">Delivery Rider Desk</h1>
+          <p className="text-gray-600 mb-6">
+            Delivery riders do not place orders or maintain carts. Manage your assigned harvest parcels and regional drop-offs in the Delivery Command Desk.
+          </p>
+          <Link to="/delivery" className="btn-primary">Open Delivery Command Desk</Link>
         </div>
       </div>
     )

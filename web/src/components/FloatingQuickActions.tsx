@@ -7,7 +7,7 @@ import DownloadAppModal from './DownloadAppModal'
 
 export const FloatingQuickActions = () => {
   const { wishlist, unreadCount } = useStore()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, hasRole } = useAuth()
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
 
@@ -44,8 +44,8 @@ export const FloatingQuickActions = () => {
           </span>
         </button>
 
-        {/* Floating Wishlist Shortcut */}
-        {wishlist.length > 0 && (
+        {/* Floating Wishlist Shortcut - hidden for delivery rider */}
+        {!hasRole('delivery') && wishlist.length > 0 && (
           <Link
             to="/marketplace"
             className="flex items-center justify-center w-11 h-11 bg-white hover:bg-rose-50 text-rose-600 rounded-full shadow-md border border-rose-100 hover:scale-105 transition-all relative"

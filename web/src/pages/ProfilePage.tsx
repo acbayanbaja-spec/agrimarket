@@ -61,18 +61,29 @@ const ProfilePage = () => {
         </form>
       </div>
       <aside className="space-y-4">
-        <div className="card bg-gradient-to-br from-amber-50 to-white">
-          <p className="text-sm font-semibold text-amber-800">Harvest points wallet</p>
-          <p className="text-4xl font-bold mt-1">{loyaltyPoints}</p>
-          <p className="text-sm text-gray-600 mt-2">1 point = ₱1 off shipping. You earn 1 point for every ₱10 of harvests you order.</p>
-          <ShopNowLink className="btn-primary mt-4 w-full">Shop to earn more</ShopNowLink>
-        </div>
+        {hasRole('delivery') ? (
+          <div className="card bg-gradient-to-br from-primary-50 to-white border border-primary-200">
+            <p className="text-sm font-semibold text-primary-800">Delivery Rider Active</p>
+            <p className="text-2xl font-bold mt-1 text-primary-950">SOCCSKSARGEN Fleet</p>
+            <p className="text-sm text-gray-600 mt-2">Pick up fresh harvests and navigate regional drop-offs with live GPS dispatch.</p>
+            <Link to="/delivery" className="btn-primary mt-4 w-full">Open Delivery Command Desk</Link>
+          </div>
+        ) : (
+          <div className="card bg-gradient-to-br from-amber-50 to-white">
+            <p className="text-sm font-semibold text-amber-800">Harvest points wallet</p>
+            <p className="text-4xl font-bold mt-1">{loyaltyPoints}</p>
+            <p className="text-sm text-gray-600 mt-2">1 point = ₱1 off shipping. You earn 1 point for every ₱10 of harvests you order.</p>
+            <ShopNowLink className="btn-primary mt-4 w-full">Shop to earn more</ShopNowLink>
+          </div>
+        )}
         <div className="card">
           <h2 className="font-semibold mb-3">Workspace</h2>
           <p className="text-sm text-gray-600 mb-4">Roles: {user?.roles.join(', ') || 'buyer'}</p>
           <div className="flex flex-col gap-2">
             <Link to={dashboard} className="btn-primary">Open dashboard</Link>
-            <Link to="/orders" className="btn-outline">Purchase history ({myOrders.length})</Link>
+            {!hasRole('delivery') && (
+              <Link to="/orders" className="btn-outline">Purchase history ({myOrders.length})</Link>
+            )}
             <Link to="/messages" className="btn-ghost">SMS inbox</Link>
             {!hasRole('seller') && !hasRole('admin') && !hasRole('delivery') && (
               <Link to="/become-seller" className="btn-ghost">
