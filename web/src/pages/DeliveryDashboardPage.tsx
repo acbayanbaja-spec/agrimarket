@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import {
   Truck,
   MapPin,
@@ -44,7 +44,7 @@ const DeliveryDashboardPage = () => {
   const isAdmin = hasRole('admin')
   const isSeller = hasRole('seller')
   const isRider = hasRole('delivery')
-  const canManageAssignments = isAdmin || isSeller
+  const canManageAssignments = isAdmin
 
   // Tab filter: 'all' | 'my' | 'unassigned'
   const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'my' | 'unassigned'>(
@@ -108,7 +108,6 @@ const DeliveryDashboardPage = () => {
     let list = orders.filter((order) => {
       if (order.status === 'Pending') return false
       if (isAdmin) return true
-      if (isSeller) return true
       if (isRider) return true
       if (!user) return false
       return order.driverId === user.id
@@ -211,6 +210,13 @@ const DeliveryDashboardPage = () => {
   const inTransit = jobs.filter((j) => j.status === 'Out for delivery').length
   const completedToday = jobs.filter((j) => j.status === 'Delivered').length
   const totalRiderEarnings = completedToday * 50
+
+  if (!isRider && !isAdmin) {
+    if (isSeller) {
+      return <Navigate to="/seller-dashboard" replace />
+    }
+    return <Navigate to="/marketplace" replace />
+  }
 
   return (
     <div className="page-shell space-y-8">

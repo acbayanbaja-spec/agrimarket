@@ -20,8 +20,9 @@ const ProtectedRoute = ({ children, roles }: Props) => {
 
   if (roles && !roles.some((role) => hasRole(role))) {
     if (hasRole('admin')) return <Navigate to="/admin-dashboard" replace />
-    if (hasRole('delivery')) return <Navigate to="/delivery" replace />
-    return <Navigate to="/profile" replace />
+    if (hasRole('delivery')) return <Navigate to="/rider-dashboard" replace />
+    if (hasRole('seller')) return <Navigate to="/seller-dashboard" replace />
+    return <Navigate to="/marketplace" replace />
   }
 
   return <>{children}</>
