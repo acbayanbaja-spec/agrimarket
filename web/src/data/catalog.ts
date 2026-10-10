@@ -26,6 +26,10 @@ export type Product = {
   priceHistory: PricePoint[]
   isUnlisted?: boolean
   isActive?: boolean
+  moderationStatus?: 'approved' | 'flagged' | 'rejected'
+  moderationReason?: string
+  moderatedAt?: string
+  moderatedBy?: number
 }
 
 const history = (base: number, wobble: number[]): PricePoint[] =>
@@ -37,14 +41,14 @@ const history = (base: number, wobble: number[]): PricePoint[] =>
 const photo = (name: string) => `/images/${name}.jpg`
 
 export const categories = [
-  { name: 'Vegetables', emoji: '🥬', description: 'Leafy greens and daily harvests', image: photo('kangkong') },
+  { name: 'Vegetables', emoji: '🥬', description: 'Leafy greens, roots and daily harvests', image: photo('kangkong') },
   { name: 'Fruits', emoji: '🥭', description: 'Seasonal fruits from local orchards', image: photo('mango') },
-  { name: 'Rice & Grains', emoji: '🌾', description: 'Rice, corn, and pantry staples', image: photo('rice') },
+  { name: 'Rice', emoji: '🌾', description: 'Dinorado, Sinandomeng, brown and black rice', image: photo('rice') },
+  { name: 'Grains', emoji: '🌽', description: 'Yellow sweet corn, flint, feeds and grains', image: photo('corn') },
+  { name: 'Farm Supplies', emoji: '🧺', description: 'Tools, fertilizers, seeds and soil essentials', image: photo('compost') },
   { name: 'Livestock', emoji: '🐄', description: 'Farm-raised meat and dairy', image: photo('milk') },
-  { name: 'Poultry', emoji: '🐓', description: 'Chicken, eggs, and duck', image: photo('eggs') },
+  { name: 'Poultry', emoji: '🐓', description: 'Chicken, pasture eggs, and duck', image: photo('eggs') },
   { name: 'Fish', emoji: '🐟', description: 'Fresh catch and pond fish', image: photo('tilapia') },
-  { name: 'Seeds', emoji: '🌱', description: 'Planting seeds for the next season', image: photo('seeds') },
-  { name: 'Farm Supplies', emoji: '🧺', description: 'Tools, soil, and farm essentials', image: photo('compost') },
 ]
 
 export function stockLabel(stock: number) {

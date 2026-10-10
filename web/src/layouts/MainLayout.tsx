@@ -73,8 +73,8 @@ const MainLayout = () => {
 
               {isAuthenticated ? (
                 <>
-                  {hasRole('delivery') && (
-                    <Link to="/delivery" className="btn-ghost text-primary-700" title="Delivery Command Desk (GPS & Pickups)"><Bike className="h-5 w-5" /></Link>
+                  {(hasRole('delivery') || hasRole('seller') || hasRole('admin')) && (
+                    <Link to="/delivery" className="btn-ghost text-primary-700" title="Delivery Command Desk (Fleet & Dispatch)"><Bike className="h-5 w-5" /></Link>
                   )}
                   {(hasRole('admin') || hasRole('seller')) && (
                     <Link to="/analytics" className="btn-ghost" title="Analytics"><LineChart className="h-5 w-5" /></Link>
@@ -135,6 +135,9 @@ const MainLayout = () => {
                   <Link to="/orders" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">My Orders</Link>
                   <Link to="/messages" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Messages</Link>
                   <Link to="/profile" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Profile</Link>
+                  {(hasRole('delivery') || hasRole('seller') || hasRole('admin')) && (
+                    <Link to="/delivery" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium text-emerald-700">Delivery Command Desk</Link>
+                  )}
                   <Link to={dashboardLink} onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-bold text-primary-700">Dashboard</Link>
                   <button type="button" className="btn-outline w-full mt-3" onClick={() => { logout(); setOpen(false) }}>Log out</button>
                 </>

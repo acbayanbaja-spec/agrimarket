@@ -15,6 +15,10 @@ import {
   Compass,
   Search,
   X,
+  Bike,
+  Plus,
+  AlertCircle,
+  Users,
 } from 'lucide-react'
 import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
@@ -27,7 +31,7 @@ import SoccsksargenDeliveryMap from '../components/SoccsksargenDeliveryMap'
 const riderStatuses: Order['status'][] = ['Out for delivery', 'Delivered']
 
 const DeliveryDashboardPage = () => {
-  const { orders, updateOrderStatus, sendSms, messages } = useStore()
+  const { orders, updateOrderStatus, sendSms, messages, ridersList, createRider, assignDriver } = useStore()
   const { user, hasRole } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const searchQuery = searchParams.get('q') || ''
@@ -35,16 +39,86 @@ const DeliveryDashboardPage = () => {
   const [flash, setFlash] = useState<Record<string, string>>({})
   const [selectedCityFilter, setSelectedCityFilter] = useState<string>('all')
   const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [showFleetRoster, setShowFleetRoster] = useState(false)
 
-  // Allow admin and any delivery rider to view and accept jobs
+  const isAdmin = hasRole('admin')
+  const isSeller = hasRole('seller')
+  const isRider = hasRole('delivery')
+  const canManageAssignments = isAdmin || isSeller
+
+  // Tab filter: 'all' | 'my' | 'unassigned'
+  const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'my' | 'unassigned'>(
+    isRider && !isAdmin ? 'my' : 'all'
+  )
+
+  // Create Rider Account Modal State (Admin Only)
+  const [createRiderModal, setCreateRiderModal] = useState<{
+    isOpen: boolean
+    firstName: string
+    lastName: string
+    phone: string
+    email: string
+    password: string
+    error: string
+    loading: boolean
+  }>({
+    isOpen: false,
+    firstName: '',
+    lastName: '',
+    phone: '+639',
+    email: '',
+    password: '',
+    error: '',
+    loading: false,
+  })
+
+  const handleSaveRider = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCreateRiderModal((prev) => ({ ...prev, error: '', loading: true }))
+    try {
+      await createRider({
+        firstName: createRiderModal.firstName.trim(),
+        lastName: createRiderModal.lastName.trim(),
+        phone: createRiderModal.phone.trim(),
+        email: createRiderModal.email.trim(),
+        password: createRiderModal.password.trim(),
+      })
+      alert(`Rider account created successfully! Rider ${createRiderModal.firstName} ${createRiderModal.lastName} can now log in using ${createRiderModal.email}.`)
+      setCreateRiderModal({
+        isOpen: false,
+        firstName: '',
+        lastName: '',
+        phone: '+639',
+        email: '',
+        password: '',
+        error: '',
+        loading: false,
+      })
+    } catch (err: any) {
+      setCreateRiderModal((prev) => ({
+        ...prev,
+        error: err?.response?.data?.message || err?.message || 'Failed to create rider account',
+        loading: false,
+      }))
+    }
+  }
+
+  // Filter deliveries according to roles and filters
   const jobs = useMemo(() => {
     let list = orders.filter((order) => {
       if (order.status === 'Pending') return false
-      if (hasRole('admin')) return true
-      if (hasRole('delivery')) return true
+      if (isAdmin) return true
+      if (isSeller) return true
+      if (isRider) return true
       if (!user) return false
       return order.driverId === user.id
     })
+
+    if (assignmentFilter === 'my' && user) {
+      list = list.filter((order) => order.driverId === user.id)
+    } else if (assignmentFilter === 'unassigned') {
+      list = list.filter((order) => !order.driverId)
+    }
 
     if (selectedCityFilter !== 'all') {
       list = list.filter((order) => order.address.toLowerCase().includes(selectedCityFilter.toLowerCase()))
@@ -64,7 +138,7 @@ const DeliveryDashboardPage = () => {
     }
 
     return [...list].sort((a, b) => Number(a.status === 'Delivered') - Number(b.status === 'Delivered'))
-  }, [orders, user, hasRole, selectedCityFilter, searchQuery])
+  }, [orders, user, isAdmin, isSeller, isRider, assignmentFilter, selectedCityFilter, searchQuery])
 
   useEffect(() => {
     if (searchQuery.trim() && jobs.length > 0) {
@@ -160,12 +234,47 @@ const DeliveryDashboardPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {canManageAssignments && (
+            <button
+              type="button"
+              onClick={() => setShowFleetRoster((prev) => !prev)}
+              className="btn-outline text-xs py-2 px-3.5 inline-flex items-center gap-1.5 font-semibold text-gray-700 bg-white"
+            >
+              <Users className="h-4 w-4 text-emerald-600" />
+              <span>Fleet Roster ({ridersList.length})</span>
+            </button>
+          )}
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() =>
+                setCreateRiderModal({
+                  isOpen: true,
+                  firstName: '',
+                  lastName: '',
+                  phone: '+639',
+                  email: '',
+                  password: '',
+                  error: '',
+                  loading: false,
+                })
+              }
+              className="btn-primary py-2 px-3.5 text-xs font-bold inline-flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <Bike className="h-4 w-4" />
+              <span>Create Rider Account</span>
+            </button>
+          )}
+
           <Link to="/messages" className="btn-outline text-xs py-2 px-3.5 inline-flex items-center gap-1.5">
             <MessageSquare className="h-4 w-4" /> Inbox
           </Link>
+
           <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> Rider Online
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> {isRider ? 'Rider Online' : 'Command Center'}
           </span>
         </div>
       </div>
@@ -185,6 +294,82 @@ const DeliveryDashboardPage = () => {
           </div>
         ))}
       </div>
+
+      {/* Fleet Roster Panel (Admin & Seller) */}
+      {canManageAssignments && (
+        <div className="card p-5 bg-white border border-gray-200 rounded-3xl shadow-soft space-y-4 animate-fade-up">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <Bike className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
+                  <span>SOCCSKSARGEN Delivery Fleet Roster</span>
+                  <span className="text-[11px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    {ridersList.length} Active Riders
+                  </span>
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Fleet riders available for regional dispatch across Region XII farm hubs.
+                </p>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() =>
+                  setCreateRiderModal({
+                    isOpen: true,
+                    firstName: '',
+                    lastName: '',
+                    phone: '+639',
+                    email: '',
+                    password: '',
+                    error: '',
+                    loading: false,
+                  })
+                }
+                className="btn-primary text-xs py-1.5 px-3.5 inline-flex items-center gap-1.5 shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" /> Create Rider Account
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-1">
+            {ridersList.map((rider) => {
+              const assignedTasks = orders.filter((o) => o.driverId === rider.id && o.status !== 'Delivered').length
+              return (
+                <div
+                  key={rider.id}
+                  className="p-3.5 rounded-2xl border border-gray-100 bg-gray-50/80 hover:bg-emerald-50/50 hover:border-emerald-200 transition-all flex items-center justify-between gap-2.5"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-sm shrink-0">
+                      {rider.first_name[0]}{rider.last_name[0]}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs text-gray-900 truncate">
+                        {rider.first_name} {rider.last_name}
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate">{rider.phone || rider.email}</div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      assignedTasks > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {assignedTasks} {assignedTasks === 1 ? 'task' : 'tasks'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Master SOCCSKSARGEN Dispatch Map */}
       <div className="space-y-3">
@@ -227,8 +412,48 @@ const DeliveryDashboardPage = () => {
 
       {/* Job Filter Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <div className="flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
-          <span className="font-bold text-gray-700 text-xs">Filter City:</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Assignment Status Filter */}
+          <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setAssignmentFilter('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                assignmentFilter === 'all'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              All Parcels
+            </button>
+            {isRider && user && (
+              <button
+                type="button"
+                onClick={() => setAssignmentFilter('my')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  assignmentFilter === 'my'
+                    ? 'bg-primary-700 text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🛵 Assigned to Me
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setAssignmentFilter('unassigned')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                assignmentFilter === 'unassigned'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              ⚠️ Needs Rider
+            </button>
+          </div>
+
+          <span className="font-bold text-gray-500 text-xs mx-1">|</span>
+          <span className="font-bold text-gray-700 text-xs">City:</span>
           <button
             type="button"
             onClick={() => setSelectedCityFilter('all')}
@@ -238,7 +463,7 @@ const DeliveryDashboardPage = () => {
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
             }`}
           >
-            All SOCCSKSARGEN ({orders.filter((o) => o.status !== 'Pending').length})
+            All Cities
           </button>
           {['Koronadal', 'General Santos', 'Polomolok', 'Tacurong', 'Kidapawan', 'Alabel'].map((city) => (
             <button
@@ -336,6 +561,75 @@ const DeliveryDashboardPage = () => {
 
                 {/* Milestone Stepper */}
                 <OrderTimeline status={order.status} />
+
+                {/* Rider Assignment Info & Dispatch Controls */}
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Bike className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-900 flex flex-wrap items-center gap-2">
+                        <span>Assigned Rider:</span>
+                        {order.driverId ? (
+                          <span className="font-semibold text-emerald-900 bg-white px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            {(() => {
+                              const r = ridersList.find((item) => item.id === order.driverId)
+                              return r ? `${r.first_name} ${r.last_name} (${r.phone || 'Active Fleet'})` : `Rider #${order.driverId}`
+                            })()}
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 inline-flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                            Unassigned Delivery (Needs Rider)
+                          </span>
+                        )}
+                        {isRider && order.driverId === user?.id && (
+                          <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            ★ Assigned to You
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        {order.driverId
+                          ? 'Designated courier for harvest pick-up and buyer drop-off.'
+                          : 'Admin or authorized Seller can select a rider below to assign this parcel.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {canManageAssignments && (
+                    <div className="flex items-center gap-2">
+                      <label htmlFor={`assign-rider-${order.id}`} className="text-xs font-bold text-gray-700 whitespace-nowrap">
+                        {order.driverId ? 'Reassign Rider:' : 'Assign Rider:'}
+                      </label>
+                      <select
+                        id={`assign-rider-${order.id}`}
+                        value={order.driverId || ''}
+                        onChange={async (e) => {
+                          const val = Number(e.target.value)
+                          if (val) {
+                            await assignDriver(order.id, val)
+                            const r = ridersList.find((item) => item.id === val)
+                            setFlash((prev) => ({
+                              ...prev,
+                              [order.id]: `✓ Assigned to ${r ? `${r.first_name} ${r.last_name}` : 'Rider'}! Live notification sent.`,
+                            }))
+                          }
+                        }}
+                        className="input-field text-xs py-1.5 px-2.5 font-semibold bg-white border-emerald-300 w-44 sm:w-48 shadow-sm"
+                      >
+                        <option value="">Choose Rider...</option>
+                        {ridersList.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            🛵 {r.first_name} {r.last_name} ({r.phone || r.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
 
                 {/* Order Mini-Map & GPS Routing */}
                 <div className="grid sm:grid-cols-3 gap-3">
@@ -480,6 +774,149 @@ const DeliveryDashboardPage = () => {
               </article>
             )
           })}
+        </div>
+      )}
+
+      {/* Create Rider Account Modal (Admin Only) */}
+      {isAdmin && createRiderModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() =>
+            !createRiderModal.loading &&
+            setCreateRiderModal((prev) => ({ ...prev, isOpen: false, error: '' }))
+          }
+        >
+          <form
+            onSubmit={handleSaveRider}
+            className="relative max-w-md w-full bg-white rounded-3xl p-6 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <Bike className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-gray-900">Create Rider Account</h3>
+                <p className="text-xs text-gray-500">
+                  Provision new delivery credentials for regional order dispatch.
+                </p>
+              </div>
+            </div>
+
+            {createRiderModal.error && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{createRiderModal.error}</span>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">First Name</label>
+                  <input
+                    required
+                    type="text"
+                    className="input-field text-xs"
+                    placeholder="e.g. Rico"
+                    value={createRiderModal.firstName}
+                    onChange={(e) =>
+                      setCreateRiderModal((prev) => ({ ...prev, firstName: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Last Name</label>
+                  <input
+                    required
+                    type="text"
+                    className="input-field text-xs"
+                    placeholder="e.g. Mendoza"
+                    value={createRiderModal.lastName}
+                    onChange={(e) =>
+                      setCreateRiderModal((prev) => ({ ...prev, lastName: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Contact Mobile Phone
+                </label>
+                <input
+                  required
+                  type="tel"
+                  className="input-field text-xs"
+                  placeholder="+639180000000"
+                  value={createRiderModal.phone}
+                  onChange={(e) =>
+                    setCreateRiderModal((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Login Email Address
+                </label>
+                <input
+                  required
+                  type="email"
+                  className="input-field text-xs"
+                  placeholder="rider.rico@agrimarket.com"
+                  value={createRiderModal.email}
+                  onChange={(e) =>
+                    setCreateRiderModal((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Login Password
+                </label>
+                <input
+                  required
+                  type="password"
+                  minLength={6}
+                  className="input-field text-xs"
+                  placeholder="Minimum 6 characters"
+                  value={createRiderModal.password}
+                  onChange={(e) =>
+                    setCreateRiderModal((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-[11px] text-gray-600 space-y-1">
+                <div className="font-semibold text-gray-800">Rider Access Permissions:</div>
+                <p>• Granted direct login access to the <strong>Delivery Command Desk</strong> (/delivery).</p>
+                <p>• Receives dispatch orders assigned by Admins and authorized Sellers.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={createRiderModal.loading}
+                onClick={() =>
+                  setCreateRiderModal((prev) => ({ ...prev, isOpen: false, error: '' }))
+                }
+                className="btn-outline text-xs py-2 px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={createRiderModal.loading}
+                className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5"
+              >
+                <Bike className="w-4 h-4" />
+                {createRiderModal.loading ? 'Creating Account...' : 'Create & Authorize Rider'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

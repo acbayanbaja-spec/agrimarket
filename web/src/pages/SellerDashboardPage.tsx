@@ -4,6 +4,7 @@ import { categories, stockLabel } from '../data/catalog'
 import { soccsksargenPlaces, findPlace } from '../data/locations'
 import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
+import { Bike } from 'lucide-react'
 import { fileToDataUrl, formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
@@ -11,7 +12,7 @@ import OrderTimeline from '../components/OrderTimeline'
 
 const SellerDashboardPage = () => {
   const { user } = useAuth()
-  const { addProduct, myListings, removeProduct, sellerOrders, confirmOrder, markShipped, addPost, updateProductStock, updateProductPrice } = useStore()
+  const { addProduct, myListings, removeProduct, sellerOrders, confirmOrder, markShipped, addPost, updateProductStock, updateProductPrice, ridersList, assignDriver } = useStore()
   const [form, setForm] = useState({
     name: '',
     category: categories[0].name,
@@ -199,9 +200,18 @@ const SellerDashboardPage = () => {
               Assigned Seller: <strong>{user ? `${user.firstName} ${user.lastName}` : 'Maria Santos (Green Valley Farm)'}</strong>
             </p>
           </div>
-          <span className="chip bg-primary-100 text-primary-800 font-bold text-xs">
-            {incoming.length} orders assigned to you
-          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/delivery"
+              className="btn-outline text-xs py-1.5 px-3 inline-flex items-center gap-1.5 font-semibold text-emerald-800 border-emerald-200 hover:bg-emerald-50"
+            >
+              <Bike className="w-4 h-4 text-emerald-600" />
+              Delivery Command Desk
+            </Link>
+            <span className="chip bg-primary-100 text-primary-800 font-bold text-xs">
+              {incoming.length} orders assigned to you
+            </span>
+          </div>
         </div>
 
         {incoming.length === 0 ? (
@@ -225,19 +235,43 @@ const SellerDashboardPage = () => {
                     </div>
                     <p className="text-sm font-semibold mt-1 text-primary-800">{formatPeso(order.total)} · {order.payment}</p>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 min-w-[210px]">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-gray-500">Assign Delivery Rider:</label>
+                      <select
+                        className="input-field text-xs py-1.5 w-full font-semibold"
+                        value={order.driverId || ''}
+                        onChange={(e) => assignDriver(order.id, Number(e.target.value))}
+                      >
+                        <option value="">Choose Rider...</option>
+                        {ridersList.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            🛵 {r.first_name} {r.last_name} ({r.phone || 'mobile'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     {order.status === 'Pending' && (
-                      <button type="button" className="btn-primary py-2 px-4 shadow-sm" onClick={() => confirmOrder(order.id)}>
-                        Confirm & notify rider
+                      <button
+                        type="button"
+                        className="btn-primary py-2 px-4 shadow-sm text-xs font-bold"
+                        onClick={() => confirmOrder(order.id, order.driverId || undefined)}
+                      >
+                        Confirm & dispatch rider
                       </button>
                     )}
                     {order.status === 'Confirmed' && (
-                      <button type="button" className="btn-primary py-2 px-4 shadow-sm" onClick={() => markShipped(order.id)}>
+                      <button
+                        type="button"
+                        className="btn-primary py-2 px-4 shadow-sm text-xs font-bold"
+                        onClick={() => markShipped(order.id)}
+                      >
                         Rider collected · mark shipped
                       </button>
                     )}
                     {order.status !== 'Pending' && order.status !== 'Confirmed' && (
-                      <span className="chip bg-primary-50 text-primary-800">{order.status}</span>
+                      <span className="chip bg-primary-50 text-primary-800 text-center">{order.status}</span>
                     )}
                   </div>
                 </div>

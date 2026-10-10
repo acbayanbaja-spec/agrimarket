@@ -20,6 +20,21 @@ router.get('/deliveries', authenticate, authorize('delivery', 'admin'), (req: Au
   }
 });
 
+// @route   GET /api/delivery/riders
+// @desc    Get active delivery riders (for sellers and admins to assign orders)
+// @access  Private (seller, admin, delivery)
+router.get('/riders', authenticate, authorize('seller', 'admin', 'delivery'), (req: AuthRequest, res: Response) => {
+  try {
+    const riders = db
+      .getUsers()
+      .filter((u) => u.roles.includes('delivery') && u.is_active !== false)
+      .map(({ password_hash, ...safe }) => safe);
+    return res.json(successResponse(riders, 'Active riders retrieved'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'FETCH_RIDERS_FAILED', 500));
+  }
+});
+
 // @route   PUT /api/delivery/deliveries/:id/status
 // @desc    Update driver delivery status and GPS coordinates
 // @access  Private (delivery, admin)

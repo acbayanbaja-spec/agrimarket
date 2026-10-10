@@ -46,6 +46,25 @@ const BecomeSellerPage = () => {
     }
   }, [user])
 
+  // Pre-fill from existing application if needing revisions or rejected
+  useEffect(() => {
+    if (myApplication) {
+      setForm((prev) => ({
+        ...prev,
+        farmName: myApplication.farmName || prev.farmName,
+        location: myApplication.location || prev.location,
+        description: myApplication.description || prev.description,
+        phone: myApplication.phone || prev.phone,
+        categories: myApplication.categories || prev.categories,
+        idType: myApplication.idType || prev.idType,
+        idNumber: myApplication.idNumber || prev.idNumber,
+      }))
+      if (myApplication.idDocument) setIdDocument(myApplication.idDocument)
+      if (myApplication.permitDocument) setPermitDocument(myApplication.permitDocument)
+      if (myApplication.farmPhoto) setFarmPhoto(myApplication.farmPhoto)
+    }
+  }, [myApplication])
+
   // Helper to fill sample verification documents for testing/demo
   const handleAutoFillDemo = () => {
     setError('')
@@ -248,11 +267,40 @@ const BecomeSellerPage = () => {
           </div>
         )}
 
+        {myApplication?.status === 'Needs Revision' && (
+          <div className="rounded-xl bg-amber-50 text-amber-900 p-4 text-sm flex items-start gap-3 border border-amber-300 shadow-sm animate-fade-in">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+            <div className="space-y-1.5 flex-1">
+              <div className="font-bold text-amber-800 flex items-center justify-between">
+                <span>Action Required: Admin Requested Revisions</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 text-amber-800">Needs Revision</span>
+              </div>
+              <p className="text-amber-700 text-xs sm:text-sm">
+                The administrator reviewed your application and requested the following modifications:
+              </p>
+              {myApplication.reviewNotes && (
+                <div className="bg-white/90 border border-amber-200 rounded-lg p-3 font-medium text-amber-950 text-xs sm:text-sm shadow-inner">
+                  "{myApplication.reviewNotes}"
+                </div>
+              )}
+              <p className="text-xs text-amber-600">
+                Please update the necessary fields or attach the requested documents below and resubmit.
+              </p>
+            </div>
+          </div>
+        )}
+
         {myApplication?.status === 'Rejected' && (
           <div className="rounded-xl bg-rose-50 text-rose-800 p-4 text-sm flex items-start gap-2.5 border border-rose-200">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-600" />
-            <div>
-              <strong>Previous Application Declined:</strong> Please make sure your government ID, farm details, and SOCCSKSARGEN location are accurate before resubmitting.
+            <div className="space-y-1">
+              <strong>Previous Application Declined:</strong>
+              {myApplication.reviewNotes && (
+                <div className="text-xs text-rose-700 mt-1 italic">
+                  Admin reason: "{myApplication.reviewNotes}"
+                </div>
+              )}
+              <p className="text-xs text-rose-600">Please make sure your government ID, farm details, and SOCCSKSARGEN location are accurate before resubmitting.</p>
             </div>
           </div>
         )}
@@ -423,7 +471,11 @@ const BecomeSellerPage = () => {
               className="btn-primary w-full min-h-[48px] flex items-center justify-center gap-2"
             >
               <Store className="w-4 h-4" />
-              {isSubmitting ? 'Submitting Application...' : 'Submit Application for Admin Approval'}
+              {isSubmitting
+                ? 'Submitting Application...'
+                : myApplication?.status === 'Needs Revision'
+                ? 'Resubmit Revised Application'
+                : 'Submit Application for Admin Approval'}
             </button>
           </div>
         </form>

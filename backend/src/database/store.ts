@@ -14,6 +14,8 @@ export interface UserEntity {
   roles: string[];
   is_verified: boolean;
   is_active: boolean;
+  suspension_reason?: string;
+  suspended_at?: string;
   created_at: string;
 }
 
@@ -42,6 +44,10 @@ export interface ProductEntity {
   isActive?: boolean;
   is_active?: boolean;
   isUnlisted?: boolean;
+  moderationStatus?: 'approved' | 'flagged' | 'rejected' | 'pending';
+  moderationReason?: string;
+  moderatedAt?: string;
+  moderatedBy?: string;
 }
 
 export interface OrderItemEntity {
@@ -105,7 +111,9 @@ export interface SellerApplicationEntity {
   idDocument?: string;
   permitDocument?: string;
   farmPhoto?: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Needs Revision';
+  reviewNotes?: string;
+  reviewedBy?: string;
   createdAt: string;
   reviewedAt?: string;
 }
@@ -119,6 +127,9 @@ export interface ReviewEntity {
   comment: string;
   photos: string[];
   createdAt: string;
+  status?: 'published' | 'hidden' | 'flagged';
+  moderationReason?: string;
+  moderatedAt?: string;
 }
 
 export interface PostEntity {
@@ -192,6 +203,9 @@ export interface CouponEntity {
   minSpend: number;
   description: string;
   isActive: boolean;
+  createdAt?: string;
+  usageLimit?: number;
+  usedCount?: number;
 }
 
 export interface CategoryEntity {
@@ -200,6 +214,18 @@ export interface CategoryEntity {
   description: string;
   icon: string;
   imageUrl: string;
+}
+
+export interface AuditLogEntity {
+  id: string;
+  adminId: number;
+  adminEmail: string;
+  action: string;
+  targetType: 'user' | 'seller_application' | 'product' | 'category' | 'promotion' | 'review' | 'order' | 'system';
+  targetId: string;
+  details: string;
+  ipAddress?: string;
+  createdAt: string;
 }
 
 const DATA_DIR = path.join(__dirname, '../../data');
@@ -522,12 +548,13 @@ const initialProducts: ProductEntity[] = [
 ];
 
 const initialCategories: CategoryEntity[] = [
-  { id: 'cat-veg', name: 'Vegetables', description: 'Fresh local crops and greens', icon: 'Leaf', imageUrl: '/images/kangkong.jpg' },
-  { id: 'cat-fruits', name: 'Fruits', description: 'Tree-ripened tropical harvests', icon: 'Apple', imageUrl: '/images/mango.jpg' },
-  { id: 'cat-grains', name: 'Rice & Grains', description: 'Mindanao milled rice and corn', icon: 'Wheat', imageUrl: '/images/rice.jpg' },
-  { id: 'cat-poultry', name: 'Livestock & Poultry', description: 'Eggs, pasture meats & poultry', icon: 'Egg', imageUrl: '/images/eggs.jpg' },
-  { id: 'cat-fish', name: 'Fisheries & Aquaculture', description: 'Lake Sebu and Gensan fresh catch', icon: 'Fish', imageUrl: '/images/tilapia.jpg' },
-  { id: 'cat-inputs', name: 'Agricultural Supplies', description: 'Organic fertilizers, seeds and tools', icon: 'Sprout', imageUrl: '/images/compost.jpg' },
+  { id: 'cat-veg', name: 'Vegetables', description: 'Fresh local leafy greens, roots and daily harvests', icon: 'Leaf', imageUrl: '/images/kangkong.jpg' },
+  { id: 'cat-fruits', name: 'Fruits', description: 'Tree-ripened sweet Carabao mangoes, bananas & tropical harvests', icon: 'Apple', imageUrl: '/images/mango.jpg' },
+  { id: 'cat-rice', name: 'Rice', description: 'Mindanao milled Dinorado, Sinandomeng, brown and black rice', icon: 'Wheat', imageUrl: '/images/rice.jpg' },
+  { id: 'cat-grains', name: 'Grains', description: 'Mindanao sweet yellow corn, white flint, sorghum and grain feeds', icon: 'Wheat', imageUrl: '/images/corn.jpg' },
+  { id: 'cat-supplies', name: 'Farm Supplies', description: 'Organic fertilizers, compost, planting seeds and farm tools', icon: 'Sprout', imageUrl: '/images/compost.jpg' },
+  { id: 'cat-poultry', name: 'Livestock & Poultry', description: 'Farm-fresh pasture brown eggs, dairy and poultry', icon: 'Egg', imageUrl: '/images/eggs.jpg' },
+  { id: 'cat-fish', name: 'Fisheries & Aquaculture', description: 'Lake Sebu spring tilapia and General Santos fresh catch', icon: 'Fish', imageUrl: '/images/tilapia.jpg' },
 ];
 
 const initialCoupons: CouponEntity[] = [
@@ -661,6 +688,39 @@ const initialNotifications: NotificationEntity[] = [
   },
 ];
 
+const initialAuditLogs: AuditLogEntity[] = [
+  {
+    id: 'log-101',
+    adminId: 1,
+    adminEmail: 'admin@agrimarket.com',
+    action: 'SYSTEM_INITIALIZATION',
+    targetType: 'system',
+    targetId: 'SYS-CORE',
+    details: 'AgriMarket SOCCSKSARGEN administrative control hub initialized with persistent audit tracking.',
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+  },
+  {
+    id: 'log-102',
+    adminId: 1,
+    adminEmail: 'admin@agrimarket.com',
+    action: 'SELLER_APPLICATION_APPROVED',
+    targetType: 'seller_application',
+    targetId: 'app-seed-1',
+    details: 'Approved seller KYC credentials for Green Valley Farm (Polomolok). Government ID and Barangay permit verified.',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: 'log-103',
+    adminId: 1,
+    adminEmail: 'admin@agrimarket.com',
+    action: 'PROMOTION_CREATED',
+    targetType: 'promotion',
+    targetId: 'FREESHIP',
+    details: 'Created regional promotional discount: FREESHIP (Free delivery on orders ₱300+).',
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+];
+
 export interface DatabaseSchema {
   users: UserEntity[];
   products: ProductEntity[];
@@ -675,6 +735,7 @@ export interface DatabaseSchema {
   messages: MessageEntity[];
   delivery_jobs: DeliveryJobEntity[];
   coupons: CouponEntity[];
+  audit_logs: AuditLogEntity[];
 }
 
 class DatabaseStore {
@@ -711,10 +772,19 @@ class DatabaseStore {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
+
+        // Ensure default required agricultural categories exist
+        let loadedCategories: CategoryEntity[] = parsed.categories || initialCategories;
+        for (const initCat of initialCategories) {
+          if (!loadedCategories.some((c) => c.name.toLowerCase() === initCat.name.toLowerCase() || c.id === initCat.id)) {
+            loadedCategories.push(initCat);
+          }
+        }
+
         return {
           users: parsed.users || initialUsers,
           products: parsed.products || initialProducts,
-          categories: parsed.categories || initialCategories,
+          categories: loadedCategories,
           orders: parsed.orders || initialOrders,
           cart: parsed.cart || [],
           seller_applications: parsed.seller_applications || [],
@@ -725,6 +795,7 @@ class DatabaseStore {
           messages: parsed.messages || [],
           delivery_jobs: parsed.delivery_jobs || initialDeliveries,
           coupons: parsed.coupons || initialCoupons,
+          audit_logs: parsed.audit_logs && parsed.audit_logs.length > 0 ? parsed.audit_logs : initialAuditLogs,
         };
       }
     } catch (err) {
@@ -745,6 +816,7 @@ class DatabaseStore {
       messages: [],
       delivery_jobs: initialDeliveries,
       coupons: initialCoupons,
+      audit_logs: initialAuditLogs,
     };
 
     this.saveData(defaultData);
@@ -794,14 +866,73 @@ class DatabaseStore {
     return null;
   }
 
+  public setUserActiveStatus(userId: number, isActive: boolean, reason?: string) {
+    const user = this.data.users.find((u) => u.id === userId);
+    if (user) {
+      user.is_active = isActive;
+      if (!isActive) {
+        user.suspension_reason = reason || 'Administrative suspension';
+        user.suspended_at = new Date().toISOString();
+      } else {
+        delete user.suspension_reason;
+        delete user.suspended_at;
+      }
+      this.saveData();
+      return user;
+    }
+    return null;
+  }
+
+  public setUserRoles(userId: number, roles: string[]) {
+    const user = this.data.users.find((u) => u.id === userId);
+    if (user) {
+      user.roles = Array.from(new Set(roles));
+      this.saveData();
+      return user;
+    }
+    return null;
+  }
+
   // --- Products ---
   public getProducts(includeInactive: boolean = false) {
     if (includeInactive) {
       return this.data.products;
     }
     return this.data.products.filter(
-      (p) => p.isActive !== false && p.is_active !== false && !p.isUnlisted
+      (p) => p.isActive !== false && p.is_active !== false && !p.isUnlisted && p.moderationStatus !== 'rejected'
     );
+  }
+
+  public moderateProduct(
+    id: string,
+    action: 'approve' | 'flag' | 'delist' | 'reject',
+    reason?: string,
+    moderatedBy?: string
+  ) {
+    const idx = this.data.products.findIndex((p) => p.id === id);
+    if (idx !== -1) {
+      const product = this.data.products[idx];
+      product.moderatedAt = new Date().toISOString();
+      if (moderatedBy) product.moderatedBy = moderatedBy;
+      if (reason) product.moderationReason = reason;
+
+      if (action === 'approve') {
+        product.moderationStatus = 'approved';
+        product.isUnlisted = false;
+        product.isActive = true;
+        product.is_active = true;
+      } else if (action === 'flag') {
+        product.moderationStatus = 'flagged';
+      } else if (action === 'delist' || action === 'reject') {
+        product.moderationStatus = action === 'delist' ? 'flagged' : 'rejected';
+        product.isUnlisted = true;
+        product.isActive = false;
+        product.is_active = false;
+      }
+      this.saveData();
+      return product;
+    }
+    return null;
   }
 
   public getProductById(id: string) {
@@ -852,6 +983,42 @@ class DatabaseStore {
   // --- Categories ---
   public getCategories() {
     return this.data.categories;
+  }
+
+  public getCategoryById(id: string) {
+    return this.data.categories.find((c) => c.id === id || c.name.toLowerCase() === id.toLowerCase());
+  }
+
+  public addCategory(cat: CategoryEntity) {
+    const existing = this.data.categories.find(
+      (c) => c.id.toLowerCase() === cat.id.toLowerCase() || c.name.toLowerCase() === cat.name.toLowerCase()
+    );
+    if (existing) {
+      throw new Error(`Category "${cat.name}" already exists`);
+    }
+    this.data.categories.push(cat);
+    this.saveData();
+    return cat;
+  }
+
+  public updateCategory(id: string, updates: Partial<CategoryEntity>) {
+    const idx = this.data.categories.findIndex((c) => c.id === id || c.name.toLowerCase() === id.toLowerCase());
+    if (idx !== -1) {
+      this.data.categories[idx] = { ...this.data.categories[idx], ...updates };
+      this.saveData();
+      return this.data.categories[idx];
+    }
+    return null;
+  }
+
+  public deleteCategory(id: string) {
+    const prevLen = this.data.categories.length;
+    this.data.categories = this.data.categories.filter((c) => c.id !== id && c.name.toLowerCase() !== id.toLowerCase());
+    if (this.data.categories.length !== prevLen) {
+      this.saveData();
+      return true;
+    }
+    return false;
   }
 
   // --- Orders ---
@@ -983,11 +1150,22 @@ class DatabaseStore {
     return app;
   }
 
-  public updateSellerApplicationStatus(id: string, status: 'Approved' | 'Rejected') {
+  public updateSellerApplicationStatus(
+    id: string,
+    status: 'Approved' | 'Rejected' | 'Needs Revision',
+    reviewNotes?: string,
+    reviewerEmail?: string
+  ) {
     const app = this.data.seller_applications.find((a) => a.id === id);
     if (app) {
       app.status = status;
       app.reviewedAt = new Date().toISOString();
+      if (reviewNotes !== undefined) {
+        app.reviewNotes = reviewNotes;
+      }
+      if (reviewerEmail) {
+        app.reviewedBy = reviewerEmail;
+      }
       if (status === 'Approved') {
         const user = this.getUserById(app.userId);
         if (user && !user.roles.includes('seller')) {
@@ -1002,22 +1180,69 @@ class DatabaseStore {
 
   // --- Reviews ---
   public getReviewsForProduct(productId: string) {
-    return this.data.reviews.filter((r) => r.productId === productId);
+    return this.data.reviews.filter((r) => r.productId === productId && r.status !== 'hidden');
+  }
+
+  public getAllReviews() {
+    return this.data.reviews.map((r) => {
+      const prod = this.getProductById(r.productId);
+      return {
+        ...r,
+        productName: prod ? prod.name : 'Harvest Listing',
+        seller: prod ? prod.seller : 'Local Producer',
+        status: r.status || 'published',
+      };
+    });
   }
 
   public addReview(review: ReviewEntity) {
-    this.data.reviews.unshift(review);
+    const entity: ReviewEntity = {
+      ...review,
+      status: review.status || 'published',
+    };
+    this.data.reviews.unshift(entity);
+    this.recalculateProductRating(review.productId);
+    this.saveData();
+    return entity;
+  }
 
-    // Update product rating and reviews count
-    const productReviews = this.data.reviews.filter((r) => r.productId === review.productId);
-    const avg = productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length;
-    this.updateProduct(review.productId, {
+  public moderateReview(id: string, status: 'published' | 'hidden' | 'flagged', reason?: string) {
+    const review = this.data.reviews.find((r) => r.id === id);
+    if (review) {
+      review.status = status;
+      if (reason !== undefined) {
+        review.moderationReason = reason;
+      }
+      review.moderatedAt = new Date().toISOString();
+      this.recalculateProductRating(review.productId);
+      this.saveData();
+      return review;
+    }
+    return null;
+  }
+
+  public deleteReview(id: string) {
+    const idx = this.data.reviews.findIndex((r) => r.id === id);
+    if (idx !== -1) {
+      const productId = this.data.reviews[idx].productId;
+      this.data.reviews.splice(idx, 1);
+      this.recalculateProductRating(productId);
+      this.saveData();
+      return true;
+    }
+    return false;
+  }
+
+  private recalculateProductRating(productId: string) {
+    const productReviews = this.data.reviews.filter((r) => r.productId === productId && r.status !== 'hidden');
+    const avg =
+      productReviews.length > 0
+        ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length
+        : 5.0;
+    this.updateProduct(productId, {
       rating: parseFloat(avg.toFixed(1)),
       reviews: productReviews.length,
     });
-
-    this.saveData();
-    return review;
   }
 
   // --- Posts / Harvest Feed ---
@@ -1119,9 +1344,53 @@ class DatabaseStore {
     return null;
   }
 
-  // --- Coupons ---
+  // --- Coupons & Promotions ---
   public getCoupons() {
     return this.data.coupons.filter((c) => c.isActive);
+  }
+
+  public getAllCoupons() {
+    return this.data.coupons;
+  }
+
+  public addCoupon(coupon: CouponEntity) {
+    const existing = this.data.coupons.find((c) => c.code.toUpperCase() === coupon.code.toUpperCase());
+    if (existing) {
+      throw new Error(`Promotion code "${coupon.code}" already exists`);
+    }
+    const newCoupon: CouponEntity = {
+      ...coupon,
+      code: coupon.code.toUpperCase().trim(),
+      createdAt: coupon.createdAt || new Date().toISOString(),
+      isActive: coupon.isActive !== undefined ? coupon.isActive : true,
+    };
+    this.data.coupons.unshift(newCoupon);
+    this.saveData();
+    return newCoupon;
+  }
+
+  public updateCoupon(code: string, updates: Partial<CouponEntity>) {
+    const idx = this.data.coupons.findIndex((c) => c.code.toUpperCase() === code.toUpperCase());
+    if (idx !== -1) {
+      this.data.coupons[idx] = {
+        ...this.data.coupons[idx],
+        ...updates,
+        code: updates.code ? updates.code.toUpperCase().trim() : this.data.coupons[idx].code,
+      };
+      this.saveData();
+      return this.data.coupons[idx];
+    }
+    return null;
+  }
+
+  public deleteCoupon(code: string) {
+    const prevLen = this.data.coupons.length;
+    this.data.coupons = this.data.coupons.filter((c) => c.code.toUpperCase() !== code.toUpperCase());
+    if (this.data.coupons.length !== prevLen) {
+      this.saveData();
+      return true;
+    }
+    return false;
   }
 
   public validateCoupon(code: string, subtotal: number) {
@@ -1143,6 +1412,46 @@ class DatabaseStore {
       type: coupon.type,
       code: coupon.code,
     };
+  }
+
+  // --- Audit Logs ---
+  public getAuditLogs(filters?: { targetType?: string; action?: string; search?: string; limit?: number }) {
+    let logs = [...this.data.audit_logs];
+    if (filters?.targetType && filters.targetType !== 'all') {
+      logs = logs.filter((l) => l.targetType === filters.targetType);
+    }
+    if (filters?.action && filters.action !== 'all') {
+      logs = logs.filter((l) => l.action.toLowerCase().includes(filters.action!.toLowerCase()));
+    }
+    if (filters?.search) {
+      const q = filters.search.toLowerCase();
+      logs = logs.filter(
+        (l) =>
+          l.details.toLowerCase().includes(q) ||
+          l.adminEmail.toLowerCase().includes(q) ||
+          l.targetId.toLowerCase().includes(q) ||
+          l.action.toLowerCase().includes(q)
+      );
+    }
+    logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (filters?.limit) {
+      return logs.slice(0, filters.limit);
+    }
+    return logs;
+  }
+
+  public addAuditLog(log: Omit<AuditLogEntity, 'id' | 'createdAt'> & { id?: string; createdAt?: string }) {
+    const newLog: AuditLogEntity = {
+      id: log.id || `audit-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      createdAt: log.createdAt || new Date().toISOString(),
+      ...log,
+    };
+    this.data.audit_logs.unshift(newLog);
+    if (this.data.audit_logs.length > 1000) {
+      this.data.audit_logs = this.data.audit_logs.slice(0, 1000);
+    }
+    this.saveData();
+    return newLog;
   }
 }
 

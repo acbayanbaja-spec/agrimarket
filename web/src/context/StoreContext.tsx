@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { products as catalogProducts, shippingCoupons, type Product } from '../data/catalog'
+import { products as catalogProducts, shippingCoupons, categories, type Product } from '../data/catalog'
+export type { Product }
 import { recommendScore } from '../lib/utils'
 import { filterByBudget, pointsFromSpend } from '../lib/commerce'
 import { useAuth } from './AuthContext'
@@ -60,18 +61,71 @@ export type SellerApplication = {
   idDocument?: string
   permitDocument?: string
   farmPhoto?: string
-  status: 'Pending' | 'Approved' | 'Rejected'
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Needs Revision'
+  reviewNotes?: string
+  reviewedBy?: string
   createdAt: string
+  reviewedAt?: string
 }
 
 export type Review = {
   id: string
   productId: string
+  productName?: string
+  seller?: string
   userId: number
   userName: string
   rating: number
   comment: string
   photos: string[]
+  status?: 'published' | 'hidden' | 'flagged'
+  moderationReason?: string
+  createdAt: string
+}
+
+export type CategoryItem = {
+  id: string
+  name: string
+  description: string
+  icon?: string
+  imageUrl?: string
+  productCount?: number
+  totalProductCount?: number
+}
+
+export type PromotionCoupon = {
+  code: string
+  discount: number
+  type: 'fixed' | 'percentage' | 'shipping'
+  minSpend: number
+  description: string
+  isActive: boolean
+  createdAt?: string
+}
+
+export type AdminUser = {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+  phone?: string
+  roles: string[]
+  is_verified: boolean
+  is_active: boolean
+  suspension_reason?: string
+  suspended_at?: string
+  created_at: string
+}
+
+export type AuditLog = {
+  id: string
+  adminId: number
+  adminEmail: string
+  action: string
+  targetType: string
+  targetId: string
+  details: string
+  ipAddress?: string
   createdAt: string
 }
 
@@ -154,11 +208,11 @@ type StoreContextType = {
   myOrders: Order[]
   submitApplication: (payload: Omit<SellerApplication, 'id' | 'createdAt' | 'status' | 'userId' | 'name'>) => SellerApplication
   myApplication: SellerApplication | undefined
-  reviewApplication: (id: string, status: 'Approved' | 'Rejected') => void
+  reviewApplication: (id: string, status: 'Approved' | 'Rejected' | 'Needs Revision', reviewNotes?: string) => void
   updateOrderStatus: (id: string, status: Order['status']) => void
-  confirmOrder: (id: string) => void
+  confirmOrder: (id: string, driverId?: number) => void
   markShipped: (id: string) => void
-  assignDriver: (orderId: string, driverId: number) => void
+  assignDriver: (orderId: string, driverId: number) => Promise<void>
   sellerOrders: Order[]
   myListings: Product[]
   addReview: (payload: Omit<Review, 'id' | 'createdAt' | 'userId' | 'userName'>) => void
@@ -187,6 +241,30 @@ type StoreContextType = {
   syncStatus: 'online' | 'syncing' | 'offline'
   salesSeries: { label: string; daily: number; monthly: number; yearly: number }[]
   categorySales: { name: string; value: number }[]
+  // Administrative Operations
+  categoriesList: CategoryItem[]
+  refreshCategories: () => Promise<void>
+  createCategory: (cat: Partial<CategoryItem>) => Promise<void>
+  updateCategory: (id: string, updates: Partial<CategoryItem>) => Promise<void>
+  deleteCategory: (id: string) => Promise<void>
+  promotions: PromotionCoupon[]
+  refreshPromotions: () => Promise<void>
+  createPromotion: (promo: Partial<PromotionCoupon>) => Promise<void>
+  updatePromotion: (code: string, updates: Partial<PromotionCoupon>) => Promise<void>
+  deletePromotion: (code: string) => Promise<void>
+  usersList: AdminUser[]
+  refreshUsers: () => Promise<void>
+  updateUserStatus: (id: number, isActive: boolean, reason?: string) => Promise<void>
+  updateUserRoles: (id: number, roles: string[]) => Promise<void>
+  auditLogs: AuditLog[]
+  refreshAuditLogs: () => Promise<void>
+  moderateProduct: (id: string, action: 'approve' | 'flag' | 'delist' | 'reject', reason?: string) => Promise<void>
+  moderateReview: (id: string, status: 'published' | 'hidden' | 'flagged', reason?: string) => Promise<void>
+  deleteReview: (id: string) => Promise<void>
+  // Rider & Logistics
+  ridersList: AdminUser[]
+  refreshRiders: () => Promise<void>
+  createRider: (data: { firstName: string; lastName: string; phone: string; email: string; password: string }) => Promise<AdminUser>
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined)
@@ -348,6 +426,45 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online')
   const [hydrated, setHydrated] = useState(false)
 
+  const initialCatItems: CategoryItem[] = useMemo(
+    () =>
+      categories.map((c) => ({
+        id: `cat-${c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        name: c.name,
+        description: c.description,
+        icon: c.emoji,
+        imageUrl: c.image,
+      })),
+    []
+  )
+
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(initialCatItems)
+  const [promotions, setPromotions] = useState<PromotionCoupon[]>(
+    shippingCoupons.map((c) => ({
+      code: c.code,
+      discount: c.value,
+      type: c.code === 'FREESHIP' ? 'shipping' : c.type === 'percent' ? 'percentage' : 'fixed',
+      minSpend: c.minOrder,
+      description: c.description,
+      isActive: true,
+    }))
+  )
+  const [usersList, setUsersList] = useState<AdminUser[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [ridersList, setRidersList] = useState<AdminUser[]>([
+    {
+      id: 4,
+      email: 'driver@agrimarket.com',
+      first_name: 'Rico',
+      last_name: 'Driver',
+      phone: '+639189998877',
+      roles: ['delivery'],
+      is_verified: true,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    },
+  ])
+
   const refreshCatalog = async () => {
     try {
       const res = await api.get<{ success?: boolean; data?: { products: Product[] }; products?: Product[] }>(
@@ -440,6 +557,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Sync products and seller applications from central database on mount
     refreshCatalog()
     syncApplications()
+    void refreshCategories()
+    void refreshPromotions()
+    void refreshRiders()
 
     // Hydrate backend orders
     api.get<{ success?: boolean; data?: Order[] }>('/orders')
@@ -529,6 +649,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     socket.on('notification', (notif: AppNotification) => {
       setNotifications((current) => [notif, ...current.filter((n) => n.id !== notif.id)])
+    })
+
+    socket.on('user_status_updated', () => {
+      void refreshUsers()
+    })
+    socket.on('audit_logged', () => {
+      void refreshAuditLogs()
+    })
+    socket.on('category_updated', () => {
+      void refreshCategories()
+    })
+    socket.on('promotion_updated', () => {
+      void refreshPromotions()
+    })
+    socket.on('rider_created', () => {
+      void refreshRiders()
+      void refreshUsers()
+    })
+    socket.on('delivery_assigned', () => {
+      void refreshCatalog()
     })
 
     // 8. Real-Time Central Cloud Sync across all devices (phones, PCs, tablets)
@@ -732,6 +872,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user, approvedSellerIds, applications, addRole])
 
   useEffect(() => {
+    if (user?.roles.includes('admin') || user?.roles.includes('seller')) {
+      void refreshRiders()
+    }
+    if (user?.roles.includes('admin')) {
+      void refreshUsers()
+      void refreshAuditLogs()
+      void syncApplications()
+    }
+  }, [user])
+
+  useEffect(() => {
     if (!hydrated) return
     if (!user) {
       setLoyaltyPoints(0)
@@ -767,11 +918,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void publishSyncEvent('NOTIFICATION_CREATED', { notification: next })
   }
 
-  const allProducts = useMemo(() => {
+  const allProducts = useMemo<Product[]>(() => {
     return centralProducts.map((product) => {
       const stock = stockOverrides[product.id] ?? product.stock
       const price = priceOverrides[product.id] ?? product.price
-      const productReviews = reviews.filter((review) => review.productId === product.id)
+      const productReviews = reviews.filter((review) => review.productId === product.id && review.status !== 'hidden')
       const rating = productReviews.length
         ? Number((productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length).toFixed(1))
         : product.rating
@@ -791,8 +942,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })
   }, [centralProducts, stockOverrides, priceOverrides, reviews])
 
-  const products = useMemo(() => {
-    return allProducts.filter((product) => !product.isUnlisted && product.isActive !== false)
+  const products = useMemo<Product[]>(() => {
+    return allProducts.filter((product) => !product.isUnlisted && product.isActive !== false && product.moderationStatus !== 'rejected')
   }, [allProducts])
 
   const addProduct: StoreContextType['addProduct'] = (product) => {
@@ -948,13 +1099,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return next
   }
 
-  const reviewApplication = (id: string, status: 'Approved' | 'Rejected') => {
-    api.put(`/sellers/application/${id}/review`, { status }).catch(() => {
-      return api.put(`/admin/seller-applications/${id}`, { status }).catch(() => undefined)
-    })
+  const reviewApplication = (
+    id: string,
+    status: 'Approved' | 'Rejected' | 'Needs Revision',
+    reviewNotes?: string
+  ) => {
+    api
+      .put(`/admin/seller-applications/${id}`, { status, reviewNotes })
+      .catch(() => api.put(`/sellers/application/${id}/review`, { status, reviewNotes }).catch(() => undefined))
+
     setApplications((current) => {
       const target = current.find((item) => item.id === id)
-      void publishSyncEvent('APPLICATION_REVIEWED', { id, status, userId: target?.userId })
+      void publishSyncEvent('APPLICATION_REVIEWED', { id, status, reviewNotes, userId: target?.userId })
       if (status === 'Approved' && target) {
         setApprovedSellerIds((ids) => (ids.includes(target.userId) ? ids : [...ids, target.userId]))
         grantRole(target.userId, 'seller')
@@ -965,16 +1121,179 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           href: '/seller-dashboard',
         })
       }
+      if (status === 'Needs Revision' && target) {
+        notify({
+          userId: target.userId,
+          title: '⚠️ Revisions Requested on Seller Application',
+          message: reviewNotes ? `Admin requested revisions: "${reviewNotes}". Please update and resubmit.` : 'Please update your verification documents.',
+          href: '/become-seller',
+        })
+      }
       if (status === 'Rejected' && target) {
         notify({
           userId: target.userId,
           title: 'Seller application status update',
-          message: 'Your application was not approved. Please review requirements and resubmit.',
+          message: reviewNotes ? `Application declined: "${reviewNotes}"` : 'Your application was not approved. Please review requirements and resubmit.',
           href: '/become-seller',
         })
       }
-      return current.map((item) => (item.id === id ? { ...item, status } : item))
+      return current.map((item) => (item.id === id ? { ...item, status, reviewNotes } : item))
     })
+    void refreshAuditLogs()
+  }
+
+  // Admin Responsibilities: Categories, Promotions, Users, Reviews, Moderation, Audit
+  const refreshCategories = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: CategoryItem[] }>('/categories')
+      const data = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+      if (Array.isArray(data) && data.length > 0) {
+        setCategoriesList(data)
+      }
+    } catch {
+      // offline fallback
+    }
+  }
+
+  const createCategory = async (cat: Partial<CategoryItem>) => {
+    const res = await api.post<{ success?: boolean; data?: CategoryItem }>('/admin/categories', cat)
+    const created = res.data?.data || {
+      id: `cat-${Date.now()}`,
+      name: cat.name || 'Category',
+      description: cat.description || '',
+      imageUrl: cat.imageUrl || '/images/farm.jpg',
+      icon: cat.icon || 'Leaf',
+    }
+    setCategoriesList((curr) => [...curr.filter((c) => c.id !== created.id), created])
+    void refreshAuditLogs()
+  }
+
+  const updateCategory = async (id: string, updates: Partial<CategoryItem>) => {
+    const res = await api.put<{ success?: boolean; data?: CategoryItem }>(`/admin/categories/${id}`, updates)
+    const updated = res.data?.data || updates
+    setCategoriesList((curr) => curr.map((c) => (c.id === id ? { ...c, ...updated } : c)))
+    void refreshAuditLogs()
+  }
+
+  const deleteCategory = async (id: string) => {
+    await api.delete(`/admin/categories/${id}`)
+    setCategoriesList((curr) => curr.filter((c) => c.id !== id))
+    void refreshAuditLogs()
+  }
+
+  const refreshPromotions = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: PromotionCoupon[] }>('/admin/promotions')
+      const data = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+      if (Array.isArray(data) && data.length > 0) {
+        setPromotions(data)
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const createPromotion = async (promo: Partial<PromotionCoupon>) => {
+    const res = await api.post<{ success?: boolean; data?: PromotionCoupon }>('/admin/promotions', promo)
+    const created = res.data?.data || {
+      code: promo.code?.toUpperCase() || 'PROMO',
+      discount: Number(promo.discount || 20),
+      type: promo.type || 'fixed',
+      minSpend: Number(promo.minSpend || 0),
+      description: promo.description || '',
+      isActive: true,
+    }
+    setPromotions((curr) => [created, ...curr.filter((c) => c.code !== created.code)])
+    void refreshAuditLogs()
+  }
+
+  const updatePromotion = async (code: string, updates: Partial<PromotionCoupon>) => {
+    const res = await api.put<{ success?: boolean; data?: PromotionCoupon }>(`/admin/promotions/${code}`, updates)
+    const updated = res.data?.data || updates
+    setPromotions((curr) => curr.map((c) => (c.code === code ? { ...c, ...updated } : c)))
+    void refreshAuditLogs()
+  }
+
+  const deletePromotion = async (code: string) => {
+    await api.delete(`/admin/promotions/${code}`)
+    setPromotions((curr) => curr.filter((c) => c.code !== code))
+    void refreshAuditLogs()
+  }
+
+  const refreshUsers = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: AdminUser[] }>('/admin/users')
+      const data = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+      if (Array.isArray(data) && data.length > 0) {
+        setUsersList(data)
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const updateUserStatus = async (id: number, isActive: boolean, reason?: string) => {
+    await api.put(`/admin/users/${id}/status`, { isActive, reason })
+    setUsersList((curr) =>
+      curr.map((u) => (u.id === id ? { ...u, is_active: isActive, suspension_reason: reason } : u))
+    )
+    void refreshAuditLogs()
+  }
+
+  const updateUserRoles = async (id: number, roles: string[]) => {
+    await api.put(`/admin/users/${id}/roles`, { roles })
+    setUsersList((curr) => curr.map((u) => (u.id === id ? { ...u, roles } : u)))
+    void refreshAuditLogs()
+  }
+
+  const refreshAuditLogs = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: { logs: AuditLog[] } }>('/admin/audit-logs')
+      const logs = res.data?.data?.logs || (Array.isArray(res.data?.data) ? res.data.data : [])
+      if (Array.isArray(logs)) {
+        setAuditLogs(logs)
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const moderateProduct = async (
+    id: string,
+    action: 'approve' | 'flag' | 'delist' | 'reject',
+    reason?: string
+  ) => {
+    const res = await api.put<{ success?: boolean; data?: Product }>(`/admin/products/${id}/moderate`, { action, reason })
+    const updated = res.data?.data
+    if (updated) {
+      setCentralProducts((curr) => curr.map((p) => (p.id === id ? { ...p, ...updated } : p)))
+    } else {
+      setCentralProducts((curr) =>
+        curr.map((p) => {
+          if (p.id !== id) return p
+          if (action === 'approve') return { ...p, moderationStatus: 'approved', isUnlisted: false, isActive: true }
+          if (action === 'flag') return { ...p, moderationStatus: 'flagged', moderationReason: reason }
+          return { ...p, moderationStatus: 'rejected', isUnlisted: true, isActive: false, moderationReason: reason }
+        })
+      )
+    }
+    void refreshAuditLogs()
+  }
+
+  const moderateReview = async (
+    id: string,
+    status: 'published' | 'hidden' | 'flagged',
+    reason?: string
+  ) => {
+    await api.put(`/admin/reviews/${id}/moderate`, { status, reason })
+    setReviews((curr) => curr.map((r) => (r.id === id ? { ...r, status, moderationReason: reason } : r)))
+    void refreshAuditLogs()
+  }
+
+  const deleteReview = async (id: string) => {
+    await api.delete(`/admin/reviews/${id}`)
+    setReviews((curr) => curr.filter((r) => r.id !== id))
+    void refreshAuditLogs()
   }
 
   const updateOrderStatus = (id: string, status: Order['status']) => {
@@ -994,9 +1313,49 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     )
   }
 
-  const confirmOrder = (id: string) => {
-    void api.put(`/orders/${id}/status`, { status: 'Confirmed', driverId: DRIVER_ID }).catch(() => undefined)
-    void publishSyncEvent('ORDER_STATUS_UPDATED', { orderId: id, status: 'Confirmed', driverId: DRIVER_ID })
+  const refreshRiders = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: AdminUser[] }>('/delivery/riders').catch(() =>
+        api.get<{ success?: boolean; data?: AdminUser[] }>('/admin/riders')
+      )
+      const data = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+      if (Array.isArray(data) && data.length > 0) {
+        setRidersList(data)
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const createRider = async (data: {
+    firstName: string
+    lastName: string
+    phone: string
+    email: string
+    password: string
+  }): Promise<AdminUser> => {
+    const res = await api.post<{ success?: boolean; data?: AdminUser }>('/admin/riders', data)
+    const created: AdminUser = res.data?.data || {
+      id: Date.now(),
+      email: data.email.toLowerCase(),
+      first_name: data.firstName,
+      last_name: data.lastName,
+      phone: data.phone,
+      roles: ['delivery'],
+      is_verified: true,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    }
+    setRidersList((curr) => [...curr.filter((r) => r.id !== created.id), created])
+    setUsersList((curr) => [...curr.filter((u) => u.id !== created.id), created])
+    void refreshAuditLogs()
+    return created
+  }
+
+  const confirmOrder = (id: string, driverId?: number) => {
+    const effectiveDriverId = driverId || DRIVER_ID
+    void api.put(`/orders/${id}/status`, { status: 'Confirmed', driverId: effectiveDriverId }).catch(() => undefined)
+    void publishSyncEvent('ORDER_STATUS_UPDATED', { orderId: id, status: 'Confirmed', driverId: effectiveDriverId })
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id || order.status !== 'Pending') return order
@@ -1009,7 +1368,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           href: '/orders',
         })
         notify({
-          userId: DRIVER_ID,
+          userId: effectiveDriverId,
           title: 'Ready for pickup',
           message: `Collect ${harvest} at ${pickup}. Buyer: ${order.buyerName} · ${order.buyerPhone || 'no mobile'} · drop-off ${order.address}.`,
           href: '/delivery',
@@ -1017,7 +1376,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         void api
           .post('/delivery/deliveries', {
             orderId: order.id,
-            driverId: DRIVER_ID,
+            driverId: effectiveDriverId,
             buyerName: order.buyerName,
             buyerPhone: order.buyerPhone,
             address: order.address,
@@ -1026,7 +1385,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             lng: order.lng,
           })
           .catch(() => undefined)
-        return { ...order, status: 'Confirmed' as const, driverId: DRIVER_ID, sellerConfirmedAt: new Date().toISOString() }
+        return { ...order, status: 'Confirmed' as const, driverId: effectiveDriverId, sellerConfirmedAt: new Date().toISOString() }
       })
     )
   }
@@ -1054,8 +1413,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     )
   }
 
-  const assignDriver = (orderId: string, driverId: number) => {
-    setOrders((current) => current.map((order) => (order.id === orderId ? { ...order, driverId } : order)))
+  const assignDriver = async (orderId: string, driverId: number) => {
+    try {
+      await api.put(`/orders/${orderId}/assign-rider`, { driverId }).catch(() =>
+        api.put(`/orders/${orderId}/status`, { driverId })
+      )
+    } catch {
+      // fallback
+    }
+
+    setOrders((current) =>
+      current.map((order) => {
+        if (order.id !== orderId) return order
+        notify({
+          userId: driverId,
+          title: 'New Delivery Assigned 🛵',
+          message: `You were assigned to deliver ${order.id} to ${order.buyerName} (${order.address}).`,
+          href: '/delivery',
+        })
+        notify({
+          userId: order.userId,
+          title: 'Rider Assigned to Your Order',
+          message: `A delivery rider has been assigned for ${order.id}.`,
+          href: `/orders/${order.id}/receipt`,
+        })
+        return { ...order, driverId }
+      })
+    )
   }
 
   const myListings = useMemo(() => {
@@ -1355,7 +1739,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       myListings,
       sellerOrders,
       addReview,
-      reviewsFor: (productId: string) => reviews.filter((review) => review.productId === productId),
+      reviewsFor: (productId: string) => reviews.filter((review) => review.productId === productId && review.status !== 'hidden'),
       addPost,
       followCategory,
       unfollowCategory,
@@ -1380,6 +1764,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       syncStatus,
       salesSeries,
       categorySales,
+      categoriesList,
+      refreshCategories,
+      createCategory,
+      updateCategory,
+      deleteCategory,
+      promotions,
+      refreshPromotions,
+      createPromotion,
+      updatePromotion,
+      deletePromotion,
+      usersList,
+      refreshUsers,
+      updateUserStatus,
+      updateUserRoles,
+      auditLogs,
+      refreshAuditLogs,
+      moderateProduct,
+      moderateReview,
+      deleteReview,
+      ridersList,
+      refreshRiders,
+      createRider,
     }),
     [
       allProducts,
@@ -1405,6 +1811,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       streakDays,
       lastCheckInDate,
       syncStatus,
+      categoriesList,
+      promotions,
+      usersList,
+      auditLogs,
+      ridersList,
     ]
   )
 

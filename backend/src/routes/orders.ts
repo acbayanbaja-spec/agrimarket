@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
-import { optionalAuth, AuthRequest } from '../middleware/auth';
-import { db, OrderEntity } from '../database/store';
+import { optionalAuth, authenticate, AuthRequest } from '../middleware/auth';
+import { db, OrderEntity, DeliveryJobEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
-import { sendOrderUpdate } from '../sockets';
+import { sendOrderUpdate, sendDeliveryUpdate } from '../sockets';
 
 const router = Router();
 
@@ -178,6 +178,106 @@ router.put('/:id/status', optionalAuth, (req: AuthRequest, res: Response) => {
     return res.json(successResponse(updated, 'Order status updated successfully in central database'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'ORDER_UPDATE_FAILED', 500));
+  }
+});
+
+// @route   PUT /api/orders/:id/assign-rider
+// @desc    Assign a rider to an order (Authorized Seller or Admin)
+// @access  Private (seller, admin)
+router.put('/:id/assign-rider', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const orderId = req.params.id;
+    const { driverId } = req.body;
+
+    if (!driverId) {
+      return res.status(400).json(errorResponse('driverId is required', null, 'BAD_REQUEST', 400));
+    }
+
+    const order = db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
+    }
+
+    // Authorization check: User must be Admin OR Seller of at least one item in the order
+    const isAdmin = user.roles.includes('admin');
+    const isOrderSeller = order.items.some(
+      (it: any) =>
+        it.sellerUserId === user.id ||
+        it.sellerId === `seller-${user.id}` ||
+        it.sellerId === `user-${user.id}` ||
+        ((user.email === 'seller@agrimarket.com' || user.id === 2) && (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+    );
+
+    if (!isAdmin && !isOrderSeller) {
+      return res.status(403).json(
+        errorResponse('Only an administrator or the designated seller can assign a delivery rider', null, 'UNAUTHORIZED', 403)
+      );
+    }
+
+    // Verify rider exists and has delivery role
+    const rider = db.getUserById(Number(driverId));
+    if (!rider || !rider.roles.includes('delivery')) {
+      return res.status(400).json(errorResponse('Selected user is not an active delivery rider', null, 'INVALID_RIDER', 400));
+    }
+
+    // Update order with driverId
+    const updatedOrder = db.updateOrderStatus(orderId, order.status, {
+      driverId: Number(driverId),
+    });
+
+    // Create or update delivery job for this rider
+    const job: DeliveryJobEntity = {
+      id: `DEL-${orderId}`,
+      orderId: order.id,
+      driverId: Number(driverId),
+      buyerName: order.buyerName,
+      buyerPhone: order.buyerPhone,
+      address: order.address,
+      status: order.status === 'Pending' ? 'Confirmed' : order.status,
+      lat: order.lat,
+      lng: order.lng,
+      updatedAt: new Date().toISOString(),
+    };
+    db.updateDelivery(job.id, job);
+
+    // Notify Rider
+    db.addNotification({
+      id: `notice-${Date.now()}`,
+      userId: Number(driverId),
+      title: 'New Delivery Assigned 🛵',
+      message: `${isAdmin ? 'Admin' : 'Seller'} assigned order ${order.id} (${order.buyerName}, ${order.address}) to you.`,
+      category: 'Delivery',
+      readBy: [],
+      createdAt: new Date().toISOString(),
+    });
+
+    // Notify Buyer
+    db.addNotification({
+      id: `notice-${Date.now() + 1}`,
+      userId: order.userId,
+      title: 'Rider Assigned to Your Order',
+      message: `Rider ${rider.first_name} ${rider.last_name} (${rider.phone || 'mobile available'}) was assigned to deliver ${order.id}.`,
+      category: 'Delivery',
+      readBy: [],
+      createdAt: new Date().toISOString(),
+    });
+
+    // Socket broadcasts
+    if (io) {
+      io.emit('order_updated', updatedOrder);
+      io.emit('delivery_assigned', { orderId, driverId: Number(driverId), riderName: `${rider.first_name} ${rider.last_name}` });
+      sendDeliveryUpdate(io, Number(driverId), job);
+    }
+
+    return res.json(
+      successResponse(
+        { order: updatedOrder, rider: { id: rider.id, name: `${rider.first_name} ${rider.last_name}`, phone: rider.phone } },
+        `Rider ${rider.first_name} ${rider.last_name} assigned to delivery ${order.id}`
+      )
+    );
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'ASSIGN_RIDER_FAILED', 500));
   }
 });
 

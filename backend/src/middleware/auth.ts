@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
+import { db } from '../database/store';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -43,16 +44,31 @@ export const authenticate = async (
       };
       const account = demo[id] || { email: 'local@agrimarket.com', roles: ['buyer'] };
       req.user = { id: Number.isFinite(id) ? id : 3, email: account.email, roles: account.roles };
-      return next();
+    } else {
+      const decoded = jwt.verify(token, config.jwt.secret) as {
+        id: number;
+        email: string;
+        roles: string[];
+      };
+
+      req.user = decoded;
     }
 
-    const decoded = jwt.verify(token, config.jwt.secret) as {
-      id: number;
-      email: string;
-      roles: string[];
-    };
+    // Enforce administrative suspension
+    if (req.user) {
+      const liveUser = db.getUserById(req.user.id);
+      if (liveUser && liveUser.is_active === false) {
+        return res.status(403).json({
+          success: false,
+          message: liveUser.suspension_reason
+            ? `Your account has been suspended by an administrator: ${liveUser.suspension_reason}`
+            : 'Your account has been suspended by an administrator. Please contact support.',
+          data: null,
+          errorCode: 'ACCOUNT_SUSPENDED'
+        });
+      }
+    }
 
-    req.user = decoded;
     return next();
   } catch (error) {
     return res.status(401).json({

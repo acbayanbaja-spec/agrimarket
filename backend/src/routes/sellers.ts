@@ -76,33 +76,71 @@ router.get('/application', optionalAuth, (req: AuthRequest, res: Response) => {
 });
 
 // @route   PUT /api/sellers/application/:id/review
-// @desc    Review and approve/reject seller application centrally
+// @desc    Review and approve/reject/request revision for seller application centrally
 // @access  Public / Optional Auth
 router.put('/application/:id/review', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const { status } = req.body;
-    if (status !== 'Approved' && status !== 'Rejected') {
-      return res.status(400).json(errorResponse('Status must be Approved or Rejected', null, 'BAD_REQUEST', 400));
+    const { status, reviewNotes } = req.body;
+    const allowed = ['Approved', 'Rejected', 'Needs Revision'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json(errorResponse('Status must be Approved, Rejected, or Needs Revision', null, 'BAD_REQUEST', 400));
     }
 
-    const updated = db.updateSellerApplicationStatus(req.params.id, status);
+    const reviewerEmail = req.user?.email || 'admin@agrimarket.com';
+    const updated = db.updateSellerApplicationStatus(req.params.id, status, reviewNotes, reviewerEmail);
     if (!updated) {
       return res.status(404).json(errorResponse('Application not found', null, 'NOT_FOUND', 404));
+    }
+
+    // Determine message & title for notification
+    let title = `Seller Application ${status}`;
+    let message = '';
+    let href = '/become-seller';
+
+    if (status === 'Approved') {
+      title = '🎉 Seller Verification Approved!';
+      message = `Congratulations! ${updated.farmName} has been verified. You can now list harvests on the Seller Dashboard.`;
+      href = '/seller-dashboard';
+    } else if (status === 'Needs Revision') {
+      title = '⚠️ Revisions Requested for Seller Application';
+      message = reviewNotes
+        ? `Administrator requested revisions for ${updated.farmName}: "${reviewNotes}". Please update and resubmit.`
+        : `Administrator requested revisions for ${updated.farmName}. Please check your valid ID and documents.`;
+      href = '/become-seller';
+    } else {
+      title = 'Seller Application Declined';
+      message = reviewNotes
+        ? `Your seller application could not be approved: "${reviewNotes}". Please contact support.`
+        : 'Your seller application could not be approved at this time. Please check your credentials.';
+      href = '/become-seller';
     }
 
     // Add notification to the user
     db.addNotification({
       id: `notice-${Date.now()}`,
       userId: updated.userId,
-      title: `Seller Application ${status}`,
-      message:
-        status === 'Approved'
-          ? '🎉 Congratulations! Your farm has been verified. You can now list harvests on the Seller Dashboard.'
-          : 'Your seller application could not be approved at this time. Please check your credentials.',
-      href: status === 'Approved' ? '/seller-dashboard' : '/become-seller',
+      title,
+      message,
+      href,
       category: 'Verification',
       readBy: [],
       createdAt: new Date().toISOString(),
+    });
+
+    // Record audit log
+    db.addAuditLog({
+      adminId: req.user?.id || 1,
+      adminEmail: reviewerEmail,
+      action:
+        status === 'Approved'
+          ? 'SELLER_APPLICATION_APPROVED'
+          : status === 'Needs Revision'
+          ? 'SELLER_APPLICATION_REVISION_REQUESTED'
+          : 'SELLER_APPLICATION_REJECTED',
+      targetType: 'seller_application',
+      targetId: updated.id,
+      details: `${status} seller application for "${updated.farmName}". Notes: "${reviewNotes || 'N/A'}"`,
+      ipAddress: req.ip || '127.0.0.1',
     });
 
     // Real-time broadcast: unlock seller dashboard on user's device immediately!
@@ -114,7 +152,7 @@ router.put('/application/:id/review', optionalAuth, (req: AuthRequest, res: Resp
       }
     }
 
-    return res.json(successResponse(updated, `Seller application has been ${status.toLowerCase()}`));
+    return res.json(successResponse(updated, `Seller application has been updated to: ${status}`));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'APPLICATION_REVIEW_FAILED', 500));
   }
