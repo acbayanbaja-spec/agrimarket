@@ -41,7 +41,7 @@ const corsOptions: cors.CorsOptions = {
   credentials: true,
 };
 
-const io = new SocketIOServer(httpServer, {
+export const io = new SocketIOServer(httpServer, {
   cors: {
     origin: true,
     credentials: true,
@@ -98,5 +98,3 @@ httpServer.listen(PORT, () => {
   console.log(`📊 Environment: ${config.nodeEnv}`);
   console.log(`🌐 CORS origins: ${config.corsOrigin.join(', ')}`);
 });
-
-export { io };

@@ -11,7 +11,7 @@ export default function BecomeSellerScreen() {
   const { submitApplication, myApplication } = useStore();
   const [farmName, setFarmName] = useState('');
   const [location, setLocation] = useState(soccsksargenPlaces[0].label);
-  const [idType, setIdType] = useState(ID_DOCUMENT_TYPES[0]);
+  const [idType, setIdType] = useState<(typeof ID_DOCUMENT_TYPES)[number]>(ID_DOCUMENT_TYPES[0]);
   const [idNumber, setIdNumber] = useState('');
   const [done, setDone] = useState(false);
 

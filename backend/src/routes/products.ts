@@ -1,18 +1,46 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { db, ProductEntity } from '../database/store';
+import { optionalAuth, AuthRequest } from '../middleware/auth';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
+import {
+  broadcastProductCreated,
+  broadcastProductUpdated,
+  broadcastProductUnlisted,
+  broadcastProductDeleted,
+} from '../sockets';
 
 const router = Router();
 
+// Helper to determine if user can manage the given product
+function canManageProduct(user: { id: number; roles: string[]; email?: string } | undefined, product: ProductEntity): boolean {
+  if (!user) return false;
+  if (user.roles.includes('admin')) return true;
+  if (!user.roles.includes('seller')) return false;
+
+  // Check seller ownership
+  return (
+    product.sellerUserId === user.id ||
+    product.sellerId === `seller-${user.id}` ||
+    product.sellerId === `user-${user.id}` ||
+    (user.id === 2 && (product.sellerUserId === 2 || product.sellerId === 'seller-1'))
+  );
+}
+
 // @route   GET /api/products
-// @desc    Get all products from central database with filters (supports includeInactive=true for Admin)
+// @desc    Get all products from central database with filters
 // @access  Public
-router.get('/', (req: Request, res: Response) => {
+router.get('/', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
     const { category, search, sellerId, minPrice, maxPrice, includeInactive } = req.query;
+    const user = req.user;
 
-    let results = db.getProducts(includeInactive === 'true');
+    const isAdmin = Boolean(user && user.roles.includes('admin'));
+    const isSeller = Boolean(user && user.roles.includes('seller'));
+
+    // Admin can see everything when requested; otherwise active products
+    const showInactive = includeInactive === 'true' && (isAdmin || isSeller);
+    let results = db.getProducts(showInactive);
 
     if (category && category !== 'All') {
       results = results.filter((p) => p.category.toLowerCase() === String(category).toLowerCase());
@@ -58,11 +86,11 @@ router.get('/', (req: Request, res: Response) => {
 // @route   GET /api/products/:id
 // @desc    Get product by ID from central database
 // @access  Public
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', (req: AuthRequest, res: Response) => {
   try {
     const product = db.getProductById(req.params.id);
-    if (!product) {
-      return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
+    if (!product || product.isDeleted) {
+      return res.status(404).json(errorResponse('Product not found or has been removed', null, 'NOT_FOUND', 404));
     }
 
     return res.json(successResponse({ product }, 'Product retrieved successfully'));
@@ -73,26 +101,43 @@ router.get('/:id', (req: Request, res: Response) => {
 
 // @route   POST /api/products
 // @desc    Create new product listing in central database and broadcast to all users
-// @access  Public / Authenticated
-router.post('/', (req: Request, res: Response) => {
+// @access  Private (Seller, Admin)
+router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json(errorResponse('Authentication required to create a harvest listing', null, 'UNAUTHORIZED', 401));
+    }
+
+    const isAdmin = user.roles.includes('admin');
+    const isSeller = user.roles.includes('seller');
+
+    if (!isAdmin && !isSeller) {
+      return res.status(403).json(errorResponse('Only approved sellers and administrators can create product listings', null, 'FORBIDDEN', 403));
+    }
+
     const body = req.body;
     if (!body.name || !body.price) {
       return res.status(400).json(errorResponse('Product name and price are required', null, 'BAD_REQUEST', 400));
     }
 
+    const sellerUserId = isAdmin && body.sellerUserId ? Number(body.sellerUserId) : user.id;
+    const sellerId = body.sellerId || (sellerUserId ? `seller-${sellerUserId}` : 'seller-default');
+    const anyUser = user as any;
+    const sellerName = body.seller || (anyUser?.firstName ? `${anyUser.firstName} ${anyUser.lastName} Farm` : 'SOCCSKSARGEN Farm Partner');
+
     const newProduct: ProductEntity = {
       id: body.id || `prod-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
-      name: body.name.trim(),
+      name: String(body.name).trim(),
       category: body.category || 'Vegetables',
-      price: Number(body.price),
+      price: Math.max(1, Number(body.price)),
       unit: body.unit || 'kg',
-      stock: Number(body.stock ?? 20),
+      stock: Math.max(0, Number(body.stock ?? 20)),
       rating: Number(body.rating ?? 5.0),
       reviews: Number(body.reviews ?? 0),
-      seller: body.seller || 'SOCCSKSARGEN Farm Partner',
-      sellerId: body.sellerId || `seller-${Date.now()}`,
-      sellerUserId: Number(body.sellerUserId ?? 0),
+      seller: sellerName,
+      sellerId,
+      sellerUserId,
       location: body.location || 'Koronadal City, South Cotabato',
       image: body.image || '/images/farm.jpg',
       photos: Array.isArray(body.photos) && body.photos.length ? body.photos : [body.image || '/images/farm.jpg'],
@@ -106,15 +151,15 @@ router.post('/', (req: Request, res: Response) => {
       isActive: true,
       is_active: true,
       isUnlisted: false,
+      isDeleted: false,
+      availabilityStatus: Number(body.stock ?? 20) === 0 ? 'out_of_stock' : Number(body.stock ?? 20) <= 10 ? 'low_stock' : 'in_stock',
     };
 
     const saved = db.addProduct(newProduct);
 
-    // INSTANT BROADCAST TO ALL CONNECTED DEVICES (PHONES, COMPUTERS, TABLETS)
+    // Broadcast across all connected devices in real time
     if (io) {
-      io.emit('product_created', saved);
-      io.emit('new_product', saved);
-      io.emit('catalog_changed', { action: 'created', product: saved });
+      broadcastProductCreated(io, saved);
     }
 
     return res.status(201).json(
@@ -130,28 +175,36 @@ router.post('/', (req: Request, res: Response) => {
 
 // @route   PUT /api/products/:id/unlist
 // @desc    Unlist or disable product centrally (immediately disappears from all buyers)
-// @access  Public / Authenticated
-router.put('/:id/unlist', (req: Request, res: Response) => {
+// @access  Private (Seller of product, Admin)
+router.put('/:id/unlist', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const unlisted = req.body.unlisted !== undefined ? Boolean(req.body.unlisted) : true;
-    const updated = db.unlistProduct(req.params.id, unlisted);
-    if (!updated) {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json(errorResponse('Authentication required to modify listing availability', null, 'UNAUTHORIZED', 401));
+    }
+
+    const product = db.getProductById(req.params.id);
+    if (!product || product.isDeleted) {
       return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
     }
 
-    // INSTANT BROADCAST: Disappears from all devices immediately
-    if (io) {
-      io.emit('product_unlisted', { id: req.params.id, isUnlisted: unlisted, product: updated });
-      io.emit('product_updated', updated);
-      io.emit('catalog_changed', { action: 'unlisted', id: req.params.id, isUnlisted: unlisted, product: updated });
+    if (!canManageProduct(user, product)) {
+      return res.status(403).json(errorResponse('You can manage only your own product listings', null, 'FORBIDDEN', 403));
+    }
+
+    const unlisted = req.body.unlisted !== undefined ? Boolean(req.body.unlisted) : true;
+    const updated = db.unlistProduct(req.params.id, unlisted);
+
+    if (io && updated) {
+      broadcastProductUnlisted(io, req.params.id, unlisted, updated);
     }
 
     return res.json(
       successResponse(
         { product: updated },
         unlisted
-          ? 'Product unlisted and immediately disabled on all devices'
-          : 'Product relisted and now visible on all devices'
+          ? 'Product unlisted and deactivated from new purchases'
+          : 'Product relisted and now available on all devices'
       )
     );
   } catch (error: any) {
@@ -161,18 +214,48 @@ router.put('/:id/unlist', (req: Request, res: Response) => {
 
 // @route   PUT /api/products/:id
 // @desc    Update product stock, price, or details centrally in database
-// @access  Public / Authenticated
-router.put('/:id', (req: Request, res: Response) => {
+// @access  Private (Seller of product, Admin)
+router.put('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const updated = db.updateProduct(req.params.id, req.body);
-    if (!updated) {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json(errorResponse('Authentication required to update product', null, 'UNAUTHORIZED', 401));
+    }
+
+    const product = db.getProductById(req.params.id);
+    if (!product || product.isDeleted) {
       return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
     }
 
-    // INSTANT BROADCAST TO ALL DEVICES
-    if (io) {
-      io.emit('product_updated', updated);
-      io.emit('catalog_changed', { action: 'updated', product: updated });
+    if (!canManageProduct(user, product)) {
+      return res.status(403).json(errorResponse('You can manage only your own product listings', null, 'FORBIDDEN', 403));
+    }
+
+    const updates: Partial<ProductEntity> = { ...req.body };
+
+    // Update availability status if stock changed
+    if (updates.stock !== undefined) {
+      updates.stock = Math.max(0, Number(updates.stock));
+      if (!updates.availabilityStatus) {
+        updates.availabilityStatus =
+          updates.stock === 0 ? 'out_of_stock' : updates.stock <= 10 ? 'low_stock' : 'in_stock';
+      }
+    }
+
+    if (updates.price !== undefined) {
+      updates.price = Math.max(1, Number(updates.price));
+      if (updates.price !== product.price) {
+        updates.priceHistory = [
+          ...(product.priceHistory || []),
+          { date: new Date().toISOString().slice(0, 10), price: updates.price },
+        ];
+      }
+    }
+
+    const updated = db.updateProduct(req.params.id, updates);
+
+    if (io && updated) {
+      broadcastProductUpdated(io, updated);
     }
 
     return res.json(
@@ -187,25 +270,35 @@ router.put('/:id', (req: Request, res: Response) => {
 });
 
 // @route   DELETE /api/products/:id
-// @desc    Permanently delete product from central database (immediately vanishes on all devices)
-// @access  Public / Authenticated
-router.delete('/:id', (req: Request, res: Response) => {
+// @desc    Deactivate or delete product from catalog while preserving transaction history
+// @access  Private (Seller of product, Admin)
+router.delete('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const ok = db.deleteProduct(req.params.id);
-    if (!ok) {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json(errorResponse('Authentication required to delete product', null, 'UNAUTHORIZED', 401));
+    }
+
+    const product = db.getProductById(req.params.id);
+    if (!product) {
       return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
     }
 
-    // INSTANT BROADCAST: Remove from every buyer & seller device in real time!
+    if (!canManageProduct(user, product)) {
+      return res.status(403).json(errorResponse('You can delete only your own product listings', null, 'FORBIDDEN', 403));
+    }
+
+    // Soft-delete to preserve order transaction history
+    db.deleteProduct(req.params.id, false);
+
     if (io) {
-      io.emit('product_deleted', { id: req.params.id });
-      io.emit('catalog_changed', { action: 'deleted', id: req.params.id });
+      broadcastProductDeleted(io, req.params.id);
     }
 
     return res.json(
       successResponse(
         { id: req.params.id },
-        'Product permanently deleted from central database and removed from all devices'
+        'Product removed from catalog across all devices. Transaction history preserved.'
       )
     );
   } catch (error: any) {

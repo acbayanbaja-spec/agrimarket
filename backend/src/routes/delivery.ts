@@ -3,18 +3,35 @@ import { authenticate, authorize, type AuthRequest } from '../middleware/auth';
 import { db, DeliveryJobEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
-import { sendDeliveryUpdate } from '../sockets';
+import { broadcastDeliveryUpdate, broadcastOrderUpdated } from '../sockets';
 
 const router = Router();
 
 // @route   GET /api/delivery/deliveries
-// @desc    Get delivery assignments for driver or admin
-// @access  Private (delivery, admin)
-router.get('/deliveries', authenticate, authorize('delivery', 'admin'), (req: AuthRequest, res: Response) => {
+// @desc    Get delivery assignments for driver, seller, or admin
+// @access  Private (delivery, seller, admin)
+router.get('/deliveries', authenticate, authorize('delivery', 'seller', 'admin'), (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
-    const list = user.roles.includes('admin') ? db.getDeliveries() : db.getDeliveries(user.id);
-    return res.json(successResponse(list, 'Deliveries loaded'));
+    if (user.roles.includes('admin')) {
+      const list = db.getDeliveries();
+      return res.json(successResponse(list, 'All deliveries loaded'));
+    }
+
+    if (user.roles.includes('delivery')) {
+      const list = db.getDeliveries(user.id);
+      return res.json(successResponse(list, 'Assigned deliveries loaded'));
+    }
+
+    if (user.roles.includes('seller')) {
+      // Return deliveries for seller's orders
+      const sellerOrders = db.getOrdersBySellerId(`seller-${user.id}`, user.id);
+      const sellerOrderIds = new Set(sellerOrders.map((o) => o.id));
+      const list = db.getDeliveries().filter((d) => sellerOrderIds.has(d.orderId));
+      return res.json(successResponse(list, 'Seller deliveries loaded'));
+    }
+
+    return res.json(successResponse([], 'No deliveries'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'DELIVERIES_FETCH_FAILED', 500));
   }
@@ -36,38 +53,79 @@ router.get('/riders', authenticate, authorize('seller', 'admin', 'delivery'), (r
 });
 
 // @route   PUT /api/delivery/deliveries/:id/status
-// @desc    Update driver delivery status and GPS coordinates
+// @desc    Update driver delivery status and GPS coordinates centrally
 // @access  Private (delivery, admin)
 router.put('/deliveries/:id/status', authenticate, authorize('delivery', 'admin'), (req: AuthRequest, res: Response) => {
   try {
+    const user = req.user!;
     const { status, lat, lng } = req.body;
-    const job = db.updateDelivery(req.params.id, {
+
+    const existingJobs = db.getDeliveries();
+    const existing = existingJobs.find((j) => j.id === req.params.id || j.orderId === req.params.id);
+    if (!existing) {
+      return res.status(404).json(errorResponse('Delivery job not found', null, 'NOT_FOUND', 404));
+    }
+
+    if (!user.roles.includes('admin') && existing.driverId !== user.id) {
+      return res.status(403).json(errorResponse('You can only update deliveries assigned to you', null, 'UNAUTHORIZED', 403));
+    }
+
+    const job = db.updateDelivery(existing.id, {
       status,
-      lat: lat ? Number(lat) : undefined,
-      lng: lng ? Number(lng) : undefined,
+      lat: lat !== undefined ? Number(lat) : undefined,
+      lng: lng !== undefined ? Number(lng) : undefined,
     });
 
     if (!job) {
       return res.status(404).json(errorResponse('Delivery not found', null, 'NOT_FOUND', 404));
     }
 
-    if (io) {
-      sendDeliveryUpdate(io, job.driverId, job);
+    // Sync with order in central database
+    const order = db.getOrderById(job.orderId);
+    if (order && status) {
+      const extra: any = {};
+      if (status === 'Delivered') {
+        extra.deliveredAt = new Date().toISOString();
+        extra.paymentStatus = 'completed';
+      }
+      db.updateOrderStatus(order.id, status, extra);
+
+      // Notify Buyer of delivery progress
+      db.addNotification({
+        id: `notice-${Date.now()}-${order.userId}`,
+        userId: order.userId,
+        title: status === 'Delivered' ? 'Order Delivered! 🎉' : `Order Status: ${status} 🛵`,
+        message: `Delivery update for #${order.id}: ${status}. Rider is on the way.`,
+        category: 'Delivery',
+        readBy: [],
+        createdAt: new Date().toISOString(),
+      });
     }
 
-    return res.json(successResponse(job, 'Delivery status updated'));
+    // Central real-time socket updates
+    if (io) {
+      broadcastDeliveryUpdate(io, job.driverId, job);
+      if (order) {
+        const refreshedOrder = db.getOrderById(job.orderId);
+        if (refreshedOrder) {
+          broadcastOrderUpdated(io, refreshedOrder);
+        }
+      }
+    }
+
+    return res.json(successResponse(job, 'Delivery status updated in central database'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'DELIVERY_UPDATE_FAILED', 500));
   }
 });
 
 // @route   POST /api/delivery/deliveries
-// @desc    Create/assign delivery job
-// @access  Private
-router.post('/deliveries', authenticate, (req: AuthRequest, res: Response) => {
+// @desc    Create/assign delivery job centrally
+// @access  Private (seller, admin)
+router.post('/deliveries', authenticate, authorize('seller', 'admin'), (req: AuthRequest, res: Response) => {
   try {
     const job: DeliveryJobEntity = {
-      id: `DEL-${Date.now().toString().slice(-6)}`,
+      id: `DEL-${req.body.orderId || Date.now().toString().slice(-6)}`,
       orderId: String(req.body.orderId),
       driverId: Number(req.body.driverId || 4),
       buyerName: String(req.body.buyerName || 'Buyer'),
@@ -80,7 +138,12 @@ router.post('/deliveries', authenticate, (req: AuthRequest, res: Response) => {
     };
 
     const saved = db.updateDelivery(job.id, job) || job;
-    return res.status(201).json(successResponse(saved, 'Delivery assigned'));
+
+    if (io) {
+      broadcastDeliveryUpdate(io, saved.driverId, saved);
+    }
+
+    return res.status(201).json(successResponse(saved, 'Delivery assigned in central database'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'DELIVERY_ASSIGN_FAILED', 500));
   }

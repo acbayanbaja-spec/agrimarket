@@ -71,9 +71,37 @@ export type SmsMessage = {
   status: 'queued' | 'sent' | 'delivered'
 }
 
+export type FlashDeal = {
+  productId: string
+  product: Product
+  discountPercent: number
+  dealPrice: number
+  originalPrice: number
+  claimedPercent: number
+  endsInSeconds: number
+}
+
+export type DirectChatMessage = {
+  id: string
+  sellerId: string
+  sellerName: string
+  sender: 'user' | 'seller' | 'ai'
+  text: string
+  timestamp: string
+}
+
 type StoreContextType = {
   products: Product[]
+  addNewProduct: (payload: Partial<Product>) => Promise<Product>
+  updateProductStock: (productId: string, newStock: number) => Promise<void>
+  directMessages: DirectChatMessage[]
+  sendDirectMessage: (sellerId: string, sellerName: string, text: string) => void
   refreshCatalog: () => Promise<void>
+  isOnline: boolean
+  apiLatency: number
+  lastSyncTime: string
+  newProductAlert: Product | null
+  dismissNewProductAlert: () => void
   cart: CartItem[]
   cartCount: number
   cartTotal: number
@@ -86,7 +114,18 @@ type StoreContextType = {
   posts: Post[]
   applications: SellerApplication[]
   loyaltyPoints: number
-  placeOrder: (payload: { address: string; payment: Order['payment']; usePoints?: boolean }) => Order | null
+  agriCoins: number
+  dailyCheckinClaimed: boolean
+  claimDailyCheckin: () => number
+  claimedVouchers: string[]
+  claimVoucher: (code: string) => boolean
+  isVoucherClaimed: (code: string) => boolean
+  wishlist: string[]
+  toggleWishlist: (productId: string) => void
+  isWishlisted: (productId: string) => boolean
+  recommendations: Product[]
+  flashDeals: FlashDeal[]
+  placeOrder: (payload: { address: string; payment: Order['payment']; usePoints?: boolean; voucherCode?: string; useCoins?: boolean }) => Order | null
   updateOrderStatus: (id: string, status: Order['status']) => void
   confirmOrder: (id: string) => void
   markShipped: (id: string) => void
@@ -174,20 +213,71 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ])
   const [hydrated, setHydrated] = useState(false)
   const [loyaltyPoints, setLoyaltyPoints] = useState(40)
+  const [agriCoins, setAgriCoins] = useState(50)
+  const [lastCheckinDate, setLastCheckinDate] = useState<string | null>(null)
+  const [claimedVouchers, setClaimedVouchers] = useState<string[]>(['FREESHIP'])
+  const [wishlist, setWishlist] = useState<string[]>([])
+  const [directMessages, setDirectMessages] = useState<DirectChatMessage[]>([
+    {
+      id: 'dm-1',
+      sellerId: 'seller-1',
+      sellerName: 'Green Valley Farm',
+      sender: 'seller',
+      text: 'Magandang araw po! Freshly harvested po ang aming Polomolok Salad Tomatoes at Romaine Lettuce kaninang 5 AM. Let us know po kung may tanong kayo!',
+      timestamp: '8:30 AM',
+    },
+    {
+      id: 'dm-2',
+      sellerId: 'seller-4',
+      sellerName: 'Gensan Fruit Co-op',
+      sender: 'seller',
+      text: 'Suki, may parating po kaming bagong pitas na Puyat Durian at Red Dragon Fruit bukas ng hapon. Mag-reserve po kayo nang maaga!',
+      timestamp: '9:15 AM',
+    },
+    {
+      id: 'dm-3',
+      sellerId: 'seller-7',
+      sellerName: 'Lake Sebu Ponds',
+      sender: 'seller',
+      text: 'Hello po! Live and boneless Bangus and Tilapia from Lake Sebu, packed in food-grade ice. Delivered fresh within SOCCSKSARGEN!',
+      timestamp: '10:00 AM',
+    },
+  ])
+  const [isOnline, setIsOnline] = useState(false)
+  const [apiLatency, setApiLatency] = useState(0)
+  const [lastSyncTime, setLastSyncTime] = useState<string>('Just now')
+  const [newProductAlert, setNewProductAlert] = useState<Product | null>(null)
+  const knownProductIdsRef = React.useRef<Set<string>>(new Set(catalogProducts.map((p) => p.id)))
 
   const refreshCatalog = async () => {
     try {
+      const health = await mobileApi.checkHealth()
+      setIsOnline(health.ok)
+      setApiLatency(health.latency)
+
       const res = await mobileApi.get<any>('/products')
       const prods = res?.data?.products || res?.products
       if (Array.isArray(prods) && prods.length > 0) {
-        const live = prods.filter((p: any) => !p.isUnlisted && p.isActive !== false)
+        const live: Product[] = prods.filter((p: any) => !p.isUnlisted && p.isActive !== false)
+
+        // Detect any newly posted online harvests that were not in our known list
+        const newlyAdded = live.find((p) => !knownProductIdsRef.current.has(p.id))
+        if (newlyAdded && hydrated) {
+          setNewProductAlert(newlyAdded)
+        }
+        live.forEach((p) => knownProductIdsRef.current.add(p.id))
+
         setProducts(live)
         setCart((curr) => curr.filter((c) => live.some((p: any) => p.id === c.productId)))
+        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
       }
     } catch {
+      setIsOnline(false)
       // Keep offline/cached products
     }
   }
+
+  const dismissNewProductAlert = () => setNewProductAlert(null)
 
   useEffect(() => {
     ;(async () => {
@@ -198,6 +288,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setMessages(storedSms && storedSms.length ? storedSms : seedMessages)
       const pts = await AsyncStorage.getItem('agrimarket.mobile.loyalty')
       if (pts) setLoyaltyPoints(Number(pts))
+      const coins = await AsyncStorage.getItem('agrimarket.mobile.coins')
+      if (coins) setAgriCoins(Number(coins))
+      const checkin = await AsyncStorage.getItem('agrimarket.mobile.lastCheckin')
+      if (checkin) setLastCheckinDate(checkin)
+      setClaimedVouchers(await readJson('agrimarket.mobile.vouchers', ['FREESHIP']))
+      setWishlist(await readJson('agrimarket.mobile.wishlist', []))
       setApplications(await readJson('agrimarket.mobile.applications', []))
       setApprovedSellerIds(await readJson('agrimarket.mobile.approvedSellers', []))
       setHydrated(true)
@@ -231,7 +327,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       void syncOrders()
     }, 4000)
     return () => clearInterval(interval)
-  }, [])
+  }, [hydrated])
 
   useEffect(() => {
     if (!hydrated) return
@@ -255,6 +351,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (!hydrated) return
+    AsyncStorage.setItem('agrimarket.mobile.coins', String(agriCoins))
+  }, [agriCoins, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    AsyncStorage.setItem('agrimarket.mobile.vouchers', JSON.stringify(claimedVouchers))
+  }, [claimedVouchers, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    AsyncStorage.setItem('agrimarket.mobile.wishlist', JSON.stringify(wishlist))
+  }, [wishlist, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
     AsyncStorage.setItem('agrimarket.mobile.applications', JSON.stringify(applications))
   }, [applications, hydrated])
 
@@ -266,6 +377,68 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (user && approvedSellerIds.includes(user.id)) addRole('seller')
   }, [user, approvedSellerIds, addRole])
+
+  const toggleWishlist = (productId: string) => {
+    setWishlist((curr) =>
+      curr.includes(productId) ? curr.filter((id) => id !== productId) : [...curr, productId]
+    )
+  }
+
+  const isWishlisted = (productId: string) => wishlist.includes(productId)
+
+  const claimVoucher = (code: string): boolean => {
+    if (claimedVouchers.includes(code)) return false
+    setClaimedVouchers((curr) => [...curr, code])
+    return true
+  }
+
+  const isVoucherClaimed = (code: string) => claimedVouchers.includes(code)
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const dailyCheckinClaimed = lastCheckinDate === todayStr
+
+  const claimDailyCheckin = (): number => {
+    if (dailyCheckinClaimed) return 0
+    const reward = 15
+    setAgriCoins((curr) => curr + reward)
+    setLastCheckinDate(todayStr)
+    void AsyncStorage.setItem('agrimarket.mobile.lastCheckin', todayStr)
+    return reward
+  }
+
+  // Smart Recommendations: Top 20+ products ranked by rating, review count, stock availability, and freshness
+  const recommendations = useMemo(() => {
+    return [...products]
+      .map((p) => {
+        let score = (p.rating || 4.5) * 20 + Math.min(20, (p.reviews || 0) * 0.2)
+        if (p.organic) score += 5
+        if (p.stock > 0) score += 10
+        return { product: p, score }
+      })
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.product)
+  }, [products])
+
+  // Flash Deals: 6 featured limited-time bargains with high discounts and claimed percentage
+  const flashDeals = useMemo<FlashDeal[]>(() => {
+    const picks = products.slice(0, 6)
+    const discounts = [25, 20, 30, 15, 35, 22]
+    const claimed = [88, 72, 94, 65, 81, 79]
+
+    return picks.map((p, idx) => {
+      const discountPercent = discounts[idx % discounts.length]
+      const dealPrice = Math.round(p.price * (1 - discountPercent / 100))
+      return {
+        productId: p.id,
+        product: p,
+        discountPercent,
+        dealPrice,
+        originalPrice: p.price,
+        claimedPercent: claimed[idx % claimed.length],
+        endsInSeconds: 12450,
+      }
+    })
+  }, [products])
 
   const addToCart = (product: Product, quantity = 1) => {
     if (product.stock <= 0) return
@@ -311,12 +484,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const clearCart = () => setCart([])
 
-  const placeOrder: StoreContextType['placeOrder'] = ({ address, payment, usePoints = true }) => {
+  const placeOrder: StoreContextType['placeOrder'] = ({ address, payment, usePoints = true, voucherCode, useCoins = false }) => {
     if (!user || cart.length === 0 || user.roles.includes('admin')) return null
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    const shippingFee = subtotal >= 300 ? 0 : 50
+    let shippingFee = subtotal >= 300 ? 0 : 50
+
+    if (voucherCode === 'FREESHIP' || claimedVouchers.includes('FREESHIP')) {
+      if (subtotal >= 300) shippingFee = 0
+    }
+    if (voucherCode === 'AGRIFARM30') {
+      shippingFee = Math.max(0, shippingFee - 30)
+    }
+
     const earned = pointsFromSpend(subtotal)
-    const redeemed = usePoints ? Math.min(loyaltyPoints, shippingFee) : 0
+    const redeemedPoints = usePoints ? Math.min(loyaltyPoints, shippingFee) : 0
+    const coinsDiscount = useCoins ? Math.min(agriCoins, 50) : 0
+
+    const finalTotal = Math.max(0, subtotal + Math.max(0, shippingFee - redeemedPoints) - coinsDiscount)
+
     const order: Order = {
       id: `ORD-${Date.now().toString().slice(-6)}`,
       userId: user.id,
@@ -326,16 +511,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       subtotal,
       shippingFee,
       pointsEarned: earned,
-      pointsRedeemed: redeemed,
-      total: subtotal + Math.max(0, shippingFee - redeemed),
+      pointsRedeemed: redeemedPoints,
+      total: finalTotal,
       status: 'Pending',
       createdAt: new Date().toISOString(),
       address,
       payment,
     }
+
     setOrders((current) => [order, ...current])
     void mobileApi.post('/orders', order).catch(() => undefined)
-    setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
+    setLoyaltyPoints((current) => Math.max(0, current - redeemedPoints + earned))
+    if (useCoins && coinsDiscount > 0) {
+      setAgriCoins((curr) => Math.max(0, curr - coinsDiscount))
+    }
     setCart([])
     return order
   }
@@ -403,11 +592,100 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return next
   }
 
+  const sendDirectMessage = (sellerId: string, sellerName: string, text: string) => {
+    const userMsg: DirectChatMessage = {
+      id: `dm-${Date.now()}`,
+      sellerId,
+      sellerName,
+      sender: 'user',
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }
+    setDirectMessages((prev) => [...prev, userMsg])
+
+    // Simulated farmer response
+    setTimeout(() => {
+      const replies = [
+        'Opo suki! Available po ito ngayon at pwede naming i-pack agad para sa next courier pickup.',
+        'Salamat po sa message! Garantisadong sariwa mula sa bukid kaninang umaga lamang.',
+        'Noted po ito! Ilalagay po namin sa insulated crate para manatiling sariwa hanggang makarating sa inyo.',
+        'Opo, kasama po ito sa aming special harvest batch. Pwede niyo pong i-checkout gamit ang FREESHIP voucher!',
+      ]
+      const replyText = replies[Math.floor(Math.random() * replies.length)]
+      const replyMsg: DirectChatMessage = {
+        id: `dm-${Date.now() + 1}`,
+        sellerId,
+        sellerName,
+        sender: 'seller',
+        text: replyText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+      setDirectMessages((prev) => [...prev, replyMsg])
+    }, 1200)
+  }
+
+  const addNewProduct = async (payload: Partial<Product>): Promise<Product> => {
+    try {
+      const res: any = await mobileApi.post('/products', payload)
+      if (res?.data?.product) {
+        setProducts((prev) => [res.data.product, ...prev.filter((p) => p.id !== res.data.product.id)])
+        return res.data.product
+      }
+    } catch {
+      // offline fallback
+    }
+    const fallback: Product = {
+      id: payload.id || `prod-${Date.now()}`,
+      name: payload.name || 'New Harvest Crop',
+      category: payload.category || 'Vegetables',
+      price: payload.price || 100,
+      unit: payload.unit || 'kg',
+      stock: payload.stock || 50,
+      rating: 5.0,
+      reviews: 0,
+      seller: payload.seller || (user ? `${user.firstName} ${user.lastName} Farm` : 'SOCCSKSARGEN Farm Partner'),
+      sellerId: payload.sellerId || (user ? `seller-${user.id}` : 'seller-1'),
+      sellerUserId: user?.id || 2,
+      location: payload.location || 'Koronadal City, South Cotabato',
+      image: payload.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
+      photos: payload.photos || [payload.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80'],
+      description: payload.description || 'Fresh agricultural harvest from SOCCSKSARGEN.',
+      organic: Boolean(payload.organic),
+      tradeable: true,
+      lat: 6.5004,
+      lng: 124.8436,
+      priceHistory: [{ date: new Date().toISOString().slice(0, 10), price: payload.price || 100 }],
+      isActive: true,
+    }
+    setProducts((prev) => [fallback, ...prev])
+    return fallback
+  }
+
+  const updateProductStock = async (productId: string, newStock: number): Promise<void> => {
+    try {
+      await mobileApi.put(`/products/${productId}`, { stock: newStock })
+    } catch {
+      // offline fallback
+    }
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
+    )
+  }
+
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart])
 
   const value: StoreContextType = {
     products,
+    addNewProduct,
+    updateProductStock,
+    directMessages,
+    sendDirectMessage,
     refreshCatalog,
+    isOnline,
+    apiLatency,
+    lastSyncTime,
+    newProductAlert,
+    dismissNewProductAlert,
     cart,
     cartCount: cart.reduce((sum, item) => sum + item.quantity, 0),
     cartTotal,
@@ -420,6 +698,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     posts,
     applications,
     loyaltyPoints,
+    agriCoins,
+    dailyCheckinClaimed,
+    claimDailyCheckin,
+    claimedVouchers,
+    claimVoucher,
+    isVoucherClaimed,
+    wishlist,
+    toggleWishlist,
+    isWishlisted,
+    recommendations,
+    flashDeals,
     placeOrder,
     updateOrderStatus,
     confirmOrder,

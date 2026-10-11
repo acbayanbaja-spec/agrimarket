@@ -49,6 +49,7 @@ export interface ProductEntity {
   moderationReason?: string;
   moderatedAt?: string;
   moderatedBy?: string;
+  isDeleted?: boolean;
 }
 
 export interface OrderItemEntity {
@@ -94,6 +95,8 @@ export interface OrderEntity {
   prepStatus?: 'unpacked' | 'packing' | 'packed';
   packingNotes?: string;
   packedAt?: string;
+  rejectedReason?: string;
+  stockRestored?: boolean;
 }
 
 export interface CartItemEntity {
@@ -901,12 +904,22 @@ class DatabaseStore {
   }
 
   // --- Products ---
-  public getProducts(includeInactive: boolean = false) {
+  public getProducts(includeInactive: boolean = false, sellerUserId?: number) {
+    if (sellerUserId) {
+      return this.data.products.filter(
+        (p) => !p.isDeleted && (p.sellerUserId === sellerUserId || p.sellerId === `seller-${sellerUserId}`)
+      );
+    }
     if (includeInactive) {
-      return this.data.products;
+      return this.data.products.filter((p) => !p.isDeleted);
     }
     return this.data.products.filter(
-      (p) => p.isActive !== false && p.is_active !== false && !p.isUnlisted && p.moderationStatus !== 'rejected'
+      (p) =>
+        !p.isDeleted &&
+        p.isActive !== false &&
+        p.is_active !== false &&
+        !p.isUnlisted &&
+        p.moderationStatus !== 'rejected'
     );
   }
 
@@ -977,10 +990,22 @@ class DatabaseStore {
     return null;
   }
 
-  public deleteProduct(id: string) {
-    const prevLen = this.data.products.length;
-    this.data.products = this.data.products.filter((p) => p.id !== id);
-    if (this.data.products.length !== prevLen) {
+  public deleteProduct(id: string, hardDelete: boolean = false) {
+    if (hardDelete) {
+      const prevLen = this.data.products.length;
+      this.data.products = this.data.products.filter((p) => p.id !== id);
+      if (this.data.products.length !== prevLen) {
+        this.saveData();
+        return true;
+      }
+      return false;
+    }
+    const product = this.data.products.find((p) => p.id === id);
+    if (product) {
+      product.isDeleted = true;
+      product.isActive = false;
+      product.is_active = false;
+      product.isUnlisted = true;
       this.saveData();
       return true;
     }
@@ -1043,11 +1068,142 @@ class DatabaseStore {
 
   public getOrdersBySellerId(sellerId: string, sellerUserId?: number) {
     return this.data.orders.filter((o) =>
-      o.items.some((item) => item.sellerId === sellerId || (sellerUserId && item.sellerUserId === sellerUserId))
+      o.items.some(
+        (item) =>
+          item.sellerId === sellerId ||
+          (sellerUserId && item.sellerUserId === sellerUserId) ||
+          (sellerUserId && item.sellerId === `seller-${sellerUserId}`) ||
+          (sellerUserId && item.sellerId === `user-${sellerUserId}`)
+      )
     );
   }
 
+  public validateAndDeductStock(items: OrderItemEntity[]): ProductEntity[] {
+    const updatedProducts: ProductEntity[] = [];
+
+    // Step 1: Validate all items have sufficient active stock
+    for (const item of items) {
+      const prod = this.data.products.find((p) => p.id === item.productId);
+      if (!prod) {
+        throw new Error(`Product "${item.name || item.productId}" was not found in the catalog.`);
+      }
+      if (prod.isDeleted || prod.isActive === false || prod.is_active === false || prod.isUnlisted) {
+        throw new Error(`Product "${prod.name}" is currently unavailable for purchase.`);
+      }
+      if (prod.stock < item.quantity) {
+        throw new Error(
+          `Insufficient stock for "${prod.name}". Available: ${prod.stock} ${prod.unit || 'units'}, requested: ${item.quantity}.`
+        );
+      }
+    }
+
+    // Step 2: Deduct stock safely and update status
+    for (const item of items) {
+      const prod = this.data.products.find((p) => p.id === item.productId)!;
+      prod.stock = Math.max(0, prod.stock - item.quantity);
+      prod.availabilityStatus =
+        prod.stock === 0 ? 'out_of_stock' : prod.stock <= 10 ? 'low_stock' : 'in_stock';
+      updatedProducts.push({ ...prod });
+    }
+
+    this.saveData();
+    return updatedProducts;
+  }
+
+  public restoreOrderStock(orderId: string): ProductEntity[] | null {
+    const order = this.data.orders.find((o) => o.id === orderId);
+    if (!order || order.stockRestored) {
+      return null;
+    }
+
+    const updatedProducts: ProductEntity[] = [];
+    for (const item of order.items) {
+      const prod = this.data.products.find((p) => p.id === item.productId);
+      if (prod) {
+        prod.stock += item.quantity;
+        if (prod.stock > 10 && prod.availabilityStatus === 'out_of_stock') {
+          prod.availabilityStatus = 'in_stock';
+        } else if (prod.stock > 0 && prod.availabilityStatus === 'out_of_stock') {
+          prod.availabilityStatus = 'low_stock';
+        }
+        updatedProducts.push({ ...prod });
+      }
+    }
+
+    order.stockRestored = true;
+    this.saveData();
+    return updatedProducts;
+  }
+
+  public updateOrderItemPrep(
+    orderId: string,
+    productId: string,
+    prepStatus: 'unpacked' | 'packing' | 'packed',
+    notes?: string
+  ): OrderEntity | null {
+    const order = this.data.orders.find((o) => o.id === orderId);
+    if (!order) return null;
+
+    let itemFound = false;
+    order.items = order.items.map((item) => {
+      if (item.productId === productId) {
+        itemFound = true;
+        return {
+          ...item,
+          prepStatus,
+          prepNotes: notes !== undefined ? notes : item.prepNotes,
+          packedAt: prepStatus === 'packed' ? new Date().toISOString() : item.packedAt,
+        };
+      }
+      return item;
+    });
+
+    if (!itemFound) return null;
+
+    const allPacked = order.items.every((it) => it.prepStatus === 'packed');
+    const anyPacking = order.items.some((it) => it.prepStatus === 'packing' || it.prepStatus === 'packed');
+    order.prepStatus = allPacked ? 'packed' : anyPacking ? 'packing' : 'unpacked';
+    if (allPacked) {
+      order.packedAt = new Date().toISOString();
+      if (order.status === 'Pending') {
+        order.status = 'Confirmed';
+        order.sellerConfirmedAt = new Date().toISOString();
+      }
+    }
+
+    this.saveData();
+    return order;
+  }
+
+  public packOrder(orderId: string, packingNotes?: string): OrderEntity | null {
+    const order = this.data.orders.find((o) => o.id === orderId);
+    if (!order) return null;
+
+    const now = new Date().toISOString();
+    order.items = order.items.map((item) => ({
+      ...item,
+      prepStatus: 'packed',
+      packedAt: now,
+    }));
+    order.prepStatus = 'packed';
+    order.packedAt = now;
+    if (packingNotes !== undefined) order.packingNotes = packingNotes;
+    if (order.status === 'Pending') {
+      order.status = 'Confirmed';
+      order.sellerConfirmedAt = now;
+    }
+
+    this.saveData();
+    return order;
+  }
+
   public addOrder(order: OrderEntity) {
+    // Check if order already exists (idempotency)
+    const existing = this.data.orders.find((o) => o.id === order.id);
+    if (existing) {
+      return existing;
+    }
+
     this.data.orders.unshift(order);
 
     // Auto-create delivery job
@@ -1072,6 +1228,11 @@ class DatabaseStore {
   public updateOrderStatus(id: string, status: OrderEntity['status'], extra?: Partial<OrderEntity>) {
     const idx = this.data.orders.findIndex((o) => o.id === id);
     if (idx !== -1) {
+      // If cancelled, restore stock once safely
+      if (status === 'Cancelled') {
+        this.restoreOrderStock(id);
+      }
+
       this.data.orders[idx] = {
         ...this.data.orders[idx],
         status,

@@ -26,6 +26,8 @@ export type Product = {
   priceHistory: PricePoint[]
   isUnlisted?: boolean
   isActive?: boolean
+  is_active?: boolean
+  isDeleted?: boolean
   availabilityStatus?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'temporarily_unavailable'
   moderationStatus?: 'approved' | 'flagged' | 'rejected'
   moderationReason?: string
@@ -33,23 +35,15 @@ export type Product = {
   moderatedBy?: number
 }
 
-const history = (base: number, wobble: number[]): PricePoint[] =>
-  wobble.map((offset, index) => ({
-    date: new Date(Date.now() - (wobble.length - 1 - index) * 86400000 * 7).toISOString().slice(0, 10),
-    price: Math.max(8, Math.round(base + offset)),
-  }))
-
-const photo = (name: string) => `/images/${name}.jpg`
-
 export const categories = [
-  { name: 'Vegetables', emoji: '🥬', description: 'Leafy greens, roots and daily harvests', image: photo('kangkong') },
-  { name: 'Fruits', emoji: '🥭', description: 'Seasonal fruits from local orchards', image: photo('mango') },
-  { name: 'Rice', emoji: '🌾', description: 'Dinorado, Sinandomeng, brown and black rice', image: photo('rice') },
-  { name: 'Grains', emoji: '🌽', description: 'Yellow sweet corn, flint, feeds and grains', image: photo('corn') },
-  { name: 'Farm Supplies', emoji: '🧺', description: 'Tools, fertilizers, seeds and soil essentials', image: photo('compost') },
-  { name: 'Livestock', emoji: '🐄', description: 'Farm-raised meat and dairy', image: photo('milk') },
-  { name: 'Poultry', emoji: '🐓', description: 'Chicken, pasture eggs, and duck', image: photo('eggs') },
-  { name: 'Fish', emoji: '🐟', description: 'Fresh catch and pond fish', image: photo('tilapia') },
+  { name: 'Vegetables', emoji: '🥬', description: 'Leafy greens, roots and daily harvests', image: '/images/kangkong.jpg' },
+  { name: 'Fruits', emoji: '🥭', description: 'Seasonal fruits from local orchards', image: '/images/mango.jpg' },
+  { name: 'Rice', emoji: '🌾', description: 'Dinorado, Sinandomeng, brown and black rice', image: '/images/rice.jpg' },
+  { name: 'Grains', emoji: '🌽', description: 'Yellow sweet corn, flint, feeds and grains', image: '/images/corn.jpg' },
+  { name: 'Farm Supplies', emoji: '🧺', description: 'Tools, fertilizers, seeds and soil essentials', image: '/images/compost.jpg' },
+  { name: 'Livestock', emoji: '🐄', description: 'Farm-raised meat and dairy', image: '/images/milk.jpg' },
+  { name: 'Poultry', emoji: '🐓', description: 'Chicken, pasture eggs, and duck', image: '/images/eggs.jpg' },
+  { name: 'Fish', emoji: '🐟', description: 'Fresh catch and pond fish', image: '/images/tilapia.jpg' },
 ]
 
 export function stockLabel(stock: number, availabilityStatus?: string, isActive?: boolean, isUnlisted?: boolean) {
@@ -76,304 +70,988 @@ export function stockTone(stock: number, availabilityStatus?: string, isActive?:
 
 export const products: Product[] = [
   {
-    id: 'p-tomato',
-    name: 'Salad Tomatoes',
-    category: 'Vegetables',
-    price: 85,
-    unit: 'kg',
-    stock: 120,
-    rating: 4.8,
-    reviews: 64,
-    seller: 'Green Valley Farm',
-    sellerId: 'seller-1',
-    sellerUserId: 2,
-    location: 'Polomolok, South Cotabato',
-    image: photo('tomato'),
-    photos: [photo('tomato'), photo('farm')],
-    description: 'Firm, sweet salad tomatoes harvested at dawn in Polomolok. Ideal for sinigang, salsa, and everyday cooking.',
-    organic: true,
-    tradeable: true,
-    lat: 6.2214,
-    lng: 125.0647,
-    priceHistory: history(85, [-12, -6, 0, 4, 2, 0]),
+    "id": "p-tomato",
+    "name": "Salad Tomatoes",
+    "category": "Vegetables",
+    "price": 85,
+    "unit": "kg",
+    "stock": 120,
+    "rating": 4.8,
+    "reviews": 64,
+    "seller": "Green Valley Farm",
+    "sellerId": "seller-1",
+    "sellerUserId": 2,
+    "location": "Polomolok, South Cotabato",
+    "image": "/images/tomato.jpg",
+    "photos": [
+      "/images/tomato.jpg",
+      "/images/farm.jpg"
+    ],
+    "description": "Firm, sweet salad tomatoes harvested at dawn in Polomolok. Ideal for sinigang, salsa, and everyday cooking.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.2214,
+    "lng": 125.0647,
+    "priceHistory": [
+      {
+        "date": "2026-09-01",
+        "price": 92
+      },
+      {
+        "date": "2026-09-15",
+        "price": 88
+      },
+      {
+        "date": "2026-10-01",
+        "price": 85
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-kangkong',
-    name: 'Fresh Kangkong',
-    category: 'Vegetables',
-    price: 35,
-    unit: 'bundle',
-    stock: 12,
-    rating: 4.6,
-    reviews: 28,
-    seller: 'Koronadal Harvest',
-    sellerId: 'seller-2',
-    sellerUserId: 12,
-    location: 'Koronadal City, South Cotabato',
-    image: photo('kangkong'),
-    photos: [photo('kangkong')],
-    description: 'Crisp water spinach bunches from Koronadal paddies, washed and bundled the same morning.',
-    organic: true,
-    tradeable: true,
-    lat: 6.5004,
-    lng: 124.8436,
-    priceHistory: history(35, [4, 2, 0, -2, 1, 0]),
+    "id": "p-kangkong",
+    "name": "Fresh Kangkong",
+    "category": "Vegetables",
+    "price": 35,
+    "unit": "bundle",
+    "stock": 45,
+    "rating": 4.6,
+    "reviews": 28,
+    "seller": "Koronadal Harvest",
+    "sellerId": "seller-2",
+    "sellerUserId": 12,
+    "location": "Koronadal City, South Cotabato",
+    "image": "/images/kangkong.jpg",
+    "photos": [
+      "/images/kangkong.jpg"
+    ],
+    "description": "Crisp water spinach bunches from Koronadal paddies, washed and bundled the same morning.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.5004,
+    "lng": 124.8436,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 35
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-mango',
-    name: 'Carabao Mangoes',
-    category: 'Fruits',
-    price: 180,
-    unit: 'kg',
-    stock: 45,
-    rating: 4.9,
-    reviews: 112,
-    seller: 'Midsayap Gold Orchard',
-    sellerId: 'seller-3',
-    sellerUserId: 13,
-    location: 'Midsayap, Cotabato',
-    image: photo('mango'),
-    photos: [photo('mango'), photo('farm')],
-    description: 'Ripe carabao mangoes from Midsayap with a honeyed aroma. Packed to arrive unbruised across SOCCSKSARGEN.',
-    organic: false,
-    tradeable: true,
-    lat: 7.1906,
-    lng: 124.5381,
-    priceHistory: history(180, [20, 12, 8, 0, -6, 0]),
+    "id": "p-mango",
+    "name": "Carabao Mangoes",
+    "category": "Fruits",
+    "price": 180,
+    "unit": "kg",
+    "stock": 60,
+    "rating": 4.9,
+    "reviews": 82,
+    "seller": "Midsayap Gold Orchard",
+    "sellerId": "seller-3",
+    "sellerUserId": 13,
+    "location": "Midsayap, Cotabato",
+    "image": "/images/mango.jpg",
+    "photos": [
+      "/images/mango.jpg",
+      "/images/farm.jpg"
+    ],
+    "description": "Export-grade sweet Carabao mangoes from Midsayap. Tree-ripened, golden yellow, and fragrant.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 7.1906,
+    "lng": 124.5381,
+    "priceHistory": [
+      {
+        "date": "2026-09-01",
+        "price": 210
+      },
+      {
+        "date": "2026-09-20",
+        "price": 195
+      },
+      {
+        "date": "2026-10-01",
+        "price": 180
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-banana',
-    name: 'Lakatan Bananas',
-    category: 'Fruits',
-    price: 90,
-    unit: 'kg',
-    stock: 200,
-    rating: 4.7,
-    reviews: 41,
-    seller: 'Gensan Fruit Co-op',
-    sellerId: 'seller-4',
-    sellerUserId: 14,
-    location: 'General Santos City',
-    image: photo('banana'),
-    photos: [photo('banana')],
-    description: 'Naturally ripened lakatan from Gensan packing houses. Sweet and creamy for merienda and school lunches.',
-    organic: false,
-    tradeable: true,
-    lat: 6.1164,
-    lng: 125.1716,
-    priceHistory: history(90, [-8, -4, 0, 3, 5, 0]),
+    "id": "p-banana",
+    "name": "Lakatan Bananas",
+    "category": "Fruits",
+    "price": 75,
+    "unit": "kg",
+    "stock": 50,
+    "rating": 4.7,
+    "reviews": 41,
+    "seller": "Gensan Fruit Co-op",
+    "sellerId": "seller-4",
+    "sellerUserId": 14,
+    "location": "General Santos City",
+    "image": "/images/banana.jpg",
+    "photos": [
+      "/images/banana.jpg"
+    ],
+    "description": "Sweet, golden Lakatan bananas freshly harvested from orchards near General Santos City.",
+    "organic": false,
+    "tradeable": true,
+    "lat": 6.1164,
+    "lng": 125.1716,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 75
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-rice',
-    name: 'Dinorado Rice',
-    category: 'Rice & Grains',
-    price: 58,
-    unit: 'kg',
-    stock: 500,
-    rating: 4.8,
-    reviews: 203,
-    seller: 'Green Valley Farm',
-    sellerId: 'seller-1',
-    sellerUserId: 2,
-    location: "M'lang, Cotabato",
-    image: photo('rice'),
-    photos: [photo('rice')],
-    description: 'Aromatic dinorado milled in small batches in M\'lang. Soft grains with a gentle floral scent.',
-    organic: false,
-    tradeable: false,
-    lat: 6.9467,
-    lng: 124.8803,
-    priceHistory: history(58, [2, 1, 0, 1, 3, 0]),
+    "id": "p-rice",
+    "name": "Dinorado Rice",
+    "category": "Rice & Grains",
+    "price": 58,
+    "unit": "kg",
+    "stock": 300,
+    "rating": 4.9,
+    "reviews": 110,
+    "seller": "Green Valley Farm",
+    "sellerId": "seller-1",
+    "sellerUserId": 2,
+    "location": "M'lang, Cotabato",
+    "image": "/images/rice.jpg",
+    "photos": [
+      "/images/rice.jpg"
+    ],
+    "description": "Aromatic whole-grain Dinorado rice from the plains of M'lang. Soft, fluffy texture when cooked.",
+    "organic": false,
+    "tradeable": true,
+    "lat": 6.9467,
+    "lng": 124.8803,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 58
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-corn',
-    name: 'Sweet Corn Cobs',
-    category: 'Rice & Grains',
-    price: 25,
-    unit: 'piece',
-    stock: 0,
-    rating: 4.5,
-    reviews: 19,
-    seller: 'Tacurong Fields',
-    sellerId: 'seller-5',
-    sellerUserId: 15,
-    location: 'Tacurong City, Sultan Kudarat',
-    image: photo('corn'),
-    photos: [photo('corn')],
-    description: 'Plump sweet corn from Tacurong harvested at peak sugar. Steam, grill, or turn into soup.',
-    organic: true,
-    tradeable: true,
-    lat: 6.6925,
-    lng: 124.6764,
-    priceHistory: history(25, [3, 2, 0, -1, 0, 2]),
+    "id": "p-corn",
+    "name": "Sweet Yellow Corn",
+    "category": "Rice & Grains",
+    "price": 45,
+    "unit": "kg",
+    "stock": 80,
+    "rating": 4.7,
+    "reviews": 35,
+    "seller": "Koronadal Harvest",
+    "sellerId": "seller-2",
+    "sellerUserId": 12,
+    "location": "Koronadal City, South Cotabato",
+    "image": "/images/corn.jpg",
+    "photos": [
+      "/images/corn.jpg"
+    ],
+    "description": "Juicy, golden sweet corn cobs from South Cotabato farms. Great for boiling or grilling.",
+    "organic": false,
+    "tradeable": true,
+    "lat": 6.5004,
+    "lng": 124.8436,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 45
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-eggs',
-    name: 'Free-Range Eggs',
-    category: 'Poultry',
-    price: 220,
-    unit: 'tray',
-    stock: 60,
-    rating: 4.9,
-    reviews: 88,
-    seller: 'Koronadal Sunrise Poultry',
-    sellerId: 'seller-6',
-    sellerUserId: 16,
-    location: 'Koronadal City, South Cotabato',
-    image: photo('eggs'),
-    photos: [photo('eggs')],
-    description: 'Thirty free-range eggs with rich yolks. Birds forage on open pasture in Koronadal.',
-    organic: true,
-    tradeable: false,
-    lat: 6.5004,
-    lng: 124.8436,
-    priceHistory: history(220, [-10, -4, 0, 8, 6, 0]),
+    "id": "p-eggs",
+    "name": "Free-Range Brown Eggs",
+    "category": "Poultry",
+    "price": 220,
+    "unit": "tray",
+    "stock": 75,
+    "rating": 4.8,
+    "reviews": 53,
+    "seller": "Koronadal Sunrise Poultry",
+    "sellerId": "seller-6",
+    "sellerUserId": 16,
+    "location": "Koronadal City, South Cotabato",
+    "image": "/images/eggs.jpg",
+    "photos": [
+      "/images/eggs.jpg"
+    ],
+    "description": "Fresh pastured eggs from cage-free hens in Koronadal. Thick shells, rich orange yolks.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.5004,
+    "lng": 124.8436,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 220
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-chicken',
-    name: 'Whole Native Chicken',
-    category: 'Poultry',
-    price: 320,
-    unit: 'kg',
-    stock: 8,
-    rating: 4.6,
-    reviews: 33,
-    seller: 'Tupi Native Growers',
-    sellerId: 'seller-6',
-    sellerUserId: 16,
-    location: 'Tupi, South Cotabato',
-    image: photo('chicken'),
-    photos: [photo('chicken')],
-    description: 'Native chicken from Tupi, cleaned and chilled. Deep flavor for tinola and adobo.',
-    organic: false,
-    tradeable: false,
-    lat: 6.3347,
-    lng: 124.9528,
-    priceHistory: history(320, [12, 8, 0, -6, 4, 0]),
+    "id": "p-tilapia",
+    "name": "Lake Sebu Fresh Tilapia",
+    "category": "Fish",
+    "price": 160,
+    "unit": "kg",
+    "stock": 90,
+    "rating": 4.9,
+    "reviews": 67,
+    "seller": "Sebu Lake Aquatics",
+    "sellerId": "seller-7",
+    "sellerUserId": 17,
+    "location": "Lake Sebu, South Cotabato",
+    "image": "/images/tilapia.jpg",
+    "photos": [
+      "/images/tilapia.jpg"
+    ],
+    "description": "Cold-water spring tilapia freshly harvested from Lake Sebu pens. Clean taste with no mud flavor.",
+    "organic": true,
+    "tradeable": false,
+    "lat": 6.2255,
+    "lng": 124.7088,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 160
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-tilapia',
-    name: 'Live Tilapia',
-    category: 'Fish',
-    price: 140,
-    unit: 'kg',
-    stock: 70,
-    rating: 4.4,
-    reviews: 22,
-    seller: 'Lake Sebu Ponds',
-    sellerId: 'seller-7',
-    sellerUserId: 17,
-    location: 'Lake Sebu, South Cotabato',
-    image: photo('tilapia'),
-    photos: [photo('tilapia')],
-    description: 'Pond-raised tilapia from Lake Sebu packed on ice. Mild, flaky flesh for grilling or frying.',
-    organic: false,
-    tradeable: true,
-    lat: 6.224,
-    lng: 124.706,
-    priceHistory: history(140, [8, 4, 0, -5, -2, 0]),
+    "id": "p-chicken",
+    "name": "Native Whole Chicken",
+    "category": "Poultry",
+    "price": 320,
+    "unit": "kg",
+    "stock": 25,
+    "rating": 4.8,
+    "reviews": 39,
+    "seller": "Tupi Native Growers",
+    "sellerId": "seller-6",
+    "sellerUserId": 16,
+    "location": "Tupi, South Cotabato",
+    "image": "/images/chicken.jpg",
+    "photos": [
+      "/images/chicken.jpg"
+    ],
+    "description": "Free-range native chicken raised on grass and corn. Superior taste and firmness for authentic tinola.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.3347,
+    "lng": 124.9528,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 320
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-seeds',
-    name: 'Ampalaya Seed Pack',
-    category: 'Seeds',
-    price: 65,
-    unit: 'pack',
-    stock: 90,
-    rating: 4.3,
-    reviews: 14,
-    seller: 'Gensan Agri Supply',
-    sellerId: 'seller-8',
-    sellerUserId: 18,
-    location: 'General Santos City',
-    image: photo('seeds'),
-    photos: [photo('seeds')],
-    description: 'High-germination ampalaya seeds for backyard and commercial plots across SOCCSKSARGEN.',
-    organic: true,
-    tradeable: true,
-    lat: 6.1164,
-    lng: 125.1716,
-    priceHistory: history(65, [0, 0, 2, 2, 5, 0]),
+    "id": "p-calamansi",
+    "name": "Fresh Juicy Calamansi",
+    "category": "Fruits",
+    "price": 70,
+    "unit": "kg",
+    "stock": 85,
+    "rating": 4.7,
+    "reviews": 44,
+    "seller": "Alabel Citrus Groves",
+    "sellerId": "seller-2",
+    "sellerUserId": 12,
+    "location": "Alabel, Sarangani",
+    "image": "/images/calamansi.jpg",
+    "photos": [
+      "/images/calamansi.jpg"
+    ],
+    "description": "High-yield aromatic calamansi from Alabel orchards. Bursting with vitamin C for drinks and marinades.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.1022,
+    "lng": 125.2906,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 70
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-fertilizer',
-    name: 'Organic Compost',
-    category: 'Farm Supplies',
-    price: 250,
-    unit: 'sack',
-    stock: 40,
-    rating: 4.7,
-    reviews: 37,
-    seller: 'Isulan Soil House',
-    sellerId: 'seller-8',
-    sellerUserId: 18,
-    location: 'Isulan, Sultan Kudarat',
-    image: photo('compost'),
-    photos: [photo('compost')],
-    description: 'Screened compost from Isulan for vegetables and fruit trees. Improves soil without harsh chemicals.',
-    organic: true,
-    tradeable: true,
-    lat: 6.6294,
-    lng: 124.605,
-    priceHistory: history(250, [-15, -8, 0, 5, 10, 0]),
+    "id": "p-fertilizer",
+    "name": "Vermicast Organic Fertilizer",
+    "category": "Farm Supplies",
+    "price": 250,
+    "unit": "sack",
+    "stock": 65,
+    "rating": 4.9,
+    "reviews": 58,
+    "seller": "Isulan Soil House",
+    "sellerId": "seller-8",
+    "sellerUserId": 18,
+    "location": "Isulan, Sultan Kudarat",
+    "image": "/images/compost.jpg",
+    "photos": [
+      "/images/compost.jpg"
+    ],
+    "description": "100% pure worm castings (vermicompost). Highly concentrated microbial inoculant to revitalize garden and farm soil.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.6294,
+    "lng": 124.605,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 250
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-calamansi',
-    name: 'Calamansi',
-    category: 'Fruits',
-    price: 70,
-    unit: 'kg',
-    stock: 18,
-    rating: 4.8,
-    reviews: 51,
-    seller: 'Alabel Citrus Groves',
-    sellerId: 'seller-2',
-    sellerUserId: 12,
-    location: 'Alabel, Sarangani',
-    image: photo('calamansi'),
-    photos: [photo('calamansi')],
-    description: 'Juicy calamansi from Alabel for drinks, marinades, and sawsawan. Bright, tart, and freshly picked.',
-    organic: true,
-    tradeable: true,
-    lat: 6.1022,
-    lng: 125.2906,
-    priceHistory: history(70, [6, 4, 0, -3, 2, 0]),
+    "id": "p-seeds",
+    "name": "Hybrid Ampalaya Seeds",
+    "category": "Seeds",
+    "price": 65,
+    "unit": "pack",
+    "stock": 140,
+    "rating": 4.6,
+    "reviews": 29,
+    "seller": "Gensan Agri Supply",
+    "sellerId": "seller-8",
+    "sellerUserId": 18,
+    "location": "General Santos City",
+    "image": "/images/seeds.jpg",
+    "photos": [
+      "/images/seeds.jpg"
+    ],
+    "description": "High germination (92%) disease-resistant bitter gourd seeds. Tested for SOCCSKSARGEN highland and lowland plots.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.1164,
+    "lng": 125.1716,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 65
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
   {
-    id: 'p-milk',
-    name: 'Fresh Carabao Milk',
-    category: 'Livestock',
-    price: 95,
-    unit: 'liter',
-    stock: 24,
-    rating: 4.7,
-    reviews: 29,
-    seller: 'Surallah Dairy',
-    sellerId: 'seller-9',
-    sellerUserId: 19,
-    location: 'Surallah, South Cotabato',
-    image: photo('milk'),
-    photos: [photo('milk'), photo('farm')],
-    description: 'Chilled carabao milk bottled the same morning in Surallah. Creamy for coffee, kesong puti, and merienda.',
-    organic: true,
-    tradeable: true,
-    lat: 6.3753,
-    lng: 124.7456,
-    priceHistory: history(95, [5, 2, 0, -3, 1, 0]),
+    "id": "p-milk",
+    "name": "Fresh Carabao Milk",
+    "category": "Livestock",
+    "price": 95,
+    "unit": "liter",
+    "stock": 35,
+    "rating": 4.8,
+    "reviews": 36,
+    "seller": "Surallah Dairy Co-op",
+    "sellerId": "seller-9",
+    "sellerUserId": 19,
+    "location": "Surallah, South Cotabato",
+    "image": "/images/milk.jpg",
+    "photos": [
+      "/images/milk.jpg"
+    ],
+    "description": "Creamy, unpasteurized natural carabao milk collected at 5:00 AM. Ideal for kesong puti and pasture pastillas.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.3753,
+    "lng": 124.7456,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 95
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
   },
-]
+  {
+    "id": "p-durian",
+    "name": "Fresh Puyat Durian",
+    "category": "Fruits",
+    "price": 240,
+    "unit": "kg",
+    "stock": 40,
+    "rating": 5,
+    "reviews": 94,
+    "seller": "Kidapawan Highland Orchards",
+    "sellerId": "seller-3",
+    "sellerUserId": 13,
+    "location": "Kidapawan City, Cotabato",
+    "image": "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "King of Fruits! Creamy, bittersweet Puyat durian from Mount Apo volcanic soils in Kidapawan.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 7.0084,
+    "lng": 125.0894,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 240
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-mangosteen",
+    "name": "Sweet Highland Mangosteen",
+    "category": "Fruits",
+    "price": 160,
+    "unit": "kg",
+    "stock": 50,
+    "rating": 4.9,
+    "reviews": 61,
+    "seller": "Makilala Fruit Collective",
+    "sellerId": "seller-3",
+    "sellerUserId": 13,
+    "location": "Makilala, Cotabato",
+    "image": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Queen of Fruits! Juicy, snow-white arils packed with potent xanthones and natural antioxidants.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.9583,
+    "lng": 125.0886,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 160
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-eggplant",
+    "name": "Long Purple Eggplant (Talong)",
+    "category": "Vegetables",
+    "price": 60,
+    "unit": "kg",
+    "stock": 95,
+    "rating": 4.7,
+    "reviews": 32,
+    "seller": "Banga Green Valley",
+    "sellerId": "seller-1",
+    "sellerUserId": 2,
+    "location": "Banga, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1628773822503-930a84e930f7?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1628773822503-930a84e930f7?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Glossy, tender long purple eggplants picked fresh every morning. Perfect for tortang talong and pinakbet.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.4258,
+    "lng": 124.7744,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 60
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-ampalaya",
+    "name": "Organic Ampalaya (Bitter Gourd)",
+    "category": "Vegetables",
+    "price": 75,
+    "unit": "kg",
+    "stock": 60,
+    "rating": 4.8,
+    "reviews": 47,
+    "seller": "Surallah Vegetable Co-op",
+    "sellerId": "seller-2",
+    "sellerUserId": 12,
+    "location": "Surallah, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Crisp green bitter melons cultivated without chemical sprays. Excellent for blood sugar management and ginisang ampalaya.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.3753,
+    "lng": 124.7456,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 75
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-kalabasa",
+    "name": "Supreme Squash (Kalabasa)",
+    "category": "Vegetables",
+    "price": 45,
+    "unit": "kg",
+    "stock": 110,
+    "rating": 4.6,
+    "reviews": 25,
+    "seller": "Norala Valley Farms",
+    "sellerId": "seller-5",
+    "sellerUserId": 15,
+    "location": "Norala, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1570586437263-ab629fccc818?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1570586437263-ab629fccc818?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Thick, creamy yellow flesh squash with high carotene content. Great for ginataang kalabasa and healthy hearty stews.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.5264,
+    "lng": 124.6611,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 45
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-onion",
+    "name": "Red Creole Onions (Sibuyas)",
+    "category": "Vegetables",
+    "price": 130,
+    "unit": "kg",
+    "stock": 180,
+    "rating": 4.8,
+    "reviews": 76,
+    "seller": "Tacurong Onion Producers",
+    "sellerId": "seller-5",
+    "sellerUserId": 15,
+    "location": "Tacurong City, Sultan Kudarat",
+    "image": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Pungent, dry-cured red onions from Sultan Kudarat plains. Excellent keeping quality and savory richness.",
+    "organic": false,
+    "tradeable": true,
+    "lat": 6.6925,
+    "lng": 124.6764,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 130
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-garlic",
+    "name": "Native White Garlic (Bawang)",
+    "category": "Vegetables",
+    "price": 190,
+    "unit": "kg",
+    "stock": 80,
+    "rating": 4.9,
+    "reviews": 52,
+    "seller": "Polomolok Spice Traders",
+    "sellerId": "seller-1",
+    "sellerUserId": 2,
+    "location": "Polomolok, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1615477550927-6ec84459d249?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1615477550927-6ec84459d249?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Intensely fragrant native Philippine garlic cloves. Packed with natural allicin, vital for sautéing and home medicine.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.2214,
+    "lng": 125.0647,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 190
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-ginger",
+    "name": "Fresh Yellow Ginger (Luya)",
+    "category": "Vegetables",
+    "price": 110,
+    "unit": "kg",
+    "stock": 70,
+    "rating": 4.7,
+    "reviews": 38,
+    "seller": "Lake Sebu Highland Spices",
+    "sellerId": "seller-7",
+    "sellerUserId": 17,
+    "location": "Lake Sebu, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Spicy highland ginger rhizomes. Plump and fiber-rich, essential for tinola, salabat, and seafood marinades.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.2255,
+    "lng": 124.7088,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 110
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-blackrice",
+    "name": "Organic Black Rice (Tapol)",
+    "category": "Rice & Grains",
+    "price": 88,
+    "unit": "kg",
+    "stock": 150,
+    "rating": 4.9,
+    "reviews": 69,
+    "seller": "Tulunan Organic Collective",
+    "sellerId": "seller-1",
+    "sellerUserId": 2,
+    "location": "Tulunan, Cotabato",
+    "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Ancestral heirloom black rice rich in anthocyanins. Nutty flavor, low glycemic index, favored by health enthusiasts.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.8375,
+    "lng": 125.0167,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 88
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-bangus",
+    "name": "Fresh Boneless Bangus",
+    "category": "Fish",
+    "price": 175,
+    "unit": "kg",
+    "stock": 85,
+    "rating": 4.8,
+    "reviews": 83,
+    "seller": "Glan Coastal Fishery",
+    "sellerId": "seller-7",
+    "sellerUserId": 17,
+    "location": "Glan, Sarangani",
+    "image": "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Plump Sarangani Bay milkfish, deboned and packed immediately on flake ice. Tender, rich belly fat.",
+    "organic": false,
+    "tradeable": true,
+    "lat": 5.8236,
+    "lng": 125.2036,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 175
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-honey",
+    "name": "Pure Wild Forest Honey",
+    "category": "Farm Supplies",
+    "price": 320,
+    "unit": "bottle",
+    "stock": 45,
+    "rating": 5,
+    "reviews": 115,
+    "seller": "Mount Matutum Apiaries",
+    "sellerId": "seller-8",
+    "sellerUserId": 18,
+    "location": "Tupi, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Raw, unheated multifloral wild bee honey harvested sustainably from the forested slopes of Mount Matutum.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.36,
+    "lng": 125.07,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 320
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-lettuce",
+    "name": "Hydroponic Romaine Lettuce",
+    "category": "Vegetables",
+    "price": 120,
+    "unit": "pack",
+    "stock": 60,
+    "rating": 4.9,
+    "reviews": 42,
+    "seller": "Tupi Highlands Hydroponics",
+    "sellerId": "seller-1",
+    "sellerUserId": 2,
+    "location": "Tupi, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Crisp, sweet butterhead and romaine heads grown in pristine mountain water nutrient film technique (NFT). Zero soil grit.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.3347,
+    "lng": 124.9528,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 120
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-mushroom",
+    "name": "Fresh White Oyster Mushrooms",
+    "category": "Vegetables",
+    "price": 95,
+    "unit": "pack",
+    "stock": 40,
+    "rating": 4.8,
+    "reviews": 33,
+    "seller": "Koronadal Mushroom Farm",
+    "sellerId": "seller-2",
+    "sellerUserId": 12,
+    "location": "Koronadal City, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1509650969542-a083313eb6cb?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1509650969542-a083313eb6cb?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Succulent oyster mushrooms cultivated on pasteurized sawdust and rice bran substrate. Excellent vegan meat substitute.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.5004,
+    "lng": 124.8436,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 95
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-papaya",
+    "name": "Red Lady Sweet Papaya",
+    "category": "Fruits",
+    "price": 55,
+    "unit": "kg",
+    "stock": 90,
+    "rating": 4.7,
+    "reviews": 49,
+    "seller": "Tantangan Tropical Orchards",
+    "sellerId": "seller-4",
+    "sellerUserId": 14,
+    "location": "Tantangan, South Cotabato",
+    "image": "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Tree-ripened Red Lady hybrid papayas. Dense orange-red pulp, intensely sweet with very few seeds.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.5772,
+    "lng": 124.8017,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 55
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  },
+  {
+    "id": "p-dragonfruit",
+    "name": "Red Flesh Dragon Fruit",
+    "category": "Fruits",
+    "price": 150,
+    "unit": "kg",
+    "stock": 55,
+    "rating": 4.9,
+    "reviews": 63,
+    "seller": "General Santos Exotic Fruits",
+    "sellerId": "seller-4",
+    "sellerUserId": 14,
+    "location": "General Santos City",
+    "image": "https://images.unsplash.com/photo-1527325678964-54921661f888?w=600&auto=format&fit=crop&q=80",
+    "photos": [
+      "https://images.unsplash.com/photo-1527325678964-54921661f888?w=600&auto=format&fit=crop&q=80"
+    ],
+    "description": "Vibrant magenta-fleshed pitahaya harvested at peak ripeness. Juicy, rich in dietary fiber and prebiotics.",
+    "organic": true,
+    "tradeable": true,
+    "lat": 6.1164,
+    "lng": 125.1716,
+    "priceHistory": [
+      {
+        "date": "2026-10-01",
+        "price": 150
+      }
+    ],
+    "isActive": true,
+    "is_active": true,
+    "isUnlisted": false,
+    "isDeleted": false,
+    "availabilityStatus": "in_stock"
+  }
+];
 
 export const sellers = [
-  { id: 'seller-1', name: 'Green Valley Farm', location: 'Polomolok, South Cotabato', products: 2, rating: 4.8, sellerUserId: 2 },
-  { id: 'seller-2', name: 'Koronadal Harvest', location: 'Koronadal City, South Cotabato', products: 2, rating: 4.7, sellerUserId: 12 },
-  { id: 'seller-3', name: 'Midsayap Gold Orchard', location: 'Midsayap, Cotabato', products: 1, rating: 4.9, sellerUserId: 13 },
-  { id: 'seller-4', name: 'Gensan Fruit Co-op', location: 'General Santos City', products: 1, rating: 4.7, sellerUserId: 14 },
-  { id: 'seller-5', name: 'Tacurong Fields', location: 'Tacurong City, Sultan Kudarat', products: 1, rating: 4.5, sellerUserId: 15 },
-  { id: 'seller-6', name: 'Koronadal Sunrise Poultry', location: 'Koronadal City, South Cotabato', products: 2, rating: 4.8, sellerUserId: 16 },
-  { id: 'seller-7', name: 'Lake Sebu Ponds', location: 'Lake Sebu, South Cotabato', products: 1, rating: 4.4, sellerUserId: 17 },
-  { id: 'seller-8', name: 'Gensan Agri Supply', location: 'General Santos City', products: 2, rating: 4.6, sellerUserId: 18 },
-  { id: 'seller-9', name: 'Surallah Dairy', location: 'Surallah, South Cotabato', products: 1, rating: 4.7, sellerUserId: 19 },
-]
+  { id: 'seller-1', name: 'Green Valley Farm', location: 'Polomolok, South Cotabato', products: 4, rating: 4.8, sellerUserId: 2 },
+  { id: 'seller-2', name: 'Koronadal Harvest', location: 'Koronadal City, South Cotabato', products: 4, rating: 4.7, sellerUserId: 12 },
+  { id: 'seller-3', name: 'Midsayap Gold Orchard', location: 'Midsayap, Cotabato', products: 3, rating: 4.9, sellerUserId: 13 },
+  { id: 'seller-4', name: 'Gensan Fruit Co-op', location: 'General Santos City', products: 3, rating: 4.7, sellerUserId: 14 },
+  { id: 'seller-5', name: 'Tacurong Fields', location: 'Tacurong City, Sultan Kudarat', products: 3, rating: 4.6, sellerUserId: 15 },
+  { id: 'seller-6', name: 'Koronadal Sunrise Poultry', location: 'Koronadal City, South Cotabato', products: 3, rating: 4.8, sellerUserId: 16 },
+  { id: 'seller-7', name: 'Lake Sebu Ponds', location: 'Lake Sebu, South Cotabato', products: 3, rating: 4.8, sellerUserId: 17 },
+  { id: 'seller-8', name: 'Gensan Agri Supply', location: 'General Santos City', products: 3, rating: 4.7, sellerUserId: 18 },
+  { id: 'seller-9', name: 'Surallah Dairy', location: 'Surallah, South Cotabato', products: 2, rating: 4.8, sellerUserId: 19 },
+];
 
 export type Coupon = {
   code: string
@@ -381,16 +1059,12 @@ export type Coupon = {
   type: 'fixed' | 'percent'
   value: number
   minOrder: number
-  category?: string
-  expires?: string
   badge?: string
 }
 
 export const shippingCoupons: Coupon[] = [
-  { code: 'FREESHIP', description: '100% Free Shipping across SOCCSKSARGEN (₱300+ order)', type: 'percent', value: 100, minOrder: 300, badge: 'FREE SHIPPING' },
-  { code: 'SHIP50', description: '₱50 off delivery fee inside SOCCSKSARGEN', type: 'fixed', value: 50, minOrder: 0, badge: '₱50 OFF' },
-  { code: 'HARVEST100', description: '₱100 off bulk fresh harvest orders (₱600+ order)', type: 'fixed', value: 100, minOrder: 600, badge: '₱100 OFF' },
-  { code: 'NEWBUYER50', description: '₱50 Welcome voucher for new AgriMarket buyers', type: 'fixed', value: 50, minOrder: 200, badge: 'WELCOME' },
-  { code: 'SOCCSK15', description: '15% off regional agricultural specialties (₱400+ order)', type: 'percent', value: 15, minOrder: 400, badge: '15% OFF' },
-  { code: 'FLASH25', description: '⚡ Flash Deal special discount for fast checkouts', type: 'percent', value: 25, minOrder: 150, badge: 'FLASH SALE' },
-]
+  { code: 'FREESHIP', description: 'Free shipping on ₱300+ inside SOCCSKSARGEN', type: 'fixed', value: 50, minOrder: 300, badge: 'FREE SHIPPING' },
+  { code: 'AGRIFARM30', description: '₱30 off fresh vegetables voucher', type: 'fixed', value: 30, minOrder: 150, badge: 'HARVEST DEALS' },
+  { code: 'COINBACK10', description: '10% Coins Cashback voucher', type: 'percent', value: 10, minOrder: 200, badge: 'CASHBACK' },
+  { code: 'HARVEST50', description: '₱50 off on orders ₱450+', type: 'fixed', value: 50, minOrder: 450, badge: 'MEGA VOUCHER' },
+];

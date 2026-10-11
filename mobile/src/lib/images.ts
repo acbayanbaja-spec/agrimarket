@@ -19,7 +19,27 @@ const photos: Record<string, ImageSourcePropType> = {
 }
 
 export function productPhoto(src?: string): ImageSourcePropType {
-  if (!src) return photos.farm
-  const key = src.replace(/^\/images\//, '').replace(/\.(jpg|jpeg|png|webp|svg)$/i, '')
-  return photos[key] || photos.farm
+  if (!src) return photos.farm;
+  if (typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:'))) {
+    return { uri: src };
+  }
+  const clean = src.replace(/^\/images\//, '').replace(/\.(jpg|jpeg|png|webp|svg)$/i, '').toLowerCase();
+  if (photos[clean]) return photos[clean];
+
+  // Smart fallback mapping for local display
+  if (clean.includes('durian') || clean.includes('mango') || clean.includes('papaya')) return photos.mango;
+  if (clean.includes('banana') || clean.includes('dragon')) return photos.banana;
+  if (clean.includes('eggplant') || clean.includes('talong') || clean.includes('onion') || clean.includes('tomato')) return photos.tomato;
+  if (clean.includes('kangkong') || clean.includes('ampalaya') || clean.includes('lettuce')) return photos.kangkong;
+  if (clean.includes('corn') || clean.includes('kalabasa')) return photos.corn;
+  if (clean.includes('rice') || clean.includes('grain')) return photos.rice;
+  if (clean.includes('honey') || clean.includes('compost') || clean.includes('fertilizer')) return photos.compost;
+  if (clean.includes('bangus') || clean.includes('fish') || clean.includes('tilapia')) return photos.tilapia;
+  if (clean.includes('calamansi') || clean.includes('citrus')) return photos.calamansi;
+  if (clean.includes('egg')) return photos.eggs;
+  if (clean.includes('chicken') || clean.includes('poultry')) return photos.chicken;
+  if (clean.includes('milk') || clean.includes('carabao')) return photos.milk;
+  if (clean.includes('seed') || clean.includes('mushroom') || clean.includes('garlic')) return photos.seeds;
+
+  return photos.farm;
 }

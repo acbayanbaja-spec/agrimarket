@@ -113,38 +113,50 @@ const CheckoutPage = () => {
     )
   }
 
-  const submit = (event: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (hasRole('admin')) return
     if (payment === 'GCash' && gcashRef.trim().length < 4) return
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
     const selected = soccsksargenPlaces.find((item) => item.label === city) || place
-    const order = placeOrder({
-      items: items.map((item) => ({
-        productId: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        image: item.product.image,
-        seller: item.product.seller,
-        sellerId: item.product.sellerId,
-        sellerUserId: item.product.sellerUserId,
-        pickupLocation: item.product.location,
-      })),
-      subtotal,
-      shippingFee,
-      shippingDiscount,
-      couponCode,
-      total,
-      address: `${address}, ${city}`,
-      payment,
-      paymentRef: payment === 'GCash' ? gcashRef.trim() : undefined,
-      buyerPhone: user?.phone,
-      lat: coords.lat || selected.lat,
-      lng: coords.lng || selected.lng,
-      pointsRedeemed,
-    })
-    clear()
-    setPlaced(order.id)
+    try {
+      const order = await placeOrder({
+        items: items.map((item) => ({
+          productId: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          image: item.product.image,
+          seller: item.product.seller,
+          sellerId: item.product.sellerId,
+          sellerUserId: item.product.sellerUserId,
+          pickupLocation: item.product.location,
+        })),
+        subtotal,
+        shippingFee,
+        shippingDiscount,
+        couponCode,
+        total,
+        address: `${address}, ${city}`,
+        payment,
+        paymentRef: payment === 'GCash' ? gcashRef.trim() : undefined,
+        buyerPhone: user?.phone,
+        lat: coords.lat || selected.lat,
+        lng: coords.lng || selected.lng,
+        pointsRedeemed,
+      })
+      clear()
+      setPlaced(order.id)
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to place order. Please check item stock and try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -153,6 +165,13 @@ const CheckoutPage = () => {
       <form onSubmit={submit} className="lg:col-span-2 card space-y-4">
         <h1 className="text-3xl font-bold">Checkout</h1>
         <p className="text-sm text-gray-600">The seller confirms first. Only then does the rider receive your name, mobile, drop-off, and the harvest list.</p>
+
+        {errorMessage && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{errorMessage}</span>
+          </div>
+        )}
         <div>
           <label className="label" htmlFor="address">Street / purok / barangay</label>
           <input id="address" required className="input-field" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Purok 2, Brgy. Zone 1" />
@@ -222,7 +241,16 @@ const CheckoutPage = () => {
             </span>
           </span>
         </label>
-        <button type="submit" className="btn-primary w-full min-h-[48px]">Place order · {formatPeso(total)}</button>
+        <button type="submit" disabled={isSubmitting} className="btn-primary w-full min-h-[48px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+          {isSubmitting ? (
+            <>
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+              <span>Processing order with central database...</span>
+            </>
+          ) : (
+            <span>Place order · {formatPeso(total)}</span>
+          )}
+        </button>
       </form>
       <aside className="card h-fit">
         <h2 className="font-semibold mb-4">Your basket</h2>

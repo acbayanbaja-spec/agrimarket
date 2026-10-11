@@ -137,40 +137,149 @@ export const aiService = {
     };
   },
 
-  // 3. Multilingual Agronomy Chat Advisor ("AgriKaibigan AI")
+  // 3. Google Gemini API Integration & Multilingual Agronomy Chat Advisor ("AgriKaibigan AI")
+  async chatAgronomyWithGemini(
+    message: string,
+    options?: {
+      language?: 'en' | 'tl' | 'ceb' | string;
+      apiKey?: string;
+      history?: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
+    }
+  ): Promise<{ reply: string; helpfulTips: string[]; source: 'gemini' | 'knowledge-base'; model?: string }> {
+    const key = options?.apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+    if (key && key.trim() && key !== 'your_gemini_api_key_here') {
+      try {
+        const systemPrompt = `You are AgriKaibigan AI, a world-class agricultural agronomist and universal AI assistant embedded within AgriMarket, an agricultural e-commerce platform in SOCCSKSARGEN (South Cotabato, Cotabato, Sultan Kudarat, Sarangani, and General Santos City), Philippines.
+
+You are friendly, extremely smart, and practical.
+You can answer:
+1. ANY farming, agricultural, crop health, pest diagnosis, soil fertilizer, livestock, fisheries, and harvest preservation questions.
+2. Market pricing, fair trade prices, harvest delivery, and e-commerce shopping advice.
+3. Recipes, nutrition, storage, and cooking using local Philippine produce (mangoes, calamansi, lakatan, kangkong, tilapia, bangus, durian, etc.).
+4. UNIVERSAL QUESTIONS: You can answer ANY question about general knowledge, mathematics, science, technology, translations, business, or education.
+5. You speak English, Filipino/Tagalog, and Bisaya (Cebuano). Answer in the language the user speaks.
+Format your responses cleanly with markdown bullet points, bold key terms, and actionable tips.`;
+
+        const contents: any[] = [];
+
+        if (options?.history && Array.isArray(options.history) && options.history.length > 0) {
+          contents.push(...options.history);
+        }
+
+        contents.push({
+          role: 'user',
+          parts: [{ text: message }],
+        });
+
+        // Try gemini-1.5-flash
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key.trim()}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            systemInstruction: {
+              parts: [{ text: systemPrompt }],
+            },
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1200,
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const data: any = await response.json();
+          const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText && typeof candidateText === 'string') {
+            return {
+              reply: candidateText.trim(),
+              helpfulTips: [
+                'Powered by Google Gemini 1.5 Flash (Universal AI)',
+                'Ask about pests, fair prices, organic farming, or any universal question!',
+              ],
+              source: 'gemini',
+              model: 'gemini-1.5-flash',
+            };
+          }
+        }
+      } catch (err: any) {
+        console.warn('Gemini API call failed, falling back to local agronomy engine:', err?.message || err);
+      }
+    }
+
+    // Comprehensive offline / knowledge base fallback
+    return {
+      ...this.chatAgronomy(message, (options?.language as any) || 'en'),
+      source: 'knowledge-base',
+      model: 'agrimarket-expert-engine',
+    };
+  },
+
   chatAgronomy(message: string, language: 'en' | 'tl' | 'ceb' = 'en'): { reply: string; helpfulTips: string[] } {
     const q = message.toLowerCase();
 
-    if (q.includes('pest') || q.includes('insekto') || q.includes('uod') || q.includes('aphid')) {
+    if (q.includes('pest') || q.includes('insekto') || q.includes('uod') || q.includes('aphid') || q.includes('blight')) {
       return {
         reply:
-          'Para sa biological pest control nang walang kemikal: Gamitin ang Neem Oil solution (5ml neem oil + 2ml liquid soap sa 1L na tubig) o sili-bawang spray. I-spray sa ilalim ng mga dahon sa hapon kapag lumamig na ang araw upang hindi masunog ang dahon.',
+          '🌱 **Organic Pest & Disease Management Plan:**\n\n' +
+          '• **Natural Neem Oil Spray:** Mix 5ml pure neem oil + 2ml mild biodegradable soap in 1 liter clean water. Shake well and spray on the underside of leaves.\n' +
+          '• **Chili-Garlic Repellent (Sili-Bawang):** Blend 5 hot red chilies + 1 bulb of native garlic with 1L water. Strain and spray to deter chewing worms, armyworms, and aphids.\n' +
+          '• **Application Timing:** Always spray late afternoon (4:00 PM – 5:30 PM) when sun intensity drops to prevent leaf scalding.\n' +
+          '• **Sticky Traps:** Place bright yellow sticky fly traps around the edges of vegetable plots.',
         helpfulTips: [
-          'Mag-spray tuwing alas-4 hanggang alas-5 ng hapon.',
-          'Magsagawa ng crop rotation bawat 2 cropping cycle.',
-          'Maglagay ng yellow sticky traps sa bawat sulok ng plot.',
+          'Rotate crops every 2 cycles to disrupt soil-borne insect larvae.',
+          'Prune decaying bottom leaves to improve airflow and deter fungal mildew.',
         ],
       };
     }
 
-    if (q.includes('price') || q.includes('presyo') || q.includes('benta') || q.includes('kita')) {
+    if (q.includes('price') || q.includes('presyo') || q.includes('benta') || q.includes('market') || q.includes('cost')) {
       return {
         reply:
-          'Ang kasalukuyang bentahan sa SOCCSKSARGEN ay matatag. Maaari mong tingnan ang aming AI Price Forecast bago mag-ani upang malaman ang inaasahang presyo sa susunod na 14 na araw. Siguraduhing ma-grade ang ani (Grade A/B) para makakuha ng 15-20% dagdag-halaga.',
+          '📈 **SOCCSKSARGEN Fair Farmgate & Retail Market Guide:**\n\n' +
+          '• **Salad Tomatoes:** ₱75 – ₱95 / kg (Polomolok & Tupi mountain supply)\n' +
+          '• **Carabao Mangoes:** ₱160 – ₱190 / kg (Midsayap orchard grade)\n' +
+          '• **Dinorado Rice:** ₱54 – ₱60 / kg (M\'lang freshly milled)\n' +
+          '• **Free-Range Eggs:** ₱210 – ₱230 / 30-egg tray (Koronadal poultry)\n' +
+          '• **Live Tilapia:** ₱130 – ₱150 / kg (Lake Sebu ice-packed)\n' +
+          '• **Puyat Durian:** ₱220 – ₱260 / kg (Kidapawan farmgate)\n\n' +
+          '💡 *Tip: Group deliveries along the Koronadal-Gensan corridor to reduce shipping costs to zero using code FREESHIP!*',
         helpfulTips: [
-          'Gamitin ang AgriMarket Batch QR code para sa certified organic crops.',
-          'Mag-post sa Harvest Feed 2 araw bago mag-ani para may handang buyer.',
+          'Check the "Price Monitor" tab for 14-day AI forecast trends.',
+          'Sell certified Grade A harvests for 15-20% wholesale premiums.',
         ],
       };
     }
 
-    if (q.includes('fertilizer') || q.includes('pataba') || q.includes('compost')) {
+    if (q.includes('fertilizer') || q.includes('pataba') || q.includes('compost') || q.includes('soil')) {
       return {
         reply:
-          'Para sa gulay at prutas sa SOCCSKSARGEN soils, maganda ang paggamit ng fermented fruit juice (FFJ) at vermicast compost. Nagbibigay ito ng mabilis na micronutrients habang pinapanatiling buhaghag at mayabong ang lupa.',
+          '🌿 **High-Yield Organic Soil & Fertilizer Recommendations:**\n\n' +
+          '• **Vermicast (African Nightcrawler castings):** Rich in humic acid and beneficial soil microbes. Apply 2 handfuls per planting hole 7 days before transplanting.\n' +
+          '• **Fermented Fruit Juice (FFJ):** Ferment ripe bananas, papaya, and molasses (1:1 ratio) for 7 days. Dilute 2 tbsp in 1L water to boost flowering and fruit sweetening.\n' +
+          '• **Carbonized Rice Hull (CRH):** Incorporate into clay soils to enhance water aeration, root expansion, and pH buffering.\n' +
+          '• **Nitrogen Timing:** Reduce nitrogen feeding once flower buds form to prevent flower drop.',
         helpfulTips: [
-          'I-apply ang compost 2 linggo bago maglipat-tanim.',
-          'Iwasan ang sobrang nitrogen sa panahon ng pamumulaklak.',
+          'Water in the early morning before 8:00 AM for maximum absorption.',
+          'Mulch around the stem with dry rice straw to conserve moisture during dry spells.',
+        ],
+      };
+    }
+
+    if (q.includes('recipe') || q.includes('luto') || q.includes('cook') || q.includes('prepare')) {
+      return {
+        reply:
+          '🍲 **Farm-Fresh SOCCSKSARGEN Recipe Idea:**\n\n' +
+          '• **Fresh Sinigang na Bangus sa Kamatis at Kangkong:**\n' +
+          '1. Simmer sliced ripe tomatoes and red onions in rice wash water until soft.\n' +
+          '2. Add fresh ginger slices and cleaned Lake Sebu tilapia or Glan bangus.\n' +
+          '3. Season with freshly squeezed calamansi and sea salt.\n' +
+          '4. Turn off the heat and stir in crisp kangkong leaves. Cover for 2 minutes to serve bright green and crunchy!',
+        helpfulTips: [
+          'Add a splash of fresh carabao milk to chicken soup for authentic creamy tinola!',
+          'Store fresh herbs wrapped in damp paper towels inside airtight containers.',
         ],
       };
     }
@@ -178,10 +287,17 @@ export const aiService = {
     // Default friendly response
     return {
       reply:
-        'Kumusta! Ako si AgriKaibigan, ang iyong AI farming assistant para sa SOCCSKSARGEN. Maaari mo akong tanungin tungkol sa tamang presyo ng ani, pamuksa sa peste, organic fertilizer, transportasyon, at buyer matching.',
+        '👋 **Mabuhay! I am AgriKaibigan AI**, your world-class agricultural and marketplace assistant for AgriMarket SOCCSKSARGEN!\n\n' +
+        'I can assist you with:\n' +
+        '• 🌾 **Crop cultivation, organic fertilizer recipes, & pest defense**\n' +
+        '• 📊 **Fair market prices, daily farmgate rates, & price forecasts**\n' +
+        '• 🍲 **Farm-to-table recipes & harvest storage tips**\n' +
+        '• 🛍️ **Voucher claiming, order tracking, & Shopee-level marketplace features**\n' +
+        '• 🌐 **Universal questions on math, science, language, & business!**\n\n' +
+        '*(💡 Note: You can add your FREE Google Gemini API key from https://aistudio.google.com/ in AI Settings to enable unlimited universal knowledge!)*',
       helpfulTips: [
-        'Maaari kang magtanong sa Tagalog, Bisaya, o English.',
-        'Maaari mong ipa-check ang kalidad ng iyong ani sa Seller Dashboard.',
+        'Ask me in English, Tagalog, or Bisaya anytime!',
+        'Tap the quick prompt pills below for instant answers.',
       ],
     };
   },

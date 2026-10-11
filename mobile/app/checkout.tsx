@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
   back: { color: '#15803d', fontWeight: '700', marginBottom: 8 },
   title: { fontSize: 28, fontWeight: '800' },
   meta: { color: '#6b7280', marginBottom: 16 },
+  empty: { color: '#6b7280', marginTop: 12, fontSize: 15 },
   label: { fontWeight: '700', marginBottom: 6 },
   input: { backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 16 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
