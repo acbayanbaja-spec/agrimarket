@@ -162,7 +162,7 @@
     },
     {
       "email": "opsadmin@agrimarket.com",
-      "password_hash": "$2a$12$IUA5c06WNiF/wA9oq1VgTeAeS1P/YpaED/LlLE40iuXRcf.HJZ71S",
+      "password_hash": "$2a$12$lR4/E1c.3k6wvMPoKmKkq.J1FcqxmJvkfOBzFmoJhbU0PNICIe9HO",
       "first_name": "System",
       "last_name": "Administrator",
       "phone": "+639120000000",
@@ -174,6 +174,19 @@
       "is_active": true,
       "created_at": "2026-10-12T04:22:01.171Z",
       "id": 19
+    },
+    {
+      "email": "suspended.test@agrimarket.com",
+      "password_hash": "mockhash",
+      "first_name": "Suspended",
+      "last_name": "Farmer",
+      "roles": [
+        "seller"
+      ],
+      "is_active": false,
+      "is_verified": true,
+      "created_at": "2026-10-12T04:46:27.414Z",
+      "id": 20
     }
   ],
   "products": [
@@ -220,7 +233,7 @@
       "unit": "kg",
       "stock": 118,
       "rating": 5,
-      "reviews": 8,
+      "reviews": 9,
       "seller": "Green Valley Farm",
       "sellerId": "seller-1",
       "sellerUserId": 2,
@@ -440,7 +453,7 @@
       "category": "Poultry",
       "price": 220,
       "unit": "tray",
-      "stock": 72,
+      "stock": 71,
       "rating": 4.8,
       "reviews": 53,
       "seller": "Koronadal Sunrise Poultry",
@@ -1242,6 +1255,379 @@
     }
   ],
   "orders": [
+    {
+      "id": "ORD-80387510",
+      "receiptNo": "RCPT-80387510",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Pending",
+      "createdAt": "2026-10-12T04:46:27.510Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "GCash",
+      "paymentRef": "TXN-GCASH-VERIFIED-9988",
+      "paymentStatus": "escrow_held",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked"
+    },
+    {
+      "id": "ORD-80387450",
+      "receiptNo": "RCPT-80387450",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Pending",
+      "createdAt": "2026-10-12T04:46:27.450Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked"
+    },
+    {
+      "id": "ORD-80387340",
+      "receiptNo": "RCPT-80387340",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "createdAt": "2026-10-12T04:46:27.340Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked"
+    },
+    {
+      "id": "ORD-80387317",
+      "receiptNo": "RCPT-80387317",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "createdAt": "2026-10-12T04:46:27.317Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked"
+    },
+    {
+      "id": "ORD-80387247",
+      "receiptNo": "RCPT-80387247",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        },
+        {
+          "productId": "p-eggs",
+          "name": "Free-Range Brown Eggs",
+          "title": "Free-Range Brown Eggs",
+          "price": 220,
+          "quantity": 1,
+          "unit": "tray",
+          "image": "/images/eggs.jpg",
+          "seller": "Koronadal Sunrise Poultry",
+          "sellerId": "seller-6",
+          "sellerUserId": 16,
+          "pickupLocation": "Koronadal City, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 305,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 30,
+      "pointsRedeemed": 0,
+      "total": 355,
+      "status": "Pending",
+      "createdAt": "2026-10-12T04:46:27.247Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked"
+    },
+    {
+      "id": "ORD-80387135",
+      "receiptNo": "RCPT-80387135",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Shipped",
+      "createdAt": "2026-10-12T04:46:27.135Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked",
+      "sellerConfirmedAt": "2026-10-12T04:46:27.162Z",
+      "shippedAt": "2026-10-12T04:46:27.187Z",
+      "driverId": 4
+    },
+    {
+      "id": "ORD-80387045",
+      "receiptNo": "RCPT-80387045",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 3,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 255,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 25,
+      "pointsRedeemed": 0,
+      "total": 305,
+      "status": "Cancelled",
+      "createdAt": "2026-10-12T04:46:27.045Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "GCash",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked",
+      "stockRestored": true,
+      "rejectedReason": "Buyer changed mind"
+    },
+    {
+      "id": "ORD-80386838",
+      "receiptNo": "RCPT-80386838",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Delivered",
+      "createdAt": "2026-10-12T04:46:26.838Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "GCash",
+      "paymentRef": "TXN-GCASH-386873",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked",
+      "sellerConfirmedAt": "2026-10-12T04:46:26.908Z",
+      "shippedAt": "2026-10-12T04:46:26.920Z",
+      "driverId": 4,
+      "deliveredAt": "2026-10-12T04:46:26.969Z"
+    },
+    {
+      "id": "ORD-80386625",
+      "receiptNo": "RCPT-80386625",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 2,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 170,
+      "shippingFee": 50,
+      "shippingDiscount": 50,
+      "couponCode": "FREESHIP",
+      "pointsEarned": 17,
+      "pointsRedeemed": 0,
+      "total": 170,
+      "status": "Delivered",
+      "createdAt": "2026-10-12T04:46:26.625Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "GCash",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked",
+      "sellerConfirmedAt": "2026-10-12T04:46:26.716Z",
+      "shippedAt": "2026-10-12T04:46:26.752Z",
+      "driverId": 4,
+      "deliveredAt": "2026-10-12T04:46:26.809Z"
+    },
     {
       "id": "ORD-78920802",
       "receiptNo": "RCPT-78920802",
@@ -2823,6 +3209,19 @@
   "seller_applications": [],
   "reviews": [
     {
+      "id": "rev-1791780387010",
+      "productId": "p-tomato",
+      "userId": 3,
+      "userName": "Juan Cruz",
+      "rating": 5,
+      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
+      "photos": [],
+      "status": "published",
+      "createdAt": "2026-10-12T04:46:27.010Z",
+      "isVerifiedPurchase": true,
+      "orderId": "ORD-80386838"
+    },
+    {
       "id": "rev-1791778920335",
       "productId": "p-tomato",
       "userId": 3,
@@ -2941,6 +3340,294 @@
   "posts": [],
   "trades": [],
   "notifications": [
+    {
+      "id": "notice-1791780387575-3",
+      "userId": 3,
+      "title": "Payment Confirmed by Provider",
+      "message": "Your payment of ₱135 for order #ORD-80387510 was verified by the payment gateway and held securely in escrow.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.575Z"
+    },
+    {
+      "id": "notice-1791780387518-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387510 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.518Z"
+    },
+    {
+      "id": "notice-1791780387514-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387510 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.514Z"
+    },
+    {
+      "id": "notice-1791780387457-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387450 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.457Z"
+    },
+    {
+      "id": "notice-1791780387454-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387450 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.454Z"
+    },
+    {
+      "id": "notice-1791780387349-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387340 was placed by buyer. Total: ₱390. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.349Z"
+    },
+    {
+      "id": "notice-1791780387344-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387340 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.344Z"
+    },
+    {
+      "id": "notice-1791780387326-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387317 was placed by buyer. Total: ₱390. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.326Z"
+    },
+    {
+      "id": "notice-1791780387322-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387317 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.322Z"
+    },
+    {
+      "id": "notice-1791780387260-16",
+      "userId": 16,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387247 was placed by buyer. Total: ₱355. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.260Z"
+    },
+    {
+      "id": "notice-1791780387256-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387247 was placed by buyer. Total: ₱355. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.256Z"
+    },
+    {
+      "id": "notice-1791780387252-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387247 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.252Z"
+    },
+    {
+      "id": "notice-1791780387209",
+      "userId": 3,
+      "title": "Rider Assigned to Your Order",
+      "message": "Rider Rico Driver (+639175551111) was assigned to deliver ORD-80387135.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.208Z"
+    },
+    {
+      "id": "notice-1791780387204",
+      "userId": 4,
+      "title": "New Delivery Assigned 🛵",
+      "message": "Seller assigned order ORD-80387135 (buyer, SOCCSKSARGEN Delivery Address) to you.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.204Z"
+    },
+    {
+      "id": "notice-1791780387167-3",
+      "userId": 3,
+      "title": "Order Confirmed by Seller! 🚜",
+      "message": "Seller confirmed order #ORD-80387135. Goods are being packed for delivery.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.167Z"
+    },
+    {
+      "id": "notice-1791780387143-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387135 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.143Z"
+    },
+    {
+      "id": "notice-1791780387139-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387135 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.139Z"
+    },
+    {
+      "id": "notice-1791780387101-3",
+      "userId": 3,
+      "title": "Order Cancelled",
+      "message": "Order #ORD-80387045 has been cancelled: Buyer changed mind",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.101Z"
+    },
+    {
+      "id": "notice-1791780387054-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80387045 was placed by buyer. Total: ₱305. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.054Z"
+    },
+    {
+      "id": "notice-1791780387049-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80387045 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:27.049Z"
+    },
+    {
+      "id": "notice-1791780386974-3",
+      "userId": 3,
+      "title": "Order Delivered! 📦",
+      "message": "Order #ORD-80386838 has been successfully delivered. Thank you for supporting local farmers!",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.974Z"
+    },
+    {
+      "id": "notice-1791780386946",
+      "userId": 3,
+      "title": "Rider Assigned to Your Order",
+      "message": "Rider Rico Driver (+639175551111) was assigned to deliver ORD-80386838.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.945Z"
+    },
+    {
+      "id": "notice-1791780386941",
+      "userId": 4,
+      "title": "New Delivery Assigned 🛵",
+      "message": "Seller assigned order ORD-80386838 (buyer, SOCCSKSARGEN Delivery Address) to you.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.941Z"
+    },
+    {
+      "id": "notice-1791780386911-3",
+      "userId": 3,
+      "title": "Order Confirmed by Seller! 🚜",
+      "message": "Seller confirmed order #ORD-80386838. Goods are being packed for delivery.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.911Z"
+    },
+    {
+      "id": "notice-1791780386845-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80386838 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.846Z"
+    },
+    {
+      "id": "notice-1791780386841-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80386838 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.841Z"
+    },
+    {
+      "id": "notice-1791780386813-3",
+      "userId": 3,
+      "title": "Order Delivered! 📦",
+      "message": "Order #ORD-80386625 has been successfully delivered. Thank you for supporting local farmers!",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.813Z"
+    },
+    {
+      "id": "notice-1791780386776",
+      "userId": 3,
+      "title": "Rider Assigned to Your Order",
+      "message": "Rider Rico Driver (+639175551111) was assigned to deliver ORD-80386625.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.775Z"
+    },
+    {
+      "id": "notice-1791780386772",
+      "userId": 4,
+      "title": "New Delivery Assigned 🛵",
+      "message": "Seller assigned order ORD-80386625 (buyer, SOCCSKSARGEN Delivery Address) to you.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.772Z"
+    },
+    {
+      "id": "notice-1791780386722-3",
+      "userId": 3,
+      "title": "Order Confirmed by Seller! 🚜",
+      "message": "Seller confirmed order #ORD-80386625. Goods are being packed for delivery.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.722Z"
+    },
+    {
+      "id": "notice-1791780386635-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-80386625 was placed by buyer. Total: ₱170. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.664Z"
+    },
+    {
+      "id": "notice-1791780386630-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-80386625 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-12T04:46:26.630Z"
+    },
     {
       "id": "notice-1791778920851-3",
       "userId": 3,
@@ -4313,6 +5000,18 @@
   ],
   "messages": [
     {
+      "id": "msg-1791780387487-j1zn",
+      "orderId": "ORD-80387450",
+      "fromRole": "buyer",
+      "fromName": "Juan Cruz",
+      "fromUserId": 3,
+      "toUserId": 2,
+      "body": "Hello seller, when will this tomato harvest be packed?",
+      "createdAt": "2026-10-12T04:46:27.487Z",
+      "channel": "in-app",
+      "status": "delivered"
+    },
+    {
       "id": "msg-1791778920783-c5r0",
       "orderId": "ORD-78920738",
       "fromRole": "buyer",
@@ -4326,6 +5025,114 @@
     }
   ],
   "delivery_jobs": [
+    {
+      "id": "DEL-80387510",
+      "orderId": "ORD-80387510",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.571Z"
+    },
+    {
+      "id": "DEL-80387450",
+      "orderId": "ORD-80387450",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.450Z"
+    },
+    {
+      "id": "DEL-80387340",
+      "orderId": "ORD-80387340",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.340Z"
+    },
+    {
+      "id": "DEL-80387317",
+      "orderId": "ORD-80387317",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.318Z"
+    },
+    {
+      "id": "DEL-80387247",
+      "orderId": "ORD-80387247",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.247Z"
+    },
+    {
+      "id": "DEL-80387135",
+      "orderId": "ORD-80387135",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Shipped",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.199Z"
+    },
+    {
+      "id": "DEL-80387045",
+      "orderId": "ORD-80387045",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Cancelled",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:27.096Z"
+    },
+    {
+      "id": "DEL-80386838",
+      "orderId": "ORD-80386838",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Delivered",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:26.969Z"
+    },
+    {
+      "id": "DEL-80386625",
+      "orderId": "ORD-80386625",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Delivered",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-12T04:46:26.809Z"
+    },
     {
       "id": "DEL-78920802",
       "orderId": "ORD-78920802",
@@ -4807,6 +5614,17 @@
   ],
   "audit_logs": [
     {
+      "id": "audit-1791780387945-5bad",
+      "createdAt": "2026-10-12T04:46:27.945Z",
+      "adminId": 19,
+      "adminEmail": "opsadmin@agrimarket.com",
+      "action": "ADMIN_CREDENTIALS_BOOTSTRAPPED",
+      "targetType": "user",
+      "targetId": "19",
+      "details": "Administrator account opsadmin@agrimarket.com updated via secure bootstrap process with 12-round bcrypt hash.",
+      "ipAddress": "127.0.0.1"
+    },
+    {
       "id": "audit-1791778921176-6210",
       "createdAt": "2026-10-12T04:22:01.176Z",
       "adminId": 19,
@@ -4853,6 +5671,11 @@
       "eventId": "evt-audit-1791778920841",
       "orderId": "ORD-78920802",
       "processedAt": "2026-10-12T04:22:00.844Z"
+    },
+    {
+      "eventId": "evt-audit-1791780387553",
+      "orderId": "ORD-80387510",
+      "processedAt": "2026-10-12T04:46:27.567Z"
     }
   ]
 }

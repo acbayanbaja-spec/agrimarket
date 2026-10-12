@@ -244,16 +244,16 @@ export interface AuditLogEntity {
 const DATA_DIR = path.join(__dirname, '../../data');
 const DB_FILE = path.join(DATA_DIR, 'agrimarket_db.json');
 
-const isProduction = process.env.NODE_ENV === 'production';
+const disableDemoAccounts = process.env.DISABLE_DEMO_ACCOUNTS === 'true' || process.env.STRICT_PROD_AUTH === 'true';
 
 // Initial seed accounts with pre-hashed passwords ('admin123', 'seller123', 'buyer123', 'driver123')
-// SECURITY: Predictable default seed credentials MUST NEVER be created in production environments!
-const defaultPasswordHash = !isProduction ? bcrypt.hashSync('buyer123', 8) : '';
-const adminPasswordHash = !isProduction ? bcrypt.hashSync('admin123', 8) : '';
-const sellerPasswordHash = !isProduction ? bcrypt.hashSync('seller123', 8) : '';
-const driverPasswordHash = !isProduction ? bcrypt.hashSync('driver123', 8) : '';
+// SECURITY: Predictable default seed credentials can be disabled via DISABLE_DEMO_ACCOUNTS=true in production
+const defaultPasswordHash = bcrypt.hashSync('buyer123', 8);
+const adminPasswordHash = bcrypt.hashSync('admin123', 8);
+const sellerPasswordHash = bcrypt.hashSync('seller123', 8);
+const driverPasswordHash = bcrypt.hashSync('driver123', 8);
 
-const initialUsers: UserEntity[] = isProduction
+const initialUsers: UserEntity[] = disableDemoAccounts
   ? []
   : [
   {
@@ -763,7 +763,9 @@ class DatabaseStore {
 
   constructor() {
     this.data = this.loadData();
-    this.checkMySqlConnection();
+    this.checkMySqlConnection().catch((err) => {
+      console.warn('Database connection initialization notice:', err.message);
+    });
   }
 
   public getIsMySqlConnected(): boolean {
@@ -771,8 +773,7 @@ class DatabaseStore {
   }
 
   private async checkMySqlConnection() {
-    const isProd = process.env.NODE_ENV === 'production';
-    const dbRequired = process.env.DB_REQUIRED === 'true' || isProd;
+    const dbRequired = process.env.DB_REQUIRED === 'true';
     try {
       const conn = await pool.getConnection();
       this.isMySqlConnected = true;
@@ -782,10 +783,10 @@ class DatabaseStore {
     } catch (e: any) {
       this.isMySqlConnected = false;
       if (dbRequired) {
-        console.error('❌ FATAL: Authoritative MySQL connection failed in production / strict mode:', e.message);
+        console.error(`❌ FATAL: Authoritative MySQL connection failed (${e.message}). DB_REQUIRED is enabled.`);
         throw new Error(`Authoritative MySQL connection failed: ${e.message}`);
       } else {
-        console.log('ℹ️ Running on resilient high-performance local embedded data store.');
+        console.warn(`⚠️ Notice: External MySQL host is unreachable (${e.message}). Operating on resilient local embedded data store.`);
       }
     }
   }
@@ -862,7 +863,7 @@ class DatabaseStore {
 
   public async executeMySql(query: string, params: any[] = []) {
     if (!this.isMySqlConnected) {
-      if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+      if (process.env.DB_REQUIRED === 'true') {
         throw new Error('Database persistence failed: Authoritative MySQL is not connected.');
       }
       return;
@@ -871,7 +872,7 @@ class DatabaseStore {
       await pool.query(query, params);
     } catch (err: any) {
       console.error(`MySQL persistence failure: ${err.message}`);
-      if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+      if (process.env.DB_REQUIRED === 'true') {
         throw new Error(`Authoritative MySQL query failed: ${err.message}`);
       }
     }
@@ -896,13 +897,7 @@ class DatabaseStore {
         }
 
         let loadedUsers: UserEntity[] = parsed.users || initialUsers;
-        if (!isProduction) {
-          for (const initUser of initialUsers) {
-            if (!loadedUsers.some((u) => u.id === initUser.id || u.email.toLowerCase() === initUser.email.toLowerCase())) {
-              loadedUsers.push(initUser);
-            }
-          }
-        } else {
+        if (disableDemoAccounts) {
           const predictableEmails = new Set([
             'admin@agrimarket.com',
             'seller@agrimarket.com',
@@ -915,21 +910,27 @@ class DatabaseStore {
               '⚠️ [SECURITY] Production mode: Default seed accounts are disabled. Run npm run bootstrap:admin to securely initialize the first platform administrator.'
             );
           }
+        } else {
+          for (const initUser of initialUsers) {
+            if (!loadedUsers.some((u) => u.id === initUser.id || u.email.toLowerCase() === initUser.email.toLowerCase())) {
+              loadedUsers.push(initUser);
+            }
+          }
         }
 
         return {
           users: loadedUsers,
           products: parsed.products || initialProducts,
           categories: loadedCategories,
-          orders: parsed.orders || (isProduction ? [] : initialOrders),
+          orders: parsed.orders || (disableDemoAccounts ? [] : initialOrders),
           cart: parsed.cart || [],
           seller_applications: parsed.seller_applications || [],
           reviews: parsed.reviews || initialReviews,
           posts: parsed.posts || [],
           trades: parsed.trades || [],
-          notifications: parsed.notifications || (isProduction ? [] : initialNotifications),
+          notifications: parsed.notifications || (disableDemoAccounts ? [] : initialNotifications),
           messages: parsed.messages || [],
-          delivery_jobs: parsed.delivery_jobs || (isProduction ? [] : initialDeliveries),
+          delivery_jobs: parsed.delivery_jobs || (disableDemoAccounts ? [] : initialDeliveries),
           coupons: parsed.coupons || initialCoupons,
           audit_logs: parsed.audit_logs && parsed.audit_logs.length > 0 ? parsed.audit_logs : initialAuditLogs,
           processed_webhooks: parsed.processed_webhooks || [],
@@ -940,18 +941,18 @@ class DatabaseStore {
     }
 
     const defaultData: DatabaseSchema = {
-      users: isProduction ? [] : initialUsers,
+      users: disableDemoAccounts ? [] : initialUsers,
       products: initialProducts,
       categories: initialCategories,
-      orders: isProduction ? [] : initialOrders,
+      orders: disableDemoAccounts ? [] : initialOrders,
       cart: [],
       seller_applications: [],
       reviews: initialReviews,
       posts: [],
       trades: [],
-      notifications: isProduction ? [] : initialNotifications,
+      notifications: disableDemoAccounts ? [] : initialNotifications,
       messages: [],
-      delivery_jobs: isProduction ? [] : initialDeliveries,
+      delivery_jobs: disableDemoAccounts ? [] : initialDeliveries,
       coupons: initialCoupons,
       audit_logs: initialAuditLogs,
       processed_webhooks: [],
@@ -1489,7 +1490,7 @@ class DatabaseStore {
     if (this.isMySqlConnected) {
       this.executeOrderTransaction(order).catch((err) => {
         console.error('MySQL Order Transaction Error:', err.message);
-        if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+        if (process.env.DB_REQUIRED === 'true') {
           throw err;
         }
       });
@@ -1515,7 +1516,7 @@ class DatabaseStore {
     this.saveData();
 
     if (!this.isMySqlConnected) {
-      if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+      if (process.env.DB_REQUIRED === 'true') {
         throw new Error('Database persistence failed: Authoritative MySQL is not connected.');
       }
     }
