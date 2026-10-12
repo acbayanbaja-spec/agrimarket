@@ -15,7 +15,12 @@ export function getErrorMessage(error: unknown, fallback = 'Something went wrong
     const response = (error as { response?: { data?: { message?: string } } }).response
     if (response?.data?.message) return response.data.message
   }
-  if (error instanceof Error && error.message) return error.message
+  if (error instanceof Error && error.message) {
+    if (error.message === 'Network Error' || error.message.includes('Network Error')) {
+      return 'Unable to connect to AgriMarket server. The backend may be waking up from sleep (Render free tier), please wait a moment and try again.'
+    }
+    return error.message
+  }
   return fallback
 }
 

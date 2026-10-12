@@ -75,8 +75,22 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/ai', aiLimiter);
 
-// Health check
-app.get('/health', (req, res) => {
+// Health and platform status checks
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    name: 'AgriMarket API',
+    version: '1.0.0',
+    environment: config.nodeEnv,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

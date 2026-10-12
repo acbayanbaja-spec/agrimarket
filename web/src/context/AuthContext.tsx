@@ -148,7 +148,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const nextUser = normalizeUser(payload.user)
       setSession(nextUser, payload.token)
       return nextUser
-    } catch (error) {
+    } catch (error: any) {
+      const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
+      if (isNetworkError) {
+        const localMatch = findLocalAccount(email, password)
+        if (localMatch) {
+          const nextUser: User = {
+            id: localMatch.id,
+            email: localMatch.email,
+            firstName: localMatch.firstName,
+            lastName: localMatch.lastName,
+            phone: localMatch.phone,
+            roles: localMatch.roles,
+          }
+          setSession(nextUser, `local-token-${Date.now()}`)
+          return nextUser
+        }
+      }
       throw new Error(getErrorMessage(error, 'Unable to sign in. Check your email and password.'))
     }
   }
@@ -162,7 +178,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       const nextUser = normalizeUser(body.user)
       setSession(nextUser, body.token)
-    } catch (error) {
+    } catch (error: any) {
+      const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
+      if (isNetworkError) {
+        const locals = readLocalUsers()
+        if (locals.some((l) => l.email.toLowerCase() === payload.email.toLowerCase())) {
+          throw new Error('An account with this email already exists.')
+        }
+        const newLocal: LocalAccount = {
+          ...payload,
+          id: Date.now(),
+          roles: ['buyer'],
+        }
+        writeLocalUsers([...locals, newLocal])
+        const nextUser: User = {
+          id: newLocal.id,
+          email: newLocal.email,
+          firstName: newLocal.firstName,
+          lastName: newLocal.lastName,
+          phone: newLocal.phone,
+          roles: newLocal.roles,
+        }
+        setSession(nextUser, `local-token-${Date.now()}`)
+        return
+      }
       throw new Error(getErrorMessage(error, 'Registration failed. Please check your details and try again.'))
     }
   }
