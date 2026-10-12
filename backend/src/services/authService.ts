@@ -117,69 +117,103 @@ export const authService = {
   },
 
   async login(data: LoginData) {
-    // Attempt MySQL first if available
-    try {
-      const connection = await pool.getConnection();
+    if (db.getIsMySqlConnected()) {
       try {
-        const [users] = await connection.query(
-          `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.is_verified, u.is_active,
-           GROUP_CONCAT(r.name) as roles
-           FROM users u
-           LEFT JOIN user_roles ur ON u.id = ur.user_id
-           LEFT JOIN roles r ON ur.role_id = r.id
-           WHERE u.email = ?
-           GROUP BY u.id`,
-          [data.email]
-        );
+        const connection = await pool.getConnection();
+        try {
+          const [users] = await connection.query(
+            `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.is_verified, u.is_active,
+             GROUP_CONCAT(r.name) as roles
+             FROM users u
+             LEFT JOIN user_roles ur ON u.id = ur.user_id
+             LEFT JOIN roles r ON ur.role_id = r.id
+             WHERE u.email = ?
+             GROUP BY u.id`,
+            [data.email]
+          );
 
-        const user = (users as any)[0];
-        if (!user) throw new Error('Invalid credentials');
-        if (!user.is_active) throw new Error('Account is deactivated');
+          const user = (users as any)[0];
+          if (!user) {
+            const err: any = new Error('Invalid email or password');
+            err.statusCode = 401;
+            err.code = 'INVALID_CREDENTIALS';
+            throw err;
+          }
+          if (!user.is_active) {
+            const err: any = new Error('Account is deactivated. Please contact support.');
+            err.statusCode = 403;
+            err.code = 'ACCOUNT_DEACTIVATED';
+            throw err;
+          }
 
-        const isValid = await bcrypt.compare(data.password, user.password_hash);
-        if (!isValid) throw new Error('Invalid credentials');
+          const isValid = await bcrypt.compare(data.password, user.password_hash);
+          if (!isValid) {
+            const err: any = new Error('Invalid email or password');
+            err.statusCode = 401;
+            err.code = 'INVALID_CREDENTIALS';
+            throw err;
+          }
 
-        user.roles = user.roles ? user.roles.split(',') : ['buyer'];
+          user.roles = user.roles ? user.roles.split(',') : ['buyer'];
 
-        const token = jwt.sign(
-          { id: user.id, email: user.email, roles: user.roles },
-          config.jwt.secret,
-          jwtSignOptions
-        );
+          const token = jwt.sign(
+            { id: user.id, email: user.email, roles: user.roles },
+            config.jwt.secret,
+            jwtSignOptions
+          );
 
-        delete user.password_hash;
-        return { user, token };
-      } finally {
-        connection.release();
+          delete user.password_hash;
+          return { user, token };
+        } finally {
+          connection.release();
+        }
+      } catch (mysqlErr: any) {
+        if (mysqlErr.statusCode) {
+          throw mysqlErr;
+        }
+        if (process.env.DB_REQUIRED === 'true') {
+          console.error('Authoritative MySQL query failed in strict mode:', mysqlErr.message);
+          const err: any = new Error('Authoritative database error during login');
+          err.statusCode = 500;
+          err.code = 'DATABASE_ERROR';
+          throw err;
+        }
+        console.warn('MySQL login notice, using embedded authoritative store:', mysqlErr.message);
       }
-    } catch (mysqlErr: any) {
-      if (mysqlErr.message === 'Invalid credentials' || mysqlErr.message === 'Account is deactivated') {
-        throw mysqlErr;
-      }
-      // Fallback to high-reliability local store
-      const user = db.getUserByEmail(data.email);
-      if (!user) {
-        throw new Error('Invalid credentials');
-      }
-
-      if (!user.is_active) {
-        throw new Error('Account is deactivated');
-      }
-
-      const isValid = await bcrypt.compare(data.password, user.password_hash);
-      if (!isValid) {
-        throw new Error('Invalid credentials');
-      }
-
-      const token = jwt.sign(
-        { id: user.id, email: user.email, roles: user.roles },
-        config.jwt.secret,
-        jwtSignOptions
-      );
-
-      const { password_hash, ...safeUser } = user;
-      return { user: safeUser, token };
     }
+
+    // High-reliability store lookup
+    const user = db.getUserByEmail(data.email);
+    if (!user) {
+      const err: any = new Error('Invalid email or password');
+      err.statusCode = 401;
+      err.code = 'INVALID_CREDENTIALS';
+      throw err;
+    }
+
+    if (!user.is_active) {
+      const err: any = new Error('Account is deactivated. Please contact support.');
+      err.statusCode = 403;
+      err.code = 'ACCOUNT_DEACTIVATED';
+      throw err;
+    }
+
+    const isValid = await bcrypt.compare(data.password, user.password_hash);
+    if (!isValid) {
+      const err: any = new Error('Invalid email or password');
+      err.statusCode = 401;
+      err.code = 'INVALID_CREDENTIALS';
+      throw err;
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, roles: user.roles },
+      config.jwt.secret,
+      jwtSignOptions
+    );
+
+    const { password_hash, ...safeUser } = user;
+    return { user: safeUser, token };
   },
 
   async getUserById(userId: number) {

@@ -118,6 +118,38 @@ async function runTests() {
   assert(driverLogin.status === 200 && driverLogin.body.data?.token, 'Driver login issues valid cryptographic JWT', driverLogin.body);
   const driverToken = driverLogin.body.data?.token;
 
+  // 1.8 Invalid Password
+  const invalidPassLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: 'buyer@agrimarket.com', password: 'wrongpassword' }),
+  });
+  assert(invalidPassLogin.status === 401, 'Invalid password returns 401 Unauthorized', invalidPassLogin);
+
+  // 1.9 Nonexistent Account
+  const nonexistentLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: 'nonexistent@agrimarket.com', password: 'somepassword' }),
+  });
+  assert(nonexistentLogin.status === 401, 'Nonexistent account returns 401 Unauthorized', nonexistentLogin);
+
+  // 1.10 Malformed Request Body
+  const malformedLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: 'not-an-email', password: '' }),
+  });
+  assert(malformedLogin.status === 400, 'Malformed login request returns 400 Validation Error', malformedLogin);
+
+  // 1.11 Diagnostic Health Check Endpoint
+  const healthCheck = await request('/health');
+  assert(
+    healthCheck.status === 200 &&
+      healthCheck.body.status === 'ok' &&
+      healthCheck.body.database &&
+      typeof healthCheck.body.database.connected === 'boolean',
+    'Diagnostic health check endpoint reports system availability and database status without leaking secrets',
+    healthCheck.body
+  );
+
 
   // TEST SUITE 2: RBAC ENFORCEMENT & RESTRICTED ACCESS
   console.log('\n--- SUITE 2: Role-Based Access Control (RBAC) ---');

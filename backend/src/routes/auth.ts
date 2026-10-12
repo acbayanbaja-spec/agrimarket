@@ -39,7 +39,9 @@ router.post('/login', validate(loginSchema), async (req, res) => {
     
     res.json(successResponse(result, 'Login successful'));
   } catch (error: any) {
-    res.status(401).json(errorResponse(error.message, null, 'LOGIN_FAILED', 401));
+    const statusCode = error.statusCode || 401;
+    const errorCode = error.code || (statusCode === 403 ? 'ACCOUNT_DEACTIVATED' : (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'INVALID_CREDENTIALS'));
+    res.status(statusCode).json(errorResponse(error.message || 'Authentication failed', null, errorCode, statusCode));
   }
 });
 

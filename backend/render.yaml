@@ -26,8 +26,10 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: CORS_ORIGIN
-        value: https://agrimarket.vercel.app,exp://localhost:19000
+        value: https://agrimarket-platform.vercel.app,https://agrimarket.vercel.app,exp://localhost:19000,http://localhost:5173
       - key: FRONTEND_URL
-        value: https://agrimarket.vercel.app
+        value: https://agrimarket-platform.vercel.app
       - key: MOBILE_URL
         value: exp://localhost:19000
+      - key: DB_REQUIRED
+        value: false

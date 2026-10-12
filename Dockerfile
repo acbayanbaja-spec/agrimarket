@@ -20,6 +20,9 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
+COPY backend/data ./data
+COPY backend/src/database/schema.sql ./dist/database/schema.sql
+RUN mkdir -p ./uploads
 
 EXPOSE 10000
 CMD ["node", "dist/index.js"]

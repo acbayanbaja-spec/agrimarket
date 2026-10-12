@@ -29,6 +29,7 @@ const MarketplacePage = () => {
   const seller = params.get('seller') || ''
   const query = params.get('q') || ''
   const locationFilter = params.get('location') || ''
+  const organicParam = params.get('organic') === 'true'
 
   const updateParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params)
@@ -54,7 +55,8 @@ const MarketplacePage = () => {
         (availability === 'out' && product.stock <= 0)
       const matchesLocation = !locationFilter || product.location === locationFilter
       const matchesBudget = !budget || product.price <= budget
-      return matchesCategory && matchesQuery && matchesSeller && matchesStock && matchesBudget && matchesLocation
+      const matchesOrganic = !organicParam || product.organic === true
+      return matchesCategory && matchesQuery && matchesSeller && matchesStock && matchesBudget && matchesLocation && matchesOrganic
     })
     if (budget && sort === 'featured') list = filterByBudget(list, budget)
     if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price)
@@ -62,7 +64,7 @@ const MarketplacePage = () => {
     if (sort === 'rating') list = [...list].sort((a, b) => recommended.findIndex((item) => item.id === a.id) - recommended.findIndex((item) => item.id === b.id))
     if (sort === 'stock') list = [...list].sort((a, b) => a.stock - b.stock)
     return list
-  }, [products, selectedCategory, query, seller, sort, recommended, availability, budget, locationFilter])
+  }, [products, selectedCategory, query, seller, sort, recommended, availability, budget, locationFilter, organicParam])
 
   return (
     <div className="page-shell">
@@ -127,6 +129,17 @@ const MarketplacePage = () => {
             {label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => updateParams({ organic: organicParam ? null : 'true' })}
+          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 transition-all ${
+            organicParam
+              ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
+              : 'bg-white border border-gray-200 text-gray-700 hover:border-emerald-300'
+          }`}
+        >
+          <span>🌱</span> {organicParam ? 'Organic Only ✓' : 'Organic Only'}
+        </button>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-4 mb-6">

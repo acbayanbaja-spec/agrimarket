@@ -28,6 +28,7 @@ import aiRoutes from './routes/ai';
 import paymentRoutes from './routes/payments';
 import uploadRoutes from './routes/upload';
 import path from 'path';
+import { db } from './database/store';
 
 dotenv.config();
 
@@ -87,11 +88,33 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  const isDbConnected = db.getIsMySqlConnected();
+  res.json({
+    status: 'ok',
+    version: '1.0.0',
+    environment: config.nodeEnv,
+    database: {
+      connected: isDbConnected,
+      mode: isDbConnected ? 'authoritative_mysql' : 'resilient_embedded',
+      type: 'mysql',
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  const isDbConnected = db.getIsMySqlConnected();
+  res.json({
+    status: 'ok',
+    version: '1.0.0',
+    environment: config.nodeEnv,
+    database: {
+      connected: isDbConnected,
+      mode: isDbConnected ? 'authoritative_mysql' : 'resilient_embedded',
+      type: 'mysql',
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // API Routes

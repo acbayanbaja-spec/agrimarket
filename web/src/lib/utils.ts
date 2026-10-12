@@ -12,12 +12,20 @@ export function formatPeso(amount: number) {
 
 export function getErrorMessage(error: unknown, fallback = 'Something went wrong') {
   if (typeof error === 'object' && error && 'response' in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response
+    const response = (error as { response?: { status?: number; data?: { message?: string; error?: string } } }).response
     if (response?.data?.message) return response.data.message
+    if (response?.data?.error) return response.data.error
+    if (response?.status === 500) return 'Server temporarily unavailable. Please try again in a few moments.'
+    if (response?.status === 401) return 'Invalid email or password. Please try again.'
+    if (response?.status === 403) return 'Account is deactivated or unauthorized.'
+    if (response?.status === 429) return 'Too many requests. Please wait a moment and try again.'
   }
   if (error instanceof Error && error.message) {
     if (error.message === 'Network Error' || error.message.includes('Network Error')) {
       return 'Unable to connect to AgriMarket server. The backend may be waking up from sleep (Render free tier), please wait a moment and try again.'
+    }
+    if (error.message.includes('status code 500')) {
+      return 'Server temporarily unavailable. Please try again in a few moments.'
     }
     return error.message
   }
