@@ -57,6 +57,7 @@ export interface OrderItemEntity {
   name: string;
   price: number;
   quantity: number;
+  unit?: string;
   image: string;
   seller: string;
   sellerId: string;
@@ -769,9 +770,69 @@ class DatabaseStore {
       this.isMySqlConnected = true;
       conn.release();
       console.log('✅ Connected to external MySQL database instance.');
-    } catch (e) {
+      await this.initMySqlSchemaAndData();
+    } catch (e: any) {
       this.isMySqlConnected = false;
       console.log('ℹ️ Running on resilient high-performance local embedded data store.');
+    }
+  }
+
+  private async initMySqlSchemaAndData() {
+    if (!this.isMySqlConnected) return;
+    try {
+      const schemaPath = path.join(__dirname, 'schema.sql');
+      if (fs.existsSync(schemaPath)) {
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+        const statements = schema
+          .split(';')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0 && !s.startsWith('--'));
+        for (const statement of statements) {
+          try {
+            await pool.query(statement);
+          } catch (err: any) {
+            // Table/index may already exist
+          }
+        }
+        console.log('✅ MySQL schema tables verified and ready.');
+      }
+
+      // Check if users table is populated; if empty, safely seed from current in-memory store
+      const [rows]: any = await pool.query('SELECT COUNT(*) as count FROM users');
+      const count = rows[0]?.count || 0;
+      if (count === 0 && this.data.users.length > 0) {
+        console.log('🔄 Safely migrating existing records into MySQL database...');
+        for (const u of this.data.users) {
+          await pool.query(
+            'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email)',
+            [u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone || null, u.is_verified ? 1 : 0, u.is_active ? 1 : 0]
+          );
+        }
+        for (const c of this.data.categories) {
+          await pool.query(
+            'INSERT INTO categories (id, name, description, icon, image_url, is_active) VALUES (?, ?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE name=VALUES(name)',
+            [c.id, c.name, c.description, c.icon, c.imageUrl]
+          );
+        }
+        for (const p of this.data.products) {
+          await pool.query(
+            'INSERT INTO products (id, seller_user_id, seller_id, category, name, description, price, unit, stock, rating, reviews_count, image, location, is_organic, is_active, is_unlisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stock=VALUES(stock)',
+            [p.id, p.sellerUserId, p.sellerId, p.category, p.name, p.description, p.price, p.unit, p.stock, p.rating, p.reviews, p.image, p.location, p.organic ? 1 : 0, p.isActive !== false ? 1 : 0, p.isUnlisted ? 1 : 0]
+          );
+        }
+        console.log('✅ Safely migrated catalog and user records into MySQL.');
+      }
+    } catch (err: any) {
+      console.warn('⚠️ Notice during MySQL schema init / migration:', err.message);
+    }
+  }
+
+  public async executeMySql(query: string, params: any[] = []) {
+    if (!this.isMySqlConnected) return;
+    try {
+      await pool.query(query, params);
+    } catch (err: any) {
+      console.warn(`MySQL write-through notice: ${err.message}`);
     }
   }
 
@@ -841,7 +902,14 @@ class DatabaseStore {
         fs.mkdirSync(DATA_DIR, { recursive: true });
       }
       const toWrite = dataToSave || this.data;
-      fs.writeFileSync(DB_FILE, JSON.stringify(toWrite, null, 2), 'utf-8');
+      const tmpFile = path.join(DATA_DIR, `agrimarket_db.${Date.now()}.${Math.random().toString(36).substring(2, 7)}.tmp`);
+      fs.writeFileSync(tmpFile, JSON.stringify(toWrite, null, 2), 'utf-8');
+      try {
+        fs.renameSync(tmpFile, DB_FILE);
+      } catch {
+        fs.copyFileSync(tmpFile, DB_FILE);
+        fs.unlinkSync(tmpFile);
+      }
     } catch (err) {
       console.error('Error saving database store:', err);
     }
@@ -865,6 +933,12 @@ class DatabaseStore {
     const newUser: UserEntity = { ...user, id: newId };
     this.data.users.push(newUser);
     this.saveData();
+
+    this.executeMySql(
+      'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email)',
+      [newUser.id, newUser.email, newUser.password_hash, newUser.first_name, newUser.last_name, newUser.phone || null, newUser.is_verified ? 1 : 0, newUser.is_active ? 1 : 0]
+    );
+
     return newUser;
   }
 
@@ -873,6 +947,12 @@ class DatabaseStore {
     if (idx !== -1) {
       this.data.users[idx] = { ...this.data.users[idx], ...updates };
       this.saveData();
+
+      this.executeMySql(
+        'UPDATE users SET first_name = COALESCE(?, first_name), last_name = COALESCE(?, last_name), is_active = COALESCE(?, is_active) WHERE id = ?',
+        [updates.first_name || null, updates.last_name || null, updates.is_active !== undefined ? (updates.is_active ? 1 : 0) : null, id]
+      );
+
       return this.data.users[idx];
     }
     return null;
@@ -979,6 +1059,12 @@ class DatabaseStore {
   public addProduct(product: ProductEntity) {
     this.data.products.unshift(product);
     this.saveData();
+
+    this.executeMySql(
+      'INSERT INTO products (id, seller_user_id, seller_id, category, name, description, price, unit, stock, rating, reviews_count, image, location, is_organic, is_active, is_unlisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stock=VALUES(stock), price=VALUES(price)',
+      [product.id, product.sellerUserId, product.sellerId, product.category, product.name, product.description, product.price, product.unit, product.stock, product.rating || 5, product.reviews || 0, product.image, product.location, product.organic ? 1 : 0, product.isActive !== false ? 1 : 0, product.isUnlisted ? 1 : 0]
+    );
+
     return product;
   }
 
@@ -987,6 +1073,12 @@ class DatabaseStore {
     if (idx !== -1) {
       this.data.products[idx] = { ...this.data.products[idx], ...updates };
       this.saveData();
+
+      this.executeMySql(
+        'UPDATE products SET price = COALESCE(?, price), stock = COALESCE(?, stock), is_active = COALESCE(?, is_active), is_unlisted = COALESCE(?, is_unlisted) WHERE id = ?',
+        [updates.price !== undefined ? updates.price : null, updates.stock !== undefined ? updates.stock : null, updates.isActive !== undefined ? (updates.isActive ? 1 : 0) : null, updates.isUnlisted !== undefined ? (updates.isUnlisted ? 1 : 0) : null, id]
+      );
+
       return this.data.products[idx];
     }
     return null;
@@ -998,6 +1090,7 @@ class DatabaseStore {
       this.data.products = this.data.products.filter((p) => p.id !== id);
       if (this.data.products.length !== prevLen) {
         this.saveData();
+        this.executeMySql('DELETE FROM products WHERE id = ?', [id]);
         return true;
       }
       return false;
@@ -1009,6 +1102,7 @@ class DatabaseStore {
       product.is_active = false;
       product.isUnlisted = true;
       this.saveData();
+      this.executeMySql('UPDATE products SET is_deleted = 1, is_active = 0, is_unlisted = 1 WHERE id = ?', [id]);
       return true;
     }
     return false;
@@ -1106,6 +1200,7 @@ class DatabaseStore {
       prod.availabilityStatus =
         prod.stock === 0 ? 'out_of_stock' : prod.stock <= 10 ? 'low_stock' : 'in_stock';
       updatedProducts.push({ ...prod });
+      this.executeMySql('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.productId]);
     }
 
     this.saveData();
@@ -1129,10 +1224,12 @@ class DatabaseStore {
           prod.availabilityStatus = 'low_stock';
         }
         updatedProducts.push({ ...prod });
+        this.executeMySql('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.productId]);
       }
     }
 
     order.stockRestored = true;
+    this.executeMySql('UPDATE orders SET stock_restored = 1 WHERE id = ?', [orderId]);
     this.saveData();
     return updatedProducts;
   }
@@ -1224,6 +1321,20 @@ class DatabaseStore {
     this.data.delivery_jobs.unshift(deliveryJob);
 
     this.saveData();
+
+    this.executeMySql(
+      'INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status)',
+      [order.id, order.receiptNo, order.userId, order.buyerName, order.buyerPhone || null, order.address, order.subtotal, order.shippingFee, order.shippingDiscount, order.couponCode || null, order.pointsEarned, order.pointsRedeemed, order.total, order.status, order.payment, order.paymentRef || null, order.paymentStatus || 'pending', order.driverId || null]
+    );
+    if (order.items && Array.isArray(order.items)) {
+      for (const item of order.items) {
+        this.executeMySql(
+          'INSERT INTO order_items (order_id, product_id, name, price, quantity, unit, image, seller, seller_id, seller_user_id, pickup_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [order.id, item.productId, item.name, item.price, item.quantity, item.unit || 'kg', item.image || null, item.seller || null, item.sellerId || null, item.sellerUserId || 2, item.pickupLocation || null]
+        );
+      }
+    }
+
     return order;
   }
 
@@ -1240,6 +1351,11 @@ class DatabaseStore {
         status,
         ...extra,
       };
+
+      this.executeMySql(
+        'UPDATE orders SET status = ?, payment_status = COALESCE(?, payment_status), driver_id = COALESCE(?, driver_id) WHERE id = ?',
+        [status, extra?.paymentStatus || null, extra?.driverId || null, id]
+      );
 
       // Also sync delivery job status
       const delIdx = this.data.delivery_jobs.findIndex((d) => d.orderId === id);

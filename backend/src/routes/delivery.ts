@@ -86,7 +86,9 @@ router.put('/deliveries/:id/status', authenticate, authorize('delivery', 'admin'
       const extra: any = {};
       if (status === 'Delivered') {
         extra.deliveredAt = new Date().toISOString();
-        extra.paymentStatus = 'completed';
+        if (order.payment === 'Cash on delivery') {
+          extra.paymentStatus = 'paid';
+        }
       }
       db.updateOrderStatus(order.id, status, extra);
 

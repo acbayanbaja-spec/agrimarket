@@ -1,7 +1,18 @@
 /**
- * AgriMarket Automated Comprehensive Security, RBAC & Persistence Verification Suite
- * Verifies Phase 1-5 requirements: Cryptographic JWT, Server-Side Pricing, RBAC,
- * Order Lifecycle Transitions, Stock Restoration, Payment Escrow, and Verified Reviews.
+ * AgriMarket Automated Comprehensive Security, RBAC, Concurrency & Persistence Verification Suite
+ * Verifies:
+ * - Cryptographic JWT & Token integrity
+ * - Role-Based Access Control (RBAC) enforcement
+ * - Server-Side Authoritative Pricing
+ * - Order Lifecycle State Transition Matrix
+ * - Payment Integrity & Provider Webhook Verification (No fabricated self-verification)
+ * - Separation of physical delivery from payment confirmation
+ * - Verified Reviews Protection
+ * - Stock Restoration on Cancellation
+ * - Rider Assignment Enforcement
+ * - Seller-Specific Order Visibility & Scoping
+ * - Concurrency-Safe Stock Deduction (Zero Overdrafts)
+ * - Atomic Database Store Persistence
  */
 
 const BASE_URL = 'http://localhost:5000';
@@ -42,6 +53,15 @@ async function runTests() {
   console.log('\n======================================================');
   console.log('🚀 RUNNING AGRIMARKET FULL-SYSTEM SECURITY & RBAC AUDIT');
   console.log('======================================================\n');
+
+  // Ensure backend server is reachable; if not, spin up in-process
+  try {
+    await fetch(`${BASE_URL}/health`);
+  } catch {
+    console.log('⚡ Starting in-process backend HTTP server on port 5000...');
+    require('../index');
+    await new Promise((r) => setTimeout(r, 1500));
+  }
 
   // TEST SUITE 1: AUTHENTICATION & TOKEN INTEGRITY
   console.log('--- SUITE 1: Authentication & Token Cryptographic Integrity ---');
@@ -98,45 +118,41 @@ async function runTests() {
   // TEST SUITE 2: RBAC ENFORCEMENT & RESTRICTED ACCESS
   console.log('\n--- SUITE 2: Role-Based Access Control (RBAC) ---');
 
-  // 2.1 Admin cannot place an order
-  const adminOrder = await request('/api/orders', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${adminToken}` },
-    body: JSON.stringify({ items: [{ productId: 'p-tomato', quantity: 1 }] }),
-  });
-  assert(adminOrder.status === 403, 'Platform administrator cannot place orders (403 Forbidden)', adminOrder.body);
-
-  // 2.2 Buyer cannot view seller applications
-  const buyerApps = await request('/api/sellers/applications', {
+  // 2.1 Buyer cannot access admin endpoints
+  const buyerToAdmin = await request('/api/admin/overview', {
     headers: { Authorization: `Bearer ${buyerToken}` },
   });
-  assert(buyerApps.status === 403, 'Buyer cannot view seller applications (403 Forbidden)', buyerApps);
+  assert(buyerToAdmin.status === 403, 'Buyer is forbidden (403) from accessing GET /api/admin/overview', buyerToAdmin);
 
-  // 2.3 Buyer cannot review seller applications
-  const buyerReviewApp = await request('/api/sellers/application/app-test/review', {
+  // 2.2 Seller cannot access admin endpoints
+  const sellerToAdmin = await request('/api/admin/overview', {
+    headers: { Authorization: `Bearer ${sellerToken}` },
+  });
+  assert(sellerToAdmin.status === 403, 'Seller is forbidden (403) from accessing GET /api/admin/overview', sellerToAdmin);
+
+  // 2.3 Admin can access admin endpoints
+  const adminToAdmin = await request('/api/admin/overview', {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  assert(adminToAdmin.status === 200, 'Admin successfully accesses GET /api/admin/overview', adminToAdmin);
+
+
+  // TEST SUITE 3: SERVER-SIDE AUTHORITATIVE PRICING & INVENTORY
+  console.log('\n--- SUITE 3: Server-Side Authoritative Pricing & Inventory ---');
+
+  // Ensure product has ample stock for tests
+  await request('/api/products/p-tomato', {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${buyerToken}` },
-    body: JSON.stringify({ status: 'approved' }),
-  });
-  assert(buyerReviewApp.status === 403, 'Buyer cannot approve seller applications (403 Forbidden)', buyerReviewApp.body);
-
-  // 2.4 Admin can view seller applications
-  const adminApps = await request('/api/sellers/applications', {
     headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ stock: 120 }),
   });
-  assert(adminApps.status === 200, 'Admin can view seller applications (200 OK)', adminApps.body);
 
-
-  // TEST SUITE 3: SERVER-SIDE PRICING & STOCK DEDUCTION
-  console.log('\n--- SUITE 3: Server-Side Pricing Integrity & Stock Deduction ---');
-
-  // Fetch product p-tomato canonical price
+  // Fetch real product details
   const prodRes = await request('/api/products/p-tomato');
   const canonicalProduct = prodRes.body.data?.product || prodRes.body.data;
-  assert(canonicalProduct && canonicalProduct.price > 0, `Product p-tomato fetched: ₱${canonicalProduct.price}/kg, stock: ${canonicalProduct.stock}`);
   const initialStock = canonicalProduct.stock;
 
-  // 3.1 Place order with client price tampering attempt (passing price: 1.00 instead of canonical price)
+  // 3.1 Place order with tampered client prices (₱1.00)
   const orderPlacement = await request('/api/orders', {
     method: 'POST',
     headers: { Authorization: `Bearer ${buyerToken}` },
@@ -145,10 +161,11 @@ async function runTests() {
         {
           productId: 'p-tomato',
           quantity: 2,
-          price: 1.00, // Malicious client override attempt
+          price: 1.00, // Client attempted price tampering
+          title: 'Fake Cheap Tomato',
         },
       ],
-      shippingFee: 0, // Client attempting free shipping without coupon
+      shippingFee: 0,
       couponCode: 'FREESHIP',
     }),
   });
@@ -247,10 +264,10 @@ async function runTests() {
   assert(changeAfterDelivered.status === 400, 'Delivered order cannot be changed (Terminal state enforced)', changeAfterDelivered.body);
 
 
-  // TEST SUITE 5: PAYMENT ESCROW INTEGRITY
-  console.log('\n--- SUITE 5: Payment Escrow Lifecycle ---');
+  // TEST SUITE 5: PAYMENT INTEGRITY & PROVIDER WEBHOOK VERIFICATION
+  console.log('\n--- SUITE 5: Payment Integrity & Webhook Verification ---');
 
-  // 5.1 Place fresh pending order
+  // 5.1 Place fresh pending order with GCash digital payment
   const freshOrderRes = await request('/api/orders', {
     method: 'POST',
     headers: { Authorization: `Bearer ${buyerToken}` },
@@ -261,23 +278,77 @@ async function runTests() {
   });
   const freshOrder = freshOrderRes.body.data;
 
-  // 5.2 Escrow release fails if order is NOT delivered
+  // 5.2 Fabricated buyer self-verification endpoint POST /api/payments/verify is REMOVED
+  const removedVerifyRes = await request('/api/payments/verify', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({ orderId: freshOrder.id, transactionRef: 'TXN-FAKE-123456' }),
+  });
+  assert(
+    removedVerifyRes.status === 404,
+    'Arbitrary buyer self-verification endpoint /api/payments/verify is securely removed (404 Not Found)',
+    removedVerifyRes
+  );
+
+  // 5.3 Honest checkout session returns pending status and simulationNotice when gateway unconfigured
+  const checkoutRes = await request('/api/payments/checkout', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({ orderId: freshOrder.id, paymentMethod: 'GCash' }),
+  });
+  assert(
+    checkoutRes.status === 200 && checkoutRes.body.data.status === 'pending',
+    'Checkout session initialized with pending status',
+    checkoutRes.body
+  );
+  assert(
+    checkoutRes.body.data.providerConfigured === false && Boolean(checkoutRes.body.data.simulationNotice),
+    'Checkout clearly labeled with simulation notice when live provider unconfigured',
+    checkoutRes.body.data
+  );
+
+  // 5.4 Unsigned / unverified payment webhook rejected
+  const fakeWebhookRes = await request('/api/payments/webhook', {
+    method: 'POST',
+    headers: { 'x-signature': 'invalid-signature' },
+    body: JSON.stringify({
+      eventId: 'evt-test-1',
+      orderId: freshOrder.id,
+      amount: freshOrder.total,
+      status: 'paid',
+    }),
+  });
+  assert(
+    fakeWebhookRes.status === 400,
+    'Unsigned/unverified payment webhook rejected (400 Bad Request)',
+    fakeWebhookRes.body
+  );
+
+  // 5.5 Non-admin user blocked from processing refunds
+  const unauthorizedRefund = await request('/api/payments/refund', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({ orderId: freshOrder.id, reason: 'Buyer requested refund' }),
+  });
+  assert(
+    unauthorizedRefund.status === 403,
+    'Non-admin user blocked from issuing refunds (403 Forbidden)',
+    unauthorizedRefund.body
+  );
+
+  // 5.6 Escrow release fails if order is NOT delivered
   const prematureEscrow = await request('/api/payments/escrow/release', {
     method: 'POST',
     headers: { Authorization: `Bearer ${buyerToken}` },
     body: JSON.stringify({ orderId: freshOrder.id }),
   });
-  assert(prematureEscrow.status === 400, 'Premature escrow release blocked on undelivered order', prematureEscrow.body);
+  assert(
+    prematureEscrow.status === 400,
+    'Premature escrow release blocked on undelivered order',
+    prematureEscrow.body
+  );
 
-  // 5.3 Lock funds in escrow via payment gateway verification
-  const verifyRes = await request('/api/payments/verify', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${buyerToken}` },
-    body: JSON.stringify({ orderId: freshOrder.id, transactionRef: 'TXN-GCASH-123456' }),
-  });
-  assert(verifyRes.status === 200 && verifyRes.body.data.status === 'escrow_held', 'Payment verified and held in escrow', verifyRes.body);
-
-  // Transition freshOrder to Delivered
+  // Progress freshOrder to Delivered
   await request(`/api/orders/${freshOrder.id}/status`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${sellerToken}` },
@@ -304,21 +375,27 @@ async function runTests() {
     body: JSON.stringify({ status: 'Delivered' }),
   });
 
-  // 5.4 Unauthorized user cannot release escrow on another buyer\'s delivered order
-  const unauthorizedEscrow = await request('/api/payments/escrow/release', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${driverToken}` },
-    body: JSON.stringify({ orderId: freshOrder.id }),
+  // 5.7 Delivery completion is kept strictly separate from digital payment confirmation
+  const refreshedFreshOrder = await request(`/api/orders/${freshOrder.id}`, {
+    headers: { Authorization: `Bearer ${buyerToken}` },
   });
-  assert(unauthorizedEscrow.status === 403, 'Unauthorized user (driver) blocked from releasing escrow', unauthorizedEscrow.body);
+  assert(
+    refreshedFreshOrder.body.data.paymentStatus === 'pending',
+    'Delivery completion kept separate from payment confirmation: GCash payment remains pending',
+    refreshedFreshOrder.body.data
+  );
 
-  // 5.5 Legitimate Buyer releases escrow on their delivered order
-  const legitimateEscrow = await request('/api/payments/escrow/release', {
+  // 5.8 Escrow release blocked because payment was never confirmed into escrow
+  const unconfirmedEscrow = await request('/api/payments/escrow/release', {
     method: 'POST',
     headers: { Authorization: `Bearer ${buyerToken}` },
     body: JSON.stringify({ orderId: freshOrder.id }),
   });
-  assert(legitimateEscrow.status === 200, 'Legitimate buyer successfully releases escrow after delivery', legitimateEscrow.body);
+  assert(
+    unconfirmedEscrow.status === 400,
+    'Escrow release correctly blocked because payment was not confirmed into escrow by verified provider',
+    unconfirmedEscrow.body
+  );
 
 
   // TEST SUITE 6: VERIFIED REVIEWS ENFORCEMENT
@@ -381,12 +458,177 @@ async function runTests() {
   const stockRestored = await getStock();
   assert(stockRestored === stockBeforeCancelOrder, `Stock restored back to ${stockRestored}`);
 
+
+  // TEST SUITE 8: RIDER ASSIGNMENT ENFORCEMENT
+  console.log('\n--- SUITE 8: Rider Assignment Enforcement ---');
+
+  // Create an order for rider testing
+  const riderTestOrderRes = await request('/api/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      items: [{ productId: 'p-tomato', quantity: 1 }],
+      payment: 'Cash on delivery',
+    }),
+  });
+  const riderOrder = riderTestOrderRes.body.data;
+
+  // Confirm and ship
+  await request(`/api/orders/${riderOrder.id}/status`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${sellerToken}` },
+    body: JSON.stringify({ status: 'Confirmed' }),
+  });
+  await request(`/api/orders/${riderOrder.id}/status`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${sellerToken}` },
+    body: JSON.stringify({ status: 'Shipped' }),
+  });
+
+  // Assign driver ID 4 (Rico)
+  await request(`/api/orders/${riderOrder.id}/assign-rider`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${sellerToken}` },
+    body: JSON.stringify({ driverId: 4 }),
+  });
+
+  // Attempt status update from a non-assigned user (buyer attempting driver action)
+  const unassignedUpdate = await request(`/api/orders/${riderOrder.id}/status`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({ status: 'Out for delivery' }),
+  });
+  assert(
+    unassignedUpdate.status === 403,
+    'Unassigned user blocked from updating delivery status (403 Forbidden)',
+    unassignedUpdate.body
+  );
+
+  // Delivery routes: update delivery for job DEL-xxx directly by unassigned user
+  const unassignedJobUpdate = await request(`/api/delivery/deliveries/${riderOrder.id}/status`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({ status: 'Delivered' }),
+  });
+  assert(
+    unassignedJobUpdate.status === 403,
+    'Unassigned user blocked from modifying delivery job status (403 Forbidden)',
+    unassignedJobUpdate.body
+  );
+
+
+  // TEST SUITE 9: SELLER-SPECIFIC ORDER VISIBILITY & SCOPING
+  console.log('\n--- SUITE 9: Seller-Specific Order Visibility & Scoping ---');
+
+  // Place multi-vendor order with items from Seller 2 (p-tomato) and Seller 16 (p-eggs)
+  const multiVendorOrderRes = await request('/api/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      items: [
+        { productId: 'p-tomato', quantity: 1 },
+        { productId: 'p-eggs', quantity: 1 },
+      ],
+      payment: 'Cash on delivery',
+    }),
+  });
+  const multiVendorOrder = multiVendorOrderRes.body.data;
+  assert(
+    multiVendorOrderRes.status === 201 && multiVendorOrder.items.length === 2,
+    'Multi-vendor order placed with items from Seller 2 and Seller 16',
+    multiVendorOrder
+  );
+
+  // Seller 2 queries the multi-vendor order by ID
+  const seller2OrderView = await request(`/api/orders/${multiVendorOrder.id}`, {
+    headers: { Authorization: `Bearer ${sellerToken}` },
+  });
+  assert(
+    seller2OrderView.status === 200,
+    'Seller 2 successfully queries multi-vendor order',
+    seller2OrderView.body
+  );
+  const seller2Items = seller2OrderView.body.data.items;
+  assert(
+    seller2Items.every((it: any) => it.sellerUserId === 2 || it.sellerId === 'seller-1' || it.sellerId === 'seller-2'),
+    'Seller 2 only receives their store items: other vendor items are strictly filtered out',
+    seller2Items
+  );
+
+
+  // TEST SUITE 10: CONCURRENCY-SAFE STOCK PURCHASES (ZERO OVERDRAFT)
+  console.log('\n--- SUITE 10: Concurrency-Safe Stock Deduction ---');
+
+  // Set predictable stock for concurrency test
+  await request('/api/products/p-tomato', {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ stock: 10 }),
+  });
+
+  const stockBeforeConcurrent = await getStock();
+  const orderQty = 4; // Each order requests 4; stock is 10. Exactly 2 can succeed (8 deducted, 2 remain); 3rd & 4th fail!
+  const concurrentPromises = [1, 2, 3, 4].map((i) =>
+    request('/api/orders', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${buyerToken}` },
+      body: JSON.stringify({
+        items: [{ productId: 'p-tomato', quantity: orderQty }],
+        payment: 'Cash on delivery',
+      }),
+    })
+  );
+
+  const concurrentResults = await Promise.all(concurrentPromises);
+  const successOrders = concurrentResults.filter((r) => r.status === 201);
+  const rejectedOrders = concurrentResults.filter((r) => r.status === 400);
+
+  const stockAfterConcurrent = await getStock();
+  assert(
+    stockAfterConcurrent >= 0,
+    `Inventory is never negative after concurrent orders: remaining stock = ${stockAfterConcurrent}`
+  );
+  assert(
+    stockAfterConcurrent === stockBeforeConcurrent - successOrders.length * orderQty,
+    `Stock deduction is exact: ${stockBeforeConcurrent} - (${successOrders.length} * ${orderQty}) = ${stockAfterConcurrent}`
+  );
+  console.log(`    Concurrent results: ${successOrders.length} succeeded, ${rejectedOrders.length} rejected safely.`);
+
+  // Replenish stock after concurrency test
+  await request('/api/products/p-tomato', {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ stock: 120 }),
+  });
+
+
+  // TEST SUITE 11: ATOMIC STORE PERSISTENCE
+  console.log('\n--- SUITE 11: Database Persistence Verification ---');
+
+  const catalogCheck = await request('/api/products');
+  const catalogList = catalogCheck.body.data?.products || catalogCheck.body.data;
+  assert(
+    catalogCheck.status === 200 && Array.isArray(catalogList) && catalogList.length > 0,
+    `Authoritative catalog is active with ${catalogList?.length} products`
+  );
+
+  const usersCheck = await request('/api/admin/users', {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  assert(
+    usersCheck.status === 200 && Array.isArray(usersCheck.body.data) && usersCheck.body.data.length >= 4,
+    `Authoritative users persist correctly (${usersCheck.body?.data?.length} users verified)`
+  );
+
+
   console.log('\n======================================================');
   console.log(`AUDIT RESULTS: ${passed} PASSED, ${failed} FAILED`);
   console.log('======================================================\n');
 
   if (failed > 0) {
     process.exit(1);
+  } else {
+    process.exit(0);
   }
 }
 

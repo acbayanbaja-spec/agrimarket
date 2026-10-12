@@ -34,6 +34,7 @@ uploads/
 
 # Database
 *.sql
+!backend/src/database/*.sql
 *.db
 
 # Vercel

@@ -18,14 +18,19 @@ async function seed() {
       ON DUPLICATE KEY UPDATE name = name
     `);
 
-    // Insert default admin user
+    // Insert admin user (guard against predictable default password in production)
     console.log('Seeding admin user...');
-    const adminPassword = await bcrypt.hash('admin123', 10);
-    await connection.query(`
-      INSERT INTO users (email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES
-      ('admin@agrimarket.com', ?, 'Admin', 'User', '+639123456789', true, true)
-      ON DUPLICATE KEY UPDATE email = email
-    `, [adminPassword]);
+    if (process.env.NODE_ENV === 'production' && !process.env.BOOTSTRAP_ADMIN_PASSWORD) {
+      console.warn('⚠️ Skipping default admin seed in production: Use bootstrapAdmin script with BOOTSTRAP_ADMIN_PASSWORD.');
+    } else {
+      const adminSecret = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'admin123';
+      const adminPassword = await bcrypt.hash(adminSecret, 12);
+      await connection.query(`
+        INSERT INTO users (email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES
+        (?, ?, 'Admin', 'User', '+639123456789', true, true)
+        ON DUPLICATE KEY UPDATE email = email
+      `, [process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@agrimarket.com', adminPassword]);
+    }
 
     // Get admin user ID
     const [adminUsers] = await connection.query('SELECT id FROM users WHERE email = ?', ['admin@agrimarket.com']);

@@ -41,7 +41,7 @@ router.use(authenticate, authorize('admin'));
 // ==========================================
 // 1. DASHBOARD & MASTER PLATFORM KPIS
 // ==========================================
-router.get('/dashboard', (req: AuthRequest, res: Response) => {
+router.get(['/dashboard', '/overview'], (req: AuthRequest, res: Response) => {
   try {
     const users = db.getUsers();
     const products = db.getProducts(true);

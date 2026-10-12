@@ -1,13 +1,13 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { paymentService } from '../services/paymentService';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { successResponse, errorResponse } from '../utils/response';
 import { db } from '../database/store';
 
 const router = Router();
 
 // @route   POST /api/payments/checkout
-// @desc    Initiate GCash / Maya digital payment session for an order
+// @desc    Initiate digital payment session for an order
 // @access  Private (Buyer / Admin)
 router.post('/checkout', authenticate, (req: AuthRequest, res: Response) => {
   try {
@@ -43,38 +43,22 @@ router.post('/checkout', authenticate, (req: AuthRequest, res: Response) => {
   }
 });
 
-// @route   POST /api/payments/verify
-// @desc    Verify incoming digital payment and hold funds in escrow
-// @access  Private (Buyer / Admin)
-router.post('/verify', authenticate, (req: AuthRequest, res: Response) => {
+// @route   POST /api/payments/webhook
+// @desc    Receive verified payment provider callback (PayMongo / GCash / Maya)
+// @access  Public (Protected via cryptographic HMAC signature)
+router.post('/webhook', (req: Request, res: Response) => {
   try {
-    const { orderId, transactionRef } = req.body;
-    if (!orderId) {
-      return res.status(400).json(errorResponse('orderId is required', null, 'BAD_REQUEST', 400));
-    }
-
-    const order = db.getOrderById(orderId);
-    if (!order) {
-      return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
-    }
-
-    const user = req.user!;
-    const isAdmin = user.roles.includes('admin');
-    const isBuyer = order.userId === user.id;
-
-    if (!isAdmin && !isBuyer) {
-      return res.status(403).json(errorResponse('Unauthorized to verify payment for this order', null, 'FORBIDDEN', 403));
-    }
-
-    const result = paymentService.verifyPayment(orderId, transactionRef);
-    return res.json(successResponse(result, 'Payment verified and secured in escrow'));
+    const signature = (req.headers['x-signature'] || req.headers['paymongo-signature']) as string | undefined;
+    const rawBody = JSON.stringify(req.body);
+    const result = paymentService.handleProviderWebhook(rawBody, signature, req.body);
+    return res.json(successResponse(result, 'Webhook processed successfully'));
   } catch (error: any) {
-    return res.status(400).json(errorResponse(error.message, null, 'PAYMENT_VERIFICATION_FAILED', 400));
+    return res.status(400).json(errorResponse(error.message, null, 'WEBHOOK_VERIFICATION_FAILED', 400));
   }
 });
 
 // @route   POST /api/payments/escrow/release
-// @desc    Release escrow funds to farmer after delivery confirmation
+// @desc    Release escrow funds to seller after delivery confirmation
 // @access  Private (Buyer / Admin)
 router.post('/escrow/release', authenticate, (req: AuthRequest, res: Response) => {
   try {
@@ -100,6 +84,23 @@ router.post('/escrow/release', authenticate, (req: AuthRequest, res: Response) =
     return res.json(successResponse(result, 'Escrow funds successfully disbursed to seller'));
   } catch (error: any) {
     return res.status(400).json(errorResponse(error.message, null, 'ESCROW_RELEASE_FAILED', 400));
+  }
+});
+
+// @route   POST /api/payments/refund
+// @desc    Process refund for an order (Admin only)
+// @access  Private (Admin)
+router.post('/refund', authenticate, authorize('admin'), (req: AuthRequest, res: Response) => {
+  try {
+    const { orderId, reason } = req.body;
+    if (!orderId) {
+      return res.status(400).json(errorResponse('orderId is required', null, 'BAD_REQUEST', 400));
+    }
+
+    const result = paymentService.processRefund(orderId, req.user!.id, reason || 'Admin initiated refund');
+    return res.json(successResponse(result, 'Payment refunded successfully'));
+  } catch (error: any) {
+    return res.status(400).json(errorResponse(error.message, null, 'REFUND_FAILED', 400));
   }
 });
 

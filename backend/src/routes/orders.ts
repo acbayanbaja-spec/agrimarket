@@ -38,32 +38,25 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
       buyerOrders.forEach((o) => map.set(o.id, o));
       sellerOrders.forEach((o) => {
         if (!map.has(o.id)) {
-          // Sellers only view and manage order items assigned to them
+          // Send each seller strictly the order items belonging to their store
           const sellerItems = o.items.filter(
             (it: any) =>
               it.sellerUserId === user.id ||
               it.sellerId === `seller-${user.id}` ||
-              it.sellerId === `user-${user.id}` ||
-              ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-                (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+              it.sellerId === `user-${user.id}`
           );
-          map.set(o.id, {
-            ...o,
-            items: sellerItems.length > 0 ? sellerItems : o.items,
-          });
+          if (sellerItems.length > 0) {
+            map.set(o.id, {
+              ...o,
+              items: sellerItems,
+            });
+          }
         }
       });
       orders = Array.from(map.values());
     } else if (isDriver) {
-      // Delivery riders only see deliveries assigned to them or ready for pickup
-      orders = db
-        .getOrders()
-        .filter(
-          (o) =>
-            o.driverId === user.id ||
-            ((o.status === 'Confirmed' || o.status === 'Shipped' || o.status === 'Out for delivery') &&
-              (!o.driverId || o.driverId === user.id))
-        );
+      // Delivery riders only see deliveries assigned directly to their rider account
+      orders = db.getOrders().filter((o) => o.driverId === user.id);
     } else {
       // Buyers view only their own orders
       orders = db.getOrdersByUserId(user.id);
@@ -93,13 +86,30 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
       (it: any) =>
         it.sellerUserId === user.id ||
         it.sellerId === `seller-${user.id}` ||
-        it.sellerId === `user-${user.id}` ||
-        ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-          (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+        it.sellerId === `user-${user.id}`
     );
 
     if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
       return res.status(403).json(errorResponse('Access denied to this order', null, 'FORBIDDEN', 403));
+    }
+
+    // Send seller only the items belonging to their store
+    if (isSeller && !isAdmin && !isBuyer) {
+      const sellerItems = order.items.filter(
+        (it: any) =>
+          it.sellerUserId === user.id ||
+          it.sellerId === `seller-${user.id}` ||
+          it.sellerId === `user-${user.id}`
+      );
+      return res.json(
+        successResponse(
+          {
+            ...order,
+            items: sellerItems,
+          },
+          'Order retrieved successfully'
+        )
+      );
     }
 
     return res.json(successResponse(order, 'Order retrieved successfully'));
@@ -305,11 +315,10 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
       (it: any) =>
         it.sellerUserId === user.id ||
         it.sellerId === `seller-${user.id}` ||
-        it.sellerId === `user-${user.id}` ||
-        ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-          (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+        it.sellerId === `user-${user.id}`
     );
-    const isDriver = existing.driverId === user.id || (user.roles.includes('delivery') && (!existing.driverId || existing.driverId === user.id));
+    // Strict rider check: Rider must be assigned to this order to update its status
+    const isDriver = Boolean(existing.driverId && existing.driverId === user.id);
 
     // Terminal state protection
     if (existing.status === 'Delivered') {
@@ -370,7 +379,9 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
     if (status === 'Shipped') extra.shippedAt = new Date().toISOString();
     if (status === 'Delivered') {
       (extra as any).deliveredAt = new Date().toISOString();
-      extra.paymentStatus = existing.paymentStatus === 'escrow_held' ? 'escrow_held' : 'paid';
+      if (existing.payment === 'Cash on delivery') {
+        extra.paymentStatus = 'paid';
+      }
     }
     if (status === 'Cancelled') {
       extra.rejectedReason = rejectedReason || cancellationReason || 'Cancelled by user';
@@ -467,8 +478,7 @@ router.put('/:id/assign-rider', authenticate, (req: AuthRequest, res: Response) 
       (it: any) =>
         it.sellerUserId === user.id ||
         it.sellerId === `seller-${user.id}` ||
-        it.sellerId === `user-${user.id}` ||
-        ((user.email === 'seller@agrimarket.com' || user.id === 2) && (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+        it.sellerId === `user-${user.id}`
     );
 
     if (!isAdmin && !isOrderSeller) {
@@ -559,9 +569,7 @@ router.put('/:id/prepare', authenticate, (req: AuthRequest, res: Response) => {
       (it: any) =>
         it.sellerUserId === user.id ||
         it.sellerId === `seller-${user.id}` ||
-        it.sellerId === `user-${user.id}` ||
-        ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-          (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+        it.sellerId === `user-${user.id}`
     );
 
     if (!isAdmin && !isSeller) {

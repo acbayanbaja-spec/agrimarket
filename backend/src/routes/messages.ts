@@ -37,9 +37,7 @@ router.get('/conversations/:id', authenticate, (req: AuthRequest, res: Response)
           (it: any) =>
             it.sellerUserId === user.id ||
             it.sellerId === `seller-${user.id}` ||
-            it.sellerId === `user-${user.id}` ||
-            ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-              (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+            it.sellerId === `user-${user.id}`
         );
 
         if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
@@ -74,9 +72,7 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
           (it: any) =>
             it.sellerUserId === user.id ||
             it.sellerId === `seller-${user.id}` ||
-            it.sellerId === `user-${user.id}` ||
-            ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-              (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+            it.sellerId === `user-${user.id}`
         );
 
         if (!isAdmin && !isBuyer && !isDriver && !isSeller) {

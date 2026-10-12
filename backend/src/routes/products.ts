@@ -22,8 +22,7 @@ function canManageProduct(user: { id: number; roles: string[]; email?: string } 
   return (
     product.sellerUserId === user.id ||
     product.sellerId === `seller-${user.id}` ||
-    product.sellerId === `user-${user.id}` ||
-    (user.id === 2 && (product.sellerUserId === 2 || product.sellerId === 'seller-1'))
+    product.sellerId === `user-${user.id}`
   );
 }
 

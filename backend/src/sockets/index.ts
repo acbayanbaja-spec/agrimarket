@@ -128,19 +128,30 @@ export const initSocket = (io: SocketIOServer) => {
       socket.leave(`conversation:${conversationId}`);
     });
 
-    // Handle sending messages
+    // Handle sending messages with authorization verification
     socket.on('send_message', (data: { conversationId: string; message: string; toUserId?: number }) => {
+      const authUser = socket.data.user;
+      if (!authUser || !authUser.id || !data.conversationId || !data.message) {
+        return;
+      }
+
+      // Authorize: Socket must have successfully joined this authorized conversation room
+      if (!socket.rooms.has(`conversation:${data.conversationId}`)) {
+        console.warn(`Unauthorized message attempt by user ${authUser.id} to conversation ${data.conversationId}`);
+        return;
+      }
+
       socket.to(`conversation:${data.conversationId}`).emit('new_message', {
         conversationId: data.conversationId,
         message: data.message,
-        senderId: userId,
+        senderId: authUser.id,
         timestamp: new Date(),
       });
       if (data.toUserId) {
         io.to(`user:${data.toUserId}`).emit('inbox_message', {
           conversationId: data.conversationId,
           message: data.message,
-          senderId: userId,
+          senderId: authUser.id,
           timestamp: new Date(),
         });
       }
@@ -200,14 +211,24 @@ export const broadcastOrderCreated = (io: SocketIOServer, order: any) => {
     io.to(`user:${order.userId}`).emit('order_update', order);
   }
 
-  // 2. Direct seller rooms for each distinct seller in the order
+  // 2. Direct seller rooms for each distinct seller in the order (scoped to seller's items only)
   const sellerUserIds: number[] = Array.from(
     new Set(order.items?.map((i: any) => Number(i.sellerUserId)).filter(Boolean) as number[])
   );
   sellerUserIds.forEach((sId: number) => {
-    io.to(`user:${sId}`).emit('order_created', order);
-    io.to(`user:${sId}`).emit('new_order', order);
-    io.to(`user:${sId}`).emit('order_update', order);
+    const sellerItems = (order.items || []).filter(
+      (it: any) => it.sellerUserId === sId || it.sellerId === `seller-${sId}`
+    );
+    const sellerSubtotal = sellerItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
+    const sellerScopedOrder = {
+      ...order,
+      items: sellerItems,
+      subtotal: sellerSubtotal,
+      total: sellerSubtotal,
+    };
+    io.to(`user:${sId}`).emit('order_created', sellerScopedOrder);
+    io.to(`user:${sId}`).emit('new_order', sellerScopedOrder);
+    io.to(`user:${sId}`).emit('order_update', sellerScopedOrder);
   });
 
   // 3. Admin room for central oversight
@@ -222,13 +243,23 @@ export const broadcastOrderUpdated = (io: SocketIOServer, order: any) => {
     io.to(`user:${order.userId}`).emit('order_update', order);
   }
 
-  // 2. Direct seller rooms
+  // 2. Direct seller rooms (scoped to seller's items only)
   const sellerUserIds: number[] = Array.from(
     new Set(order.items?.map((i: any) => Number(i.sellerUserId)).filter(Boolean) as number[])
   );
   sellerUserIds.forEach((sId: number) => {
-    io.to(`user:${sId}`).emit('order_updated', order);
-    io.to(`user:${sId}`).emit('order_update', order);
+    const sellerItems = (order.items || []).filter(
+      (it: any) => it.sellerUserId === sId || it.sellerId === `seller-${sId}`
+    );
+    const sellerSubtotal = sellerItems.reduce((acc: number, it: any) => acc + (it.price * it.quantity), 0);
+    const sellerScopedOrder = {
+      ...order,
+      items: sellerItems,
+      subtotal: sellerSubtotal,
+      total: sellerSubtotal,
+    };
+    io.to(`user:${sId}`).emit('order_updated', sellerScopedOrder);
+    io.to(`user:${sId}`).emit('order_update', sellerScopedOrder);
   });
 
   // 3. Delivery driver room
