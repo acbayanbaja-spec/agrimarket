@@ -62,23 +62,86 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
     const body = req.body;
     const orderId = String(body.orderId || 'general');
 
+    let targetRecipientId: number;
+
     if (orderId && orderId !== 'general') {
       const order = db.getOrderById(orderId);
-      if (order) {
-        const isAdmin = user.roles.includes('admin');
-        const isBuyer = order.userId === user.id;
-        const isDriver = order.driverId === user.id;
-        const isSeller = order.items.some(
-          (it: any) =>
-            it.sellerUserId === user.id ||
-            it.sellerId === `seller-${user.id}` ||
-            it.sellerId === `user-${user.id}`
-        );
+      if (!order) {
+        return res.status(404).json(errorResponse('Order not found', null, 'ORDER_NOT_FOUND', 404));
+      }
 
-        if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
-          return res.status(403).json(errorResponse('You are not authorized to post messages to this order thread', null, 'FORBIDDEN', 403));
+      const isAdmin = user.roles.includes('admin');
+      const isBuyer = order.userId === user.id;
+      const isDriver = order.driverId === user.id;
+      const sellerUserIds = [
+        ...new Set(order.items.map((it: any) => Number(it.sellerUserId)).filter(Boolean)),
+      ];
+      const isSeller = sellerUserIds.includes(user.id);
+
+      if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
+        return res
+          .status(403)
+          .json(
+            errorResponse(
+              'You are not authorized to post messages to this order thread',
+              null,
+              'FORBIDDEN',
+              403
+            )
+          );
+      }
+
+      // Collect all authorized participant user IDs for this conversation
+      const authorizedParticipants = new Set<number>();
+      if (order.userId) authorizedParticipants.add(order.userId);
+      if (order.driverId) authorizedParticipants.add(order.driverId);
+      sellerUserIds.forEach((sId) => authorizedParticipants.add(sId));
+
+      if (body.toUserId !== undefined && body.toUserId !== null) {
+        const candidateTo = Number(body.toUserId);
+        if (!authorizedParticipants.has(candidateTo)) {
+          return res
+            .status(400)
+            .json(
+              errorResponse(
+                'The requested recipient does not belong to this authorized conversation thread',
+                null,
+                'RECIPIENT_NOT_IN_CONVERSATION',
+                400
+              )
+            );
+        }
+        targetRecipientId = candidateTo;
+      } else {
+        // Derive canonical conversation counterparty
+        if (isBuyer) {
+          targetRecipientId = order.driverId || sellerUserIds[0] || 1;
+        } else {
+          targetRecipientId = order.userId;
         }
       }
+    } else {
+      // General direct messaging: Recipient must be an existing, active user
+      if (!body.toUserId) {
+        return res
+          .status(400)
+          .json(errorResponse('toUserId is required for direct messaging', null, 'MISSING_RECIPIENT', 400));
+      }
+      const candidateTo = Number(body.toUserId);
+      const recipientUser = db.getUserById(candidateTo);
+      if (!recipientUser || recipientUser.is_active === false) {
+        return res
+          .status(400)
+          .json(
+            errorResponse(
+              'Recipient account does not exist or is inactive',
+              null,
+              'INVALID_RECIPIENT',
+              400
+            )
+          );
+      }
+      targetRecipientId = candidateTo;
     }
 
     const fullUser = db.getUserById(user.id);
@@ -90,7 +153,7 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
       fromRole: body.fromRole || (user.roles.includes('delivery') ? 'delivery' : user.roles.includes('seller') ? 'seller' : 'buyer'),
       fromName: body.fromName || displayName,
       fromUserId: user.id,
-      toUserId: Number(body.toUserId || 3),
+      toUserId: targetRecipientId,
       phone: body.phone,
       body: String(body.body || ''),
       createdAt: new Date().toISOString(),

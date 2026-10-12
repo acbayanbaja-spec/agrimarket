@@ -224,3 +224,37 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   INDEX idx_admin_id (admin_id),
   INDEX idx_action (action)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS processed_webhooks (
+  event_id VARCHAR(100) PRIMARY KEY,
+  order_id VARCHAR(50),
+  processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_order_id (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS messages (
+  id VARCHAR(100) PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL,
+  from_role ENUM('delivery', 'buyer', 'seller', 'system') NOT NULL,
+  from_name VARCHAR(255) NOT NULL,
+  from_user_id INT,
+  to_user_id INT NOT NULL,
+  phone VARCHAR(50),
+  body TEXT NOT NULL,
+  channel ENUM('sms', 'in-app') DEFAULT 'in-app',
+  status ENUM('queued', 'sent', 'delivered') DEFAULT 'delivered',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_order_id (order_id),
+  INDEX idx_to_user_id (to_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS coupons (
+  code VARCHAR(50) PRIMARY KEY,
+  discount DECIMAL(10, 2) NOT NULL,
+  type ENUM('fixed', 'percentage', 'shipping') NOT NULL,
+  min_spend DECIMAL(10, 2) DEFAULT 0,
+  description TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

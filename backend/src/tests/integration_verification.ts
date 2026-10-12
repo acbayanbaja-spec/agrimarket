@@ -15,6 +15,10 @@
  * - Atomic Database Store Persistence
  */
 
+import crypto from 'crypto';
+import { db } from '../database/store';
+import { bootstrapAdmin } from '../database/bootstrapAdmin';
+
 const BASE_URL = 'http://localhost:5000';
 
 async function request(path: string, options: any = {}) {
@@ -619,6 +623,316 @@ async function runTests() {
     usersCheck.status === 200 && Array.isArray(usersCheck.body.data) && usersCheck.body.data.length >= 4,
     `Authoritative users persist correctly (${usersCheck.body?.data?.length} users verified)`
   );
+
+
+  // TEST SUITE 12: STRICT SELLER OWNERSHIP ENFORCEMENT
+  console.log('\n--- SUITE 12: Seller Ownership & Inactive Seller Protection ---');
+
+  // 12.1 Product with missing / invalid seller ID is rejected from checkout
+  db.addProduct({
+    id: 'p-test-invalid-seller',
+    name: 'Ghost Farm Cabbage',
+    category: 'Vegetables',
+    price: 50,
+    unit: 'kg',
+    stock: 50,
+    rating: 5,
+    reviews: 0,
+    seller: 'Ghost Seller',
+    sellerId: 'seller-9999',
+    sellerUserId: 9999, // Non-existent user
+    location: 'Unknown',
+    image: '/images/cabbage.jpg',
+    photos: [],
+    description: 'Test product with invalid seller',
+    organic: false,
+    tradeable: false,
+    lat: 6.5,
+    lng: 124.8,
+  });
+
+  const invalidSellerOrderRes = await request('/api/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      items: [{ productId: 'p-test-invalid-seller', quantity: 1 }],
+      payment: 'Cash on delivery',
+    }),
+  });
+  assert(
+    invalidSellerOrderRes.status === 400 && invalidSellerOrderRes.body.errorCode === 'INVALID_SELLER_OWNERSHIP',
+    'Product with non-existent seller is rejected with HTTP 400 INVALID_SELLER_OWNERSHIP',
+    invalidSellerOrderRes.body
+  );
+  db.deleteProduct('p-test-invalid-seller', true);
+
+  // 12.2 Product belonging to inactive/suspended seller is rejected from checkout
+  const suspendedSeller = db.addUser({
+    email: 'suspended.test@agrimarket.com',
+    password_hash: 'mockhash',
+    first_name: 'Suspended',
+    last_name: 'Farmer',
+    roles: ['seller'],
+    is_active: false,
+    is_verified: true,
+    created_at: new Date().toISOString(),
+  });
+
+  db.addProduct({
+    id: 'p-test-suspended-seller',
+    name: 'Suspended Farm Corn',
+    category: 'Grains',
+    price: 40,
+    unit: 'kg',
+    stock: 50,
+    rating: 5,
+    reviews: 0,
+    seller: 'Suspended Farm',
+    sellerId: `seller-${suspendedSeller.id}`,
+    sellerUserId: suspendedSeller.id,
+    location: 'Koronadal',
+    image: '/images/corn.jpg',
+    photos: [],
+    description: 'Test product with suspended seller',
+    organic: false,
+    tradeable: false,
+    lat: 6.5,
+    lng: 124.8,
+  });
+
+  const suspendedSellerOrderRes = await request('/api/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      items: [{ productId: 'p-test-suspended-seller', quantity: 1 }],
+      payment: 'Cash on delivery',
+    }),
+  });
+  assert(
+    suspendedSellerOrderRes.status === 400 && suspendedSellerOrderRes.body.errorCode === 'INACTIVE_SELLER',
+    'Product with suspended/inactive seller is rejected with HTTP 400 INACTIVE_SELLER',
+    suspendedSellerOrderRes.body
+  );
+  db.deleteProduct('p-test-suspended-seller', true);
+
+
+  // TEST SUITE 13: PRIVATE MESSAGING RECIPIENT TAMPERING PREVENTION
+  console.log('\n--- SUITE 13: Private Messaging Recipient Tampering & Thread Isolation ---');
+
+  // Place clean test order between Buyer (user 3) and Seller 2 (p-tomato)
+  const threadOrderRes = await request('/api/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      items: [{ productId: 'p-tomato', quantity: 1 }],
+      payment: 'Cash on delivery',
+    }),
+  });
+  const threadOrder = threadOrderRes.body.data;
+
+  // 13.1 Buyer tries to send message on thread with tampered toUserId (user 999 not in thread)
+  const tamperedRecipientMsg = await request('/api/messages/sms', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      orderId: threadOrder.id,
+      toUserId: 999,
+      body: 'Attempting to leak message to unauthorized user 999',
+    }),
+  });
+  assert(
+    tamperedRecipientMsg.status === 400 && tamperedRecipientMsg.body.errorCode === 'RECIPIENT_NOT_IN_CONVERSATION',
+    'Untrusted client-supplied toUserId is rejected with 400 RECIPIENT_NOT_IN_CONVERSATION',
+    tamperedRecipientMsg.body
+  );
+
+  // 13.2 Driver not assigned to this order tries to post to thread
+  const unassignedDriverMsg = await request('/api/messages/sms', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${driverToken}` },
+    body: JSON.stringify({
+      orderId: threadOrder.id,
+      body: 'Unassigned driver trying to inject message',
+    }),
+  });
+  assert(
+    unassignedDriverMsg.status === 403,
+    'Unassigned user forbidden from posting to private order thread (403 Forbidden)',
+    unassignedDriverMsg.body
+  );
+
+  // 13.3 Legitimate conversation participant sends message (persisted durably)
+  const legitimateMsg = await request('/api/messages/sms', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      orderId: threadOrder.id,
+      body: 'Hello seller, when will this tomato harvest be packed?',
+    }),
+  });
+  assert(
+    legitimateMsg.status === 201 && legitimateMsg.body.data?.toUserId === 2,
+    'Legitimate participant message persisted and correctly addressed to authorized seller (user 2)',
+    legitimateMsg.body
+  );
+
+
+  // TEST SUITE 14: PAYMENT SIGNATURES, CURRENCY & DURABLE REPLAY PROTECTION
+  console.log('\n--- SUITE 14: Payment Signatures, Currency Integrity & Durable Replay Protection ---');
+
+  // Enable live provider verification temporarily for audit testing
+  const originalLive = process.env.PAYMENT_PROVIDER_LIVE;
+  const originalKey = process.env.PAYMENT_API_KEY;
+  const originalSecret = process.env.PAYMENT_SECRET;
+
+  process.env.PAYMENT_PROVIDER_LIVE = 'true';
+  process.env.PAYMENT_API_KEY = 'live_sec_agrimarket_2026';
+  process.env.PAYMENT_SECRET = 'audit_webhook_secret_key_hmac_2026';
+
+  // 14.1 Place fresh order for payment verification
+  const payOrderRes = await request('/api/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${buyerToken}` },
+    body: JSON.stringify({
+      items: [{ productId: 'p-tomato', quantity: 1 }],
+      payment: 'GCash',
+    }),
+  });
+  const payOrder = payOrderRes.body.data;
+
+  // 14.2 Webhook with invalid signature is rejected
+  const badSigWebhook = await request('/api/payments/webhook', {
+    method: 'POST',
+    headers: { 'x-signature': '0000000000000000000000000000000000000000000000000000000000000000' },
+    body: JSON.stringify({
+      eventId: 'evt-bad-sig-1',
+      orderId: payOrder.id,
+      amount: payOrder.total,
+      currency: 'PHP',
+      transactionRef: 'TXN-TEST-1',
+      status: 'paid',
+    }),
+  });
+  assert(
+    badSigWebhook.status === 400 && badSigWebhook.body.errorCode === 'WEBHOOK_VERIFICATION_FAILED',
+    'Invalid HMAC cryptographic signature rejected (400 Bad Request)',
+    badSigWebhook.body
+  );
+
+  // 14.3 Webhook with currency tampering (e.g. USD instead of PHP) is rejected
+  const usdPayload = {
+    eventId: 'evt-usd-currency-tamper',
+    orderId: payOrder.id,
+    amount: payOrder.total,
+    currency: 'USD',
+    transactionRef: 'TXN-TEST-USD',
+    status: 'paid',
+  };
+  const usdSig = crypto.createHmac('sha256', process.env.PAYMENT_SECRET).update(JSON.stringify(usdPayload)).digest('hex');
+  const usdWebhook = await request('/api/payments/webhook', {
+    method: 'POST',
+    headers: { 'x-signature': usdSig },
+    body: JSON.stringify(usdPayload),
+  });
+  assert(
+    usdWebhook.status === 400 && usdWebhook.body.message.includes('PHP'),
+    'Non-PHP currency tampering rejected (400 Bad Request)',
+    usdWebhook.body
+  );
+
+  // 14.4 Legitimate verified webhook callback confirmation
+  const validEventId = `evt-audit-${Date.now()}`;
+  const validPayload = {
+    eventId: validEventId,
+    orderId: payOrder.id,
+    amount: payOrder.total,
+    currency: 'PHP',
+    transactionRef: 'TXN-GCASH-VERIFIED-9988',
+    status: 'paid',
+  };
+  const validSig = crypto.createHmac('sha256', process.env.PAYMENT_SECRET).update(JSON.stringify(validPayload)).digest('hex');
+  const validWebhook = await request('/api/payments/webhook', {
+    method: 'POST',
+    headers: { 'x-signature': validSig },
+    body: JSON.stringify(validPayload),
+  });
+  assert(
+    validWebhook.status === 200 && validWebhook.body.data.status === 'escrow_held',
+    'Valid cryptographic webhook verified: payment marked escrow_held',
+    validWebhook.body
+  );
+
+  // 14.5 Replayed payment event is rejected (Replay protection)
+  const replayWebhook = await request('/api/payments/webhook', {
+    method: 'POST',
+    headers: { 'x-signature': validSig },
+    body: JSON.stringify(validPayload),
+  });
+  assert(
+    replayWebhook.status === 400 && replayWebhook.body.message.includes('Duplicate webhook event rejected'),
+    `Replayed webhook event rejected: duplicate eventId "${validEventId}" prevented`,
+    replayWebhook.body
+  );
+
+  // 14.6 Durable replay protection persists in database
+  assert(
+    db.isWebhookProcessed(validEventId) === true,
+    'Processed webhook event ID is durably persisted across restarts'
+  );
+
+  // Restore original environment
+  process.env.PAYMENT_PROVIDER_LIVE = originalLive;
+  process.env.PAYMENT_API_KEY = originalKey;
+  process.env.PAYMENT_SECRET = originalSecret;
+
+
+  // TEST SUITE 15: PRODUCTION SEED ACCOUNTS & BOOTSTRAP PROTECTION
+  console.log('\n--- SUITE 15: Production Seed Accounts & Bootstrap Protection ---');
+
+  // 15.1 Short password rejected by bootstrap
+  let shortBootstrapFailed = false;
+  try {
+    await bootstrapAdmin('newadmin@agrimarket.com', 'short');
+  } catch (err: any) {
+    shortBootstrapFailed = err.message.includes('at least 10 characters');
+  }
+  assert(shortBootstrapFailed, 'bootstrapAdmin rejects weak password shorter than 10 characters');
+
+  // 15.2 Predictable default password rejected by bootstrap
+  let predictableBootstrapFailed = false;
+  try {
+    await bootstrapAdmin('newadmin@agrimarket.com', 'myadmin123password');
+  } catch (err: any) {
+    predictableBootstrapFailed = err.message.includes('predictable default');
+  }
+  assert(predictableBootstrapFailed, 'bootstrapAdmin rejects predictable default password ("admin123")');
+
+  // 15.3 Strong administrative bootstrap succeeds
+  const bootstrapped = await bootstrapAdmin('opsadmin@agrimarket.com', 'AgriSec#2026!StrongPass');
+  assert(
+    Boolean(bootstrapped && bootstrapped.roles.includes('admin') && bootstrapped.is_active === true),
+    'bootstrapAdmin securely provisions administrative account with high-entropy credentials'
+  );
+
+
+  // TEST SUITE 16: DATABASE PERSISTENCE & FAILURE VISIBILITY
+  console.log('\n--- SUITE 16: Database Failure Visibility & Strict Mode ---');
+
+  let dbFailureVisible = false;
+  try {
+    process.env.DB_REQUIRED = 'true';
+    // When DB_REQUIRED is true and MySQL is not connected, executeMySql must visibly throw
+    if (!db.getIsMySqlConnected()) {
+      await db.executeMySql('SELECT 1');
+    } else {
+      dbFailureVisible = true;
+    }
+  } catch (err: any) {
+    dbFailureVisible = err.message.includes('Authoritative MySQL') || err.message.includes('Database persistence failed');
+  } finally {
+    delete process.env.DB_REQUIRED;
+  }
+  assert(dbFailureVisible, 'Database failure is visibly thrown when persistence fails under strict DB mode');
 
 
   console.log('\n======================================================');

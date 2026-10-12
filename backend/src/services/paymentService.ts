@@ -14,12 +14,10 @@ export interface WebhookPayload {
   orderId: string;
   transactionRef: string;
   amount: number;
+  currency?: string;
   status: 'paid' | 'failed';
   signature?: string;
 }
-
-// Track processed webhook event IDs to prevent replay / duplicate callback attacks
-const processedWebhookEvents = new Set<string>();
 
 export const paymentService = {
   isProviderConfigured(): boolean {
@@ -84,17 +82,53 @@ export const paymentService = {
       throw new Error('Missing or invalid webhook signature.');
     }
 
-    // Cryptographic signature verification (HMAC SHA-256)
-    const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
-    const sigBuf = Buffer.from(signature);
-    const expBuf = Buffer.from(expectedSignature);
-    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    // Cryptographic signature verification (HMAC SHA-256 supporting PayMongo timestamped & standard raw signatures)
+    let isValidSignature = false;
+    if (signature.includes('t=') && (signature.includes('te=') || signature.includes('li='))) {
+      // Documented PayMongo signature format: t=<timestamp>,te=<test_sig>,li=<live_sig>
+      const parts = signature.split(',').reduce((acc: any, part) => {
+        const [k, v] = part.split('=');
+        if (k && v) acc[k.trim()] = v.trim();
+        return acc;
+      }, {});
+      const timestamp = parts.t;
+      const targetSig = parts.li || parts.te;
+      if (timestamp && targetSig) {
+        const payloadToSign = `${timestamp}.${rawBody}`;
+        const computed = crypto.createHmac('sha256', webhookSecret).update(payloadToSign).digest('hex');
+        const sigBuf = Buffer.from(targetSig);
+        const compBuf = Buffer.from(computed);
+        if (sigBuf.length === compBuf.length && crypto.timingSafeEqual(sigBuf, compBuf)) {
+          isValidSignature = true;
+        }
+      }
+    } else {
+      // Standard HMAC SHA-256 signature
+      const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+      const sigBuf = Buffer.from(signature);
+      const expBuf = Buffer.from(expectedSignature);
+      if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+        isValidSignature = true;
+      }
+    }
+
+    if (!isValidSignature) {
       throw new Error('Webhook cryptographic signature verification failed.');
     }
 
-    // Prevent duplicate callback replay attacks
-    if (processedWebhookEvents.has(payload.eventId)) {
+    // Validate Event ID
+    if (!payload.eventId || typeof payload.eventId !== 'string' || payload.eventId.trim().length === 0) {
+      throw new Error('Missing or invalid eventId in webhook payload.');
+    }
+
+    // Prevent duplicate callback replay attacks with durable database persistence across restarts
+    if (db.isWebhookProcessed(payload.eventId)) {
       throw new Error(`Duplicate webhook event rejected: ${payload.eventId}`);
+    }
+
+    // Validate Order ID
+    if (!payload.orderId || typeof payload.orderId !== 'string') {
+      throw new Error('Missing or invalid orderId in webhook payload.');
     }
 
     const order = db.getOrderById(payload.orderId);
@@ -102,12 +136,28 @@ export const paymentService = {
       throw new Error(`Order ${payload.orderId} not found for webhook.`);
     }
 
+    // Validate Currency: SOCCSKSARGEN / Philippine agricultural transactions must strictly be in PHP
+    if (payload.currency && payload.currency.toUpperCase() !== 'PHP') {
+      throw new Error(`Invalid currency "${payload.currency}": AgriMarket only processes payments in PHP.`);
+    }
+
+    // Validate Transaction Reference
+    if (!payload.transactionRef || typeof payload.transactionRef !== 'string') {
+      throw new Error('Missing or invalid transactionRef in webhook payload.');
+    }
+
     // Prevent amount mismatch tampering
     if (Math.abs(order.total - Number(payload.amount)) > 0.01) {
       throw new Error(`Webhook amount mismatch: order total is ₱${order.total}, webhook received ₱${payload.amount}.`);
     }
 
-    processedWebhookEvents.add(payload.eventId);
+    // Validate payment state
+    if (payload.status !== 'paid' && payload.status !== 'failed') {
+      throw new Error(`Invalid payment state: "${payload.status}".`);
+    }
+
+    // Durably record the processed webhook event ID
+    db.addProcessedWebhook(payload.eventId, payload.orderId);
 
     if (payload.status === 'paid') {
       db.updateOrderStatus(order.id, order.status, {

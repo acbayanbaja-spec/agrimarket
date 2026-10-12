@@ -162,6 +162,47 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
           .status(400)
           .json(errorResponse(`Product not found: ${item.productId}`, null, 'PRODUCT_NOT_FOUND', 400));
       }
+      // Strict Seller Ownership Validation: Reject missing, non-seller, or inactive sellers
+      if (!prod.sellerUserId || typeof prod.sellerUserId !== 'number') {
+        return res
+          .status(400)
+          .json(
+            errorResponse(
+              `Product "${prod.name}" has missing seller ownership.`,
+              null,
+              'INVALID_SELLER_OWNERSHIP',
+              400
+            )
+          );
+      }
+
+      const sellerUser = db.getUserById(prod.sellerUserId);
+      if (!sellerUser || !sellerUser.roles || !sellerUser.roles.includes('seller')) {
+        return res
+          .status(400)
+          .json(
+            errorResponse(
+              `Owner of product "${prod.name}" is not an active verified seller.`,
+              null,
+              'INVALID_SELLER_OWNERSHIP',
+              400
+            )
+          );
+      }
+
+      if (sellerUser.is_active === false) {
+        return res
+          .status(400)
+          .json(
+            errorResponse(
+              `Seller account for product "${prod.name}" is currently inactive or suspended.`,
+              null,
+              'INACTIVE_SELLER',
+              400
+            )
+          );
+      }
+
       enrichedItems.push({
         productId: prod.id,
         name: prod.name || 'Product',
@@ -170,9 +211,9 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
         quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
         unit: prod.unit || 'kg',
         image: prod.image || '',
-        seller: prod.seller || 'Farm Seller',
-        sellerId: prod.sellerId || (prod.sellerUserId ? `seller-${prod.sellerUserId}` : 'seller-2'),
-        sellerUserId: Number(prod.sellerUserId || 2),
+        seller: prod.seller || `${sellerUser.first_name} ${sellerUser.last_name}`.trim(),
+        sellerId: prod.sellerId || `seller-${prod.sellerUserId}`,
+        sellerUserId: Number(prod.sellerUserId),
         pickupLocation: prod.location || 'SOCCSKSARGEN stall',
         prepStatus: 'unpacked',
         prepNotes: '',

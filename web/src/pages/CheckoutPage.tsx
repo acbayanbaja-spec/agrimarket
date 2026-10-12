@@ -29,15 +29,24 @@ const CheckoutPage = () => {
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: place.lat, lng: place.lng })
   const [gpsNote, setGpsNote] = useState('Using the selected SOCCSKSARGEN city pin until you share GPS.')
 
-  const shippingFee = subtotal >= 500 ? 0 : 50
+  const validItems = useMemo(() => {
+    return (items || []).filter((item): item is any => Boolean(item && item.product && item.product.id))
+  }, [items])
+
+  const safeSubtotal = useMemo(() => {
+    return validItems.reduce((sum, item) => sum + (Number(item.product?.price) || 0) * (Number(item.quantity) || 1), 0)
+  }, [validItems])
+
+  const shippingFee = safeSubtotal >= 500 ? 0 : 50
   const afterCoupon = Math.max(0, shippingFee - shippingDiscount)
-  const pointsRedeemed = usePoints && user ? Math.min(loyaltyPoints, afterCoupon) : 0
+  const safeLoyaltyPoints = Number(loyaltyPoints) || 0
+  const pointsRedeemed = usePoints && user ? Math.min(safeLoyaltyPoints, afterCoupon) : 0
   const payableShipping = Math.max(0, afterCoupon - pointsRedeemed)
-  const total = subtotal + payableShipping
-  const willEarn = pointsFromSpend(subtotal)
+  const total = safeSubtotal + payableShipping
+  const willEarn = pointsFromSpend(safeSubtotal)
 
   const tryCoupon = () => {
-    const result = applyCoupon(couponInput, shippingFee, subtotal)
+    const result = applyCoupon(couponInput, shippingFee, safeSubtotal)
     setCouponMsg(result.message)
     setShippingDiscount(result.ok ? result.discount : 0)
     setCouponCode(result.ok ? result.code : undefined)
@@ -87,10 +96,11 @@ const CheckoutPage = () => {
     )
   }
 
-  if (items.length === 0 && !placed) {
+  if (validItems.length === 0 && !placed) {
     return (
       <div className="page-shell text-center">
         <h1 className="text-3xl font-bold mb-3">Nothing to check out</h1>
+        <p className="text-gray-600 mb-6">Your basket is currently empty. Browse farm produce from the marketplace.</p>
         <Link to="/marketplace" className="btn-primary">Shop first</Link>
       </div>
     )
@@ -126,18 +136,18 @@ const CheckoutPage = () => {
     const selected = soccsksargenPlaces.find((item) => item.label === city) || place
     try {
       const order = await placeOrder({
-        items: items.map((item) => ({
+        items: validItems.map((item) => ({
           productId: item.product.id,
           name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity,
-          image: item.product.image,
-          seller: item.product.seller,
+          price: Number(item.product.price) || 0,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+          image: item.product.image || '',
+          seller: item.product.seller || 'Farm Stall',
           sellerId: item.product.sellerId,
-          sellerUserId: item.product.sellerUserId,
-          pickupLocation: item.product.location,
+          sellerUserId: Number(item.product.sellerUserId),
+          pickupLocation: item.product.location || 'SOCCSKSARGEN',
         })),
-        subtotal,
+        subtotal: safeSubtotal,
         shippingFee,
         shippingDiscount,
         couponCode,
@@ -255,21 +265,26 @@ const CheckoutPage = () => {
       <aside className="card h-fit">
         <h2 className="font-semibold mb-4">Your basket</h2>
         <ul className="space-y-3 text-sm">
-          {items.map((item) => (
-            <li key={item.product.id} className="flex justify-between gap-2">
-              <span className="flex items-center gap-2">
-                <ProductImage src={item.product.image} alt="" className="h-8 w-8 rounded object-cover" />
-                <span>
-                  {item.product.name} × {item.quantity}
-                  <span className="block text-xs text-gray-500">{item.product.seller}</span>
+          {validItems.map((item) => {
+            const prod = item.product || {}
+            const itemPrice = Number(prod.price) || 0
+            const itemQty = Math.max(1, Number(item.quantity) || 1)
+            return (
+              <li key={prod.id || Math.random()} className="flex justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <ProductImage src={prod.image} alt={prod.name || 'Harvest Produce'} className="h-8 w-8 rounded object-cover" />
+                  <span>
+                    {prod.name || 'Harvest Produce'} × {itemQty}
+                    <span className="block text-xs text-gray-500">{prod.seller || 'Farm Stall'}</span>
+                  </span>
                 </span>
-              </span>
-              <span>{formatPeso(item.product.price * item.quantity)}</span>
-            </li>
-          ))}
+                <span>{formatPeso(itemPrice * itemQty)}</span>
+              </li>
+            )
+          })}
         </ul>
         <div className="border-t mt-4 pt-4 space-y-1 text-sm">
-          <div className="flex justify-between"><span>Subtotal</span><span>{formatPeso(subtotal)}</span></div>
+          <div className="flex justify-between"><span>Subtotal</span><span>{formatPeso(safeSubtotal)}</span></div>
           <div className="flex justify-between"><span>Shipping</span><span>{formatPeso(shippingFee)}</span></div>
           <div className="flex justify-between text-primary-800"><span>Shipping discount</span><span>-{formatPeso(shippingDiscount)}</span></div>
           <div className="flex justify-between text-amber-800"><span>Points on shipping</span><span>-{formatPeso(pointsRedeemed)}</span></div>

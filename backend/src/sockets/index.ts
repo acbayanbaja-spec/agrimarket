@@ -128,7 +128,7 @@ export const initSocket = (io: SocketIOServer) => {
       socket.leave(`conversation:${conversationId}`);
     });
 
-    // Handle sending messages with authorization verification
+    // Handle sending messages with authorization verification and backend persistence
     socket.on('send_message', (data: { conversationId: string; message: string; toUserId?: number }) => {
       const authUser = socket.data.user;
       if (!authUser || !authUser.id || !data.conversationId || !data.message) {
@@ -141,19 +141,59 @@ export const initSocket = (io: SocketIOServer) => {
         return;
       }
 
-      socket.to(`conversation:${data.conversationId}`).emit('new_message', {
-        conversationId: data.conversationId,
-        message: data.message,
-        senderId: authUser.id,
-        timestamp: new Date(),
+      const order = db.getOrderById(data.conversationId);
+      let validatedToUserId: number | undefined = undefined;
+
+      if (order) {
+        const sellerUserIds = [
+          ...new Set(order.items.map((it: any) => Number(it.sellerUserId)).filter(Boolean)),
+        ];
+        const authorizedParticipants = new Set<number>();
+        if (order.userId) authorizedParticipants.add(order.userId);
+        if (order.driverId) authorizedParticipants.add(order.driverId);
+        sellerUserIds.forEach((sId) => authorizedParticipants.add(sId));
+
+        if (data.toUserId !== undefined && data.toUserId !== null) {
+          const reqTo = Number(data.toUserId);
+          if (authorizedParticipants.has(reqTo)) {
+            validatedToUserId = reqTo;
+          } else {
+            console.warn(`Untrusted recipient ${reqTo} rejected for order conversation ${data.conversationId}`);
+            return;
+          }
+        } else {
+          validatedToUserId = order.userId === authUser.id ? (order.driverId || sellerUserIds[0] || 1) : order.userId;
+        }
+      } else if (data.toUserId) {
+        const targetUser = db.getUserById(Number(data.toUserId));
+        if (targetUser && targetUser.is_active !== false) {
+          validatedToUserId = targetUser.id;
+        }
+      }
+
+      // Persist message centrally
+      const senderRole = authUser.roles?.includes('delivery')
+        ? 'delivery'
+        : authUser.roles?.includes('seller')
+        ? 'seller'
+        : 'buyer';
+
+      const savedMessage = db.addMessage({
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        orderId: data.conversationId,
+        fromRole: senderRole,
+        fromName: authUser.email ? authUser.email.split('@')[0] : 'User',
+        fromUserId: authUser.id,
+        toUserId: validatedToUserId || authUser.id,
+        body: data.message,
+        createdAt: new Date().toISOString(),
+        channel: 'in-app',
+        status: 'delivered',
       });
-      if (data.toUserId) {
-        io.to(`user:${data.toUserId}`).emit('inbox_message', {
-          conversationId: data.conversationId,
-          message: data.message,
-          senderId: authUser.id,
-          timestamp: new Date(),
-        });
+
+      socket.to(`conversation:${data.conversationId}`).emit('new_message', savedMessage);
+      if (validatedToUserId) {
+        io.to(`user:${validatedToUserId}`).emit('inbox_message', savedMessage);
       }
     });
 

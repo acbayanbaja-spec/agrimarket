@@ -49,7 +49,7 @@ router.post('/checkout', authenticate, (req: AuthRequest, res: Response) => {
 router.post('/webhook', (req: Request, res: Response) => {
   try {
     const signature = (req.headers['x-signature'] || req.headers['paymongo-signature']) as string | undefined;
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
     const result = paymentService.handleProviderWebhook(rawBody, signature, req.body);
     return res.json(successResponse(result, 'Webhook processed successfully'));
   } catch (error: any) {

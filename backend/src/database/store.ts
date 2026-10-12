@@ -244,13 +244,18 @@ export interface AuditLogEntity {
 const DATA_DIR = path.join(__dirname, '../../data');
 const DB_FILE = path.join(DATA_DIR, 'agrimarket_db.json');
 
-// Initial seed accounts with pre-hashed passwords ('admin123', 'seller123', 'buyer123', 'driver123')
-const defaultPasswordHash = bcrypt.hashSync('buyer123', 8);
-const adminPasswordHash = bcrypt.hashSync('admin123', 8);
-const sellerPasswordHash = bcrypt.hashSync('seller123', 8);
-const driverPasswordHash = bcrypt.hashSync('driver123', 8);
+const isProduction = process.env.NODE_ENV === 'production';
 
-const initialUsers: UserEntity[] = [
+// Initial seed accounts with pre-hashed passwords ('admin123', 'seller123', 'buyer123', 'driver123')
+// SECURITY: Predictable default seed credentials MUST NEVER be created in production environments!
+const defaultPasswordHash = !isProduction ? bcrypt.hashSync('buyer123', 8) : '';
+const adminPasswordHash = !isProduction ? bcrypt.hashSync('admin123', 8) : '';
+const sellerPasswordHash = !isProduction ? bcrypt.hashSync('seller123', 8) : '';
+const driverPasswordHash = !isProduction ? bcrypt.hashSync('driver123', 8) : '';
+
+const initialUsers: UserEntity[] = isProduction
+  ? []
+  : [
   {
     id: 1,
     email: 'admin@agrimarket.com',
@@ -749,6 +754,7 @@ export interface DatabaseSchema {
   delivery_jobs: DeliveryJobEntity[];
   coupons: CouponEntity[];
   audit_logs: AuditLogEntity[];
+  processed_webhooks: Array<{ eventId: string; orderId: string; processedAt: string }>;
 }
 
 class DatabaseStore {
@@ -765,15 +771,22 @@ class DatabaseStore {
   }
 
   private async checkMySqlConnection() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const dbRequired = process.env.DB_REQUIRED === 'true' || isProd;
     try {
       const conn = await pool.getConnection();
       this.isMySqlConnected = true;
       conn.release();
-      console.log('✅ Connected to external MySQL database instance.');
+      console.log('✅ Connected to authoritative MySQL database instance.');
       await this.initMySqlSchemaAndData();
     } catch (e: any) {
       this.isMySqlConnected = false;
-      console.log('ℹ️ Running on resilient high-performance local embedded data store.');
+      if (dbRequired) {
+        console.error('❌ FATAL: Authoritative MySQL connection failed in production / strict mode:', e.message);
+        throw new Error(`Authoritative MySQL connection failed: ${e.message}`);
+      } else {
+        console.log('ℹ️ Running on resilient high-performance local embedded data store.');
+      }
     }
   }
 
@@ -820,7 +833,27 @@ class DatabaseStore {
             [p.id, p.sellerUserId, p.sellerId, p.category, p.name, p.description, p.price, p.unit, p.stock, p.rating, p.reviews, p.image, p.location, p.organic ? 1 : 0, p.isActive !== false ? 1 : 0, p.isUnlisted ? 1 : 0]
           );
         }
-        console.log('✅ Safely migrated catalog and user records into MySQL.');
+        for (const c of this.data.coupons) {
+          await pool.query(
+            'INSERT INTO coupons (code, discount, type, min_spend, description, is_active) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE discount=VALUES(discount)',
+            [c.code, c.discount, c.type, c.minSpend, c.description, c.isActive ? 1 : 0]
+          );
+        }
+        for (const o of this.data.orders) {
+          await pool.query(
+            'INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status)',
+            [o.id, o.receiptNo, o.userId, o.buyerName, o.buyerPhone || null, o.address, o.subtotal, o.shippingFee, o.shippingDiscount, o.couponCode || null, o.pointsEarned, o.pointsRedeemed, o.total, o.status, o.payment, o.paymentRef || null, o.paymentStatus || 'pending', o.driverId || null]
+          );
+          if (o.items && Array.isArray(o.items)) {
+            for (const item of o.items) {
+              await pool.query(
+                'INSERT INTO order_items (order_id, product_id, name, price, quantity, unit, image, seller, seller_id, seller_user_id, pickup_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [o.id, item.productId, item.name, item.price, item.quantity, item.unit || 'kg', item.image || null, item.seller || null, item.sellerId || null, item.sellerUserId, item.pickupLocation || null]
+              );
+            }
+          }
+        }
+        console.log('✅ Safely migrated catalog, user, and order records into MySQL.');
       }
     } catch (err: any) {
       console.warn('⚠️ Notice during MySQL schema init / migration:', err.message);
@@ -828,11 +861,19 @@ class DatabaseStore {
   }
 
   public async executeMySql(query: string, params: any[] = []) {
-    if (!this.isMySqlConnected) return;
+    if (!this.isMySqlConnected) {
+      if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+        throw new Error('Database persistence failed: Authoritative MySQL is not connected.');
+      }
+      return;
+    }
     try {
       await pool.query(query, params);
     } catch (err: any) {
-      console.warn(`MySQL write-through notice: ${err.message}`);
+      console.error(`MySQL persistence failure: ${err.message}`);
+      if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+        throw new Error(`Authoritative MySQL query failed: ${err.message}`);
+      }
     }
   }
 
@@ -854,21 +895,44 @@ class DatabaseStore {
           }
         }
 
+        let loadedUsers: UserEntity[] = parsed.users || initialUsers;
+        if (!isProduction) {
+          for (const initUser of initialUsers) {
+            if (!loadedUsers.some((u) => u.id === initUser.id || u.email.toLowerCase() === initUser.email.toLowerCase())) {
+              loadedUsers.push(initUser);
+            }
+          }
+        } else {
+          const predictableEmails = new Set([
+            'admin@agrimarket.com',
+            'seller@agrimarket.com',
+            'buyer@agrimarket.com',
+            'driver@agrimarket.com',
+          ]);
+          loadedUsers = loadedUsers.filter((u) => !predictableEmails.has(u.email.toLowerCase()));
+          if (loadedUsers.length === 0) {
+            console.warn(
+              '⚠️ [SECURITY] Production mode: Default seed accounts are disabled. Run npm run bootstrap:admin to securely initialize the first platform administrator.'
+            );
+          }
+        }
+
         return {
-          users: parsed.users || initialUsers,
+          users: loadedUsers,
           products: parsed.products || initialProducts,
           categories: loadedCategories,
-          orders: parsed.orders || initialOrders,
+          orders: parsed.orders || (isProduction ? [] : initialOrders),
           cart: parsed.cart || [],
           seller_applications: parsed.seller_applications || [],
           reviews: parsed.reviews || initialReviews,
           posts: parsed.posts || [],
           trades: parsed.trades || [],
-          notifications: parsed.notifications || initialNotifications,
+          notifications: parsed.notifications || (isProduction ? [] : initialNotifications),
           messages: parsed.messages || [],
-          delivery_jobs: parsed.delivery_jobs || initialDeliveries,
+          delivery_jobs: parsed.delivery_jobs || (isProduction ? [] : initialDeliveries),
           coupons: parsed.coupons || initialCoupons,
           audit_logs: parsed.audit_logs && parsed.audit_logs.length > 0 ? parsed.audit_logs : initialAuditLogs,
+          processed_webhooks: parsed.processed_webhooks || [],
         };
       }
     } catch (err) {
@@ -876,20 +940,21 @@ class DatabaseStore {
     }
 
     const defaultData: DatabaseSchema = {
-      users: initialUsers,
+      users: isProduction ? [] : initialUsers,
       products: initialProducts,
       categories: initialCategories,
-      orders: initialOrders,
+      orders: isProduction ? [] : initialOrders,
       cart: [],
       seller_applications: [],
       reviews: initialReviews,
       posts: [],
       trades: [],
-      notifications: initialNotifications,
+      notifications: isProduction ? [] : initialNotifications,
       messages: [],
-      delivery_jobs: initialDeliveries,
+      delivery_jobs: isProduction ? [] : initialDeliveries,
       coupons: initialCoupons,
       audit_logs: initialAuditLogs,
+      processed_webhooks: [],
     };
 
     this.saveData(defaultData);
@@ -912,6 +977,28 @@ class DatabaseStore {
       }
     } catch (err) {
       console.error('Error saving database store:', err);
+    }
+  }
+
+  // --- Webhooks Durable Replay Protection ---
+  public isWebhookProcessed(eventId: string): boolean {
+    if (!this.data.processed_webhooks) this.data.processed_webhooks = [];
+    return this.data.processed_webhooks.some((w) => w.eventId === eventId);
+  }
+
+  public addProcessedWebhook(eventId: string, orderId: string) {
+    if (!this.data.processed_webhooks) this.data.processed_webhooks = [];
+    if (!this.isWebhookProcessed(eventId)) {
+      this.data.processed_webhooks.push({
+        eventId,
+        orderId,
+        processedAt: new Date().toISOString(),
+      });
+      this.saveData();
+      this.executeMySql(
+        'INSERT INTO processed_webhooks (event_id, order_id, processed_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE processed_at=NOW()',
+        [eventId, orderId]
+      );
     }
   }
 
@@ -1296,11 +1383,116 @@ class DatabaseStore {
     return order;
   }
 
+  public async executeOrderTransaction(order: OrderEntity): Promise<void> {
+    if (!this.isMySqlConnected) return;
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // Concurrency-safe atomic check & deduction using SELECT ... FOR UPDATE
+      for (const item of order.items) {
+        const [rows]: any = await conn.query(
+          'SELECT stock, is_active, is_unlisted, is_deleted, name FROM products WHERE id = ? FOR UPDATE',
+          [item.productId]
+        );
+        if (!rows || rows.length === 0) {
+          throw new Error(`Product "${item.name || item.productId}" does not exist in authoritative database.`);
+        }
+        const p = rows[0];
+        if (p.is_deleted || !p.is_active || p.is_unlisted) {
+          throw new Error(`Product "${p.name}" is currently unavailable.`);
+        }
+        if (p.stock < item.quantity) {
+          throw new Error(`Insufficient stock for "${p.name}". Authoritative available: ${p.stock}, requested: ${item.quantity}.`);
+        }
+        await conn.query('UPDATE products SET stock = stock - ? WHERE id = ?', [item.quantity, item.productId]);
+      }
+
+      // Insert order
+      await conn.query(
+        'INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status)',
+        [
+          order.id,
+          order.receiptNo,
+          order.userId,
+          order.buyerName,
+          order.buyerPhone || null,
+          order.address,
+          order.subtotal,
+          order.shippingFee,
+          order.shippingDiscount,
+          order.couponCode || null,
+          order.pointsEarned,
+          order.pointsRedeemed,
+          order.total,
+          order.status,
+          order.payment,
+          order.paymentRef || null,
+          order.paymentStatus || 'pending',
+          order.driverId || null,
+        ]
+      );
+
+      // Insert order items
+      for (const item of order.items) {
+        await conn.query(
+          'INSERT INTO order_items (order_id, product_id, name, price, quantity, unit, image, seller, seller_id, seller_user_id, pickup_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            order.id,
+            item.productId,
+            item.name,
+            item.price,
+            item.quantity,
+            item.unit || 'kg',
+            item.image || null,
+            item.seller || null,
+            item.sellerId || null,
+            item.sellerUserId,
+            item.pickupLocation || null,
+          ]
+        );
+      }
+
+      // Insert delivery job
+      await conn.query(
+        'INSERT INTO delivery_jobs (id, order_id, driver_id, buyer_name, buyer_phone, address, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status)',
+        [
+          `DEL-${order.id.replace('ORD-', '')}`,
+          order.id,
+          order.driverId || 4,
+          order.buyerName,
+          order.buyerPhone || null,
+          order.address,
+          order.status,
+          order.lat || null,
+          order.lng || null,
+        ]
+      );
+
+      await conn.commit();
+    } catch (err: any) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  }
+
   public addOrder(order: OrderEntity) {
     // Check if order already exists (idempotency)
     const existing = this.data.orders.find((o) => o.id === order.id);
     if (existing) {
       return existing;
+    }
+
+    if (this.isMySqlConnected) {
+      this.executeOrderTransaction(order).catch((err) => {
+        console.error('MySQL Order Transaction Error:', err.message);
+        if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+          throw err;
+        }
+      });
     }
 
     this.data.orders.unshift(order);
@@ -1322,16 +1514,9 @@ class DatabaseStore {
 
     this.saveData();
 
-    this.executeMySql(
-      'INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status)',
-      [order.id, order.receiptNo, order.userId, order.buyerName, order.buyerPhone || null, order.address, order.subtotal, order.shippingFee, order.shippingDiscount, order.couponCode || null, order.pointsEarned, order.pointsRedeemed, order.total, order.status, order.payment, order.paymentRef || null, order.paymentStatus || 'pending', order.driverId || null]
-    );
-    if (order.items && Array.isArray(order.items)) {
-      for (const item of order.items) {
-        this.executeMySql(
-          'INSERT INTO order_items (order_id, product_id, name, price, quantity, unit, image, seller, seller_id, seller_user_id, pickup_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [order.id, item.productId, item.name, item.price, item.quantity, item.unit || 'kg', item.image || null, item.seller || null, item.sellerId || null, item.sellerUserId || 2, item.pickupLocation || null]
-        );
+    if (!this.isMySqlConnected) {
+      if (process.env.DB_REQUIRED === 'true' || process.env.NODE_ENV === 'production') {
+        throw new Error('Database persistence failed: Authoritative MySQL is not connected.');
       }
     }
 
