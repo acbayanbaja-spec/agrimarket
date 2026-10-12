@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "migrate": "ts-node src/database/migrate.ts",
     "seed": "ts-node src/database/seed.ts",
-    "test": "jest",
+    "test": "ts-node src/tests/unit_search_and_orders.ts",
     "test:verify": "ts-node src/tests/integration_verification.ts"
   },
   "keywords": ["agriculture", "marketplace", "api"],

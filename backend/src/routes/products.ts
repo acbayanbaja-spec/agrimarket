@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { db, ProductEntity } from '../database/store';
-import { optionalAuth, AuthRequest } from '../middleware/auth';
+import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
 import {
@@ -9,6 +9,7 @@ import {
   broadcastProductUnlisted,
   broadcastProductDeleted,
 } from '../sockets';
+import { isAllowedUnit, relatedProducts, searchProducts, suggestProducts } from '../lib/productSearch';
 
 const router = Router();
 
@@ -31,60 +32,105 @@ function canManageProduct(user: { id: number; roles: string[]; email?: string } 
 // @access  Public
 router.get('/', optionalAuth, (req: AuthRequest, res: Response) => {
   try {
-    const { category, search, sellerId, minPrice, maxPrice, includeInactive } = req.query;
+    db.assertPersistentStore();
+    const { category, search, sellerId, seller, minPrice, maxPrice, includeInactive, location, organic, stock, sort, page, pageSize } =
+      req.query;
     const user = req.user;
 
     const isAdmin = Boolean(user && user.roles.includes('admin'));
     const isSeller = Boolean(user && user.roles.includes('seller'));
 
-    // Admin can see everything when requested; otherwise active products
     const showInactive = includeInactive === 'true' && (isAdmin || isSeller);
-    let results = db.getProducts(showInactive);
-
-    if (category && category !== 'All') {
-      results = results.filter((p) => p.category.toLowerCase() === String(category).toLowerCase());
-    }
-
-    if (search) {
-      const q = String(search).toLowerCase();
-      results = results.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.location.toLowerCase().includes(q) ||
-          p.seller.toLowerCase().includes(q)
-      );
-    }
-
-    if (sellerId) {
-      results = results.filter((p) => p.sellerId === String(sellerId) || String(p.sellerUserId) === String(sellerId));
-    }
-
-    if (minPrice) {
-      results = results.filter((p) => p.price >= Number(minPrice));
-    }
-
-    if (maxPrice) {
-      results = results.filter((p) => p.price <= Number(maxPrice));
-    }
+    const catalog = db.getProducts(showInactive);
+    const result = searchProducts(catalog, {
+      category: category ? String(category) : undefined,
+      search: search ? String(search) : undefined,
+      sellerId: sellerId ? String(sellerId) : undefined,
+      seller: seller ? String(seller) : undefined,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      location: location ? String(location) : undefined,
+      organic: organic === 'true',
+      stock: stock === 'in' || stock === 'low' || stock === 'out' ? stock : 'all',
+      sort: sort ? String(sort) : 'featured',
+      page: page ? Number(page) : 1,
+      pageSize: pageSize ? Number(pageSize) : includeInactive === 'true' ? 500 : 24,
+      maxPageSize: includeInactive === 'true' ? 500 : 48,
+    });
 
     return res.json(
       successResponse(
         {
-          products: results,
-          total: results.length,
+          products: result.products,
+          total: result.total,
+          page: result.page,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages,
         },
         'Products retrieved successfully from central database'
       )
     );
   } catch (error: any) {
-    return res.status(500).json(errorResponse(error.message, null, 'PRODUCTS_FETCH_FAILED', 500));
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json(errorResponse(error.message, null, error.code || 'PRODUCTS_FETCH_FAILED', statusCode));
+  }
+});
+
+router.get('/suggestions', optionalAuth, (req: AuthRequest, res: Response) => {
+  try {
+    db.assertPersistentStore();
+    const q = String(req.query.q || '');
+    const suggestions = suggestProducts(db.getProducts(false), q, 8).map((p) => ({
+      id: p.id,
+      name: p.name,
+      seller: p.seller,
+      price: p.price,
+      image: p.image,
+      category: p.category,
+      location: p.location,
+    }));
+    return res.json(successResponse({ suggestions }, 'Search suggestions retrieved'));
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json(errorResponse(error.message, null, error.code || 'SUGGESTIONS_FAILED', statusCode));
   }
 });
 
 // @route   GET /api/products/:id
 // @desc    Get product by ID from central database
 // @access  Public
+router.get('/:id/related', (req: AuthRequest, res: Response) => {
+  try {
+    const product = db.getProductById(req.params.id);
+    if (!product || product.isDeleted) {
+      return res.status(404).json(errorResponse('Product not found or has been removed', null, 'NOT_FOUND', 404));
+    }
+    const related = relatedProducts(db.getProducts(false), product, 4);
+    return res.json(successResponse({ products: related }, 'Related harvests retrieved'));
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json(errorResponse(error.message, null, error.code || 'RELATED_FETCH_FAILED', statusCode));
+  }
+});
+
+router.get('/:id/inventory', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const product = db.getProductById(req.params.id);
+    if (!product || product.isDeleted) {
+      return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
+    }
+    if (!canManageProduct(req.user, product)) {
+      return res.status(403).json(errorResponse('You can view inventory only for your own listings', null, 'FORBIDDEN', 403));
+    }
+    return res.json(
+      successResponse({ movements: db.getInventoryMovements(req.params.id), stock: product.stock, unit: product.unit }, 'Inventory history retrieved')
+    );
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json(errorResponse(error.message, null, error.code || 'INVENTORY_FETCH_FAILED', statusCode));
+  }
+});
+
 router.get('/:id', (req: AuthRequest, res: Response) => {
   try {
     const product = db.getProductById(req.params.id);
@@ -101,7 +147,7 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
 // @route   POST /api/products
 // @desc    Create new product listing in central database and broadcast to all users
 // @access  Private (Seller, Admin)
-router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {
@@ -118,6 +164,11 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
     const body = req.body;
     if (!body.name || !body.price) {
       return res.status(400).json(errorResponse('Product name and price are required', null, 'BAD_REQUEST', 400));
+    }
+    if (body.unit && !isAllowedUnit(body.unit)) {
+      return res.status(400).json(
+        errorResponse('Use an agricultural unit such as kg, g, sack, bundle, piece, tray, or bunch', null, 'INVALID_UNIT', 400)
+      );
     }
 
     const sellerUserId = isAdmin && body.sellerUserId ? Number(body.sellerUserId) : user.id;
@@ -175,7 +226,7 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
 // @route   PUT /api/products/:id/unlist
 // @desc    Unlist or disable product centrally (immediately disappears from all buyers)
 // @access  Private (Seller of product, Admin)
-router.put('/:id/unlist', optionalAuth, (req: AuthRequest, res: Response) => {
+router.put('/:id/unlist', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {
@@ -214,7 +265,7 @@ router.put('/:id/unlist', optionalAuth, (req: AuthRequest, res: Response) => {
 // @route   PUT /api/products/:id
 // @desc    Update product stock, price, or details centrally in database
 // @access  Private (Seller of product, Admin)
-router.put('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {
@@ -239,6 +290,12 @@ router.put('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
         updates.availabilityStatus =
           updates.stock === 0 ? 'out_of_stock' : updates.stock <= 10 ? 'low_stock' : 'in_stock';
       }
+    }
+
+    if (updates.unit && !isAllowedUnit(String(updates.unit))) {
+      return res.status(400).json(
+        errorResponse('Use an agricultural unit such as kg, g, sack, bundle, piece, tray, or bunch', null, 'INVALID_UNIT', 400)
+      );
     }
 
     if (updates.price !== undefined) {
@@ -271,7 +328,7 @@ router.put('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
 // @route   DELETE /api/products/:id
 // @desc    Deactivate or delete product from catalog while preserving transaction history
 // @access  Private (Seller of product, Admin)
-router.delete('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
+router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {

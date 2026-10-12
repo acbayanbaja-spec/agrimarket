@@ -19,6 +19,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import ProductCard from '../../src/components/ProductCard';
 import { matchProduct } from '../../src/lib/commerce';
 import AiAssistantModal from '../../src/components/AiAssistantModal';
+import mobileApi from '../../src/services/api';
 
 type SortOption = 'relevance' | 'sales' | 'price_asc' | 'price_desc' | 'rating' | 'organic';
 
@@ -28,11 +29,14 @@ export default function MarketplaceScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
 
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [category, setCategory] = useState(params.category || 'All');
   const [location, setLocation] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [refreshing, setRefreshing] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [remoteProducts, setRemoteProducts] = useState<Product[] | null>(null);
+  const [remoteTotal, setRemoteTotal] = useState<number | null>(null);
   const listRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -48,6 +52,43 @@ export default function MarketplaceScreen() {
     await refreshCatalog();
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 280);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedQuery.trim()) params.set('search', debouncedQuery.trim());
+    if (category && category !== 'All') params.set('category', category);
+    if (location) params.set('location', location);
+    if (sortBy === 'organic') params.set('organic', 'true');
+    else if (sortBy === 'price_asc') params.set('sort', 'price-asc');
+    else if (sortBy === 'price_desc') params.set('sort', 'price-desc');
+    else if (sortBy === 'sales') params.set('sort', 'sales');
+    else if (sortBy === 'rating') params.set('sort', 'rating');
+    else params.set('sort', 'featured');
+    params.set('page', '1');
+    params.set('pageSize', '24');
+    let cancelled = false;
+    mobileApi
+      .get<any>(`/products?${params.toString()}`)
+      .then((res) => {
+        if (cancelled) return;
+        const list = res?.data?.products || res?.products;
+        if (Array.isArray(list)) {
+          setRemoteProducts(list);
+          setRemoteTotal(res?.data?.total ?? list.length);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteProducts(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery, category, location, sortBy]);
 
   const filtered = useMemo(() => {
     let list = products.filter((product) => {
@@ -72,6 +113,9 @@ export default function MarketplaceScreen() {
     }
   }, [products, category, query, location, sortBy]);
 
+  const visibleProducts = remoteProducts || filtered;
+  const resultCount = remoteTotal ?? filtered.length;
+
   const canShop = isAuthenticated && (hasRole('buyer') || hasRole('seller') || hasRole('admin'));
 
   return (
@@ -83,7 +127,7 @@ export default function MarketplaceScreen() {
             <Text style={styles.title}>Marketplace</Text>
             <View style={[styles.statusDot, { backgroundColor: isOnline ? '#16a34a' : '#f59e0b' }]} />
           </View>
-          <Text style={styles.subtitle}>{filtered.length} farm harvests across SOCCSKSARGEN</Text>
+          <Text style={styles.subtitle}>{resultCount} farm harvests across SOCCSKSARGEN</Text>
         </View>
 
         <View style={styles.headerRight}>
@@ -216,7 +260,7 @@ export default function MarketplaceScreen() {
           </View>
         ))}
 
-        {filtered.length === 0 ? (
+        {visibleProducts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🌾</Text>
             <Text style={styles.emptyTitle}>No matching harvests found</Text>
@@ -234,7 +278,7 @@ export default function MarketplaceScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          filtered.map((product) => <ProductCard key={product.id} product={product} />)
+          visibleProducts.map((product) => <ProductCard key={product.id} product={product} />)
         )}
       </ScrollView>
 

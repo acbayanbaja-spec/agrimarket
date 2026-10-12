@@ -30,7 +30,7 @@ export type Order = {
   pointsEarned: number
   pointsRedeemed: number
   total: number
-  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered'
+  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered' | 'Cancelled'
   createdAt: string
   address: string
   payment: 'GCash' | 'Cash on delivery'
@@ -255,7 +255,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsOnline(health.ok)
       setApiLatency(health.latency)
 
-      const res = await mobileApi.get<any>('/products')
+      const res = await mobileApi.get<any>('/products?pageSize=48&stock=in')
       const prods = res?.data?.products || res?.products
       if (Array.isArray(prods) && prods.length > 0) {
         const live: Product[] = prods.filter((p: any) => !p.isUnlisted && p.isActive !== false)
@@ -378,10 +378,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (user && approvedSellerIds.includes(user.id)) addRole('seller')
   }, [user, approvedSellerIds, addRole])
 
+  useEffect(() => {
+    if (!user) return
+    mobileApi
+      .get<any>('/wishlist')
+      .then((res) => {
+        const ids = res?.data?.productIds || res?.productIds
+        if (Array.isArray(ids)) setWishlist(ids)
+      })
+      .catch(() => undefined)
+  }, [user?.id])
+
   const toggleWishlist = (productId: string) => {
-    setWishlist((curr) =>
-      curr.includes(productId) ? curr.filter((id) => id !== productId) : [...curr, productId]
-    )
+    const exists = wishlist.includes(productId)
+    const previous = wishlist
+    setWishlist((curr) => (exists ? curr.filter((id) => id !== productId) : [...curr, productId]))
+    if (!user) return
+    const request = exists ? mobileApi.delete(`/wishlist/${productId}`) : mobileApi.post(`/wishlist/${productId}`)
+    request
+      .then((res: any) => {
+        const ids = res?.data?.productIds || res?.productIds
+        if (Array.isArray(ids)) setWishlist(ids)
+      })
+      .catch(() => setWishlist(previous))
   }
 
   const isWishlisted = (productId: string) => wishlist.includes(productId)

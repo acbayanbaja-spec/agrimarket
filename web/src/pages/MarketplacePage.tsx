@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { categories } from '../data/catalog'
+import { categories, type Product } from '../data/catalog'
 import { soccsksargenPlaces } from '../data/locations'
 import { useStore } from '../context/StoreContext'
 import ProductCard from '../components/ProductCard'
@@ -8,6 +8,7 @@ import Seo from '../components/Seo'
 import { formatPeso } from '../lib/utils'
 import { BUDGET_PRESETS, filterByBudget, matchProduct } from '../lib/commerce'
 import ProductImage from '../components/ProductImage'
+import api from '../services/api'
 
 const stockFilters = [
   ['all', 'All stock'],
@@ -30,6 +31,9 @@ const MarketplacePage = () => {
   const query = params.get('q') || ''
   const locationFilter = params.get('location') || ''
   const organicParam = params.get('organic') === 'true'
+  const page = Math.max(1, Number(params.get('page') || '1'))
+  const [remote, setRemote] = useState<{ products: Product[]; total: number; totalPages: number; page: number } | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const updateParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params)
@@ -40,10 +44,50 @@ const MarketplacePage = () => {
         next.set(key, value)
       }
     })
+    if (!('page' in patch)) next.delete('page')
     setParams(next)
   }
 
-  const filtered = useMemo(() => {
+  useEffect(() => {
+    let cancelled = false
+    const search = new URLSearchParams()
+    if (query) search.set('search', query)
+    if (selectedCategory && selectedCategory !== 'All') search.set('category', selectedCategory)
+    if (seller) search.set('seller', seller)
+    if (budget) search.set('maxPrice', String(budget))
+    if (locationFilter) search.set('location', locationFilter)
+    if (organicParam) search.set('organic', 'true')
+    if (availability !== 'all') search.set('stock', availability)
+    search.set('sort', sort)
+    search.set('page', String(page))
+    search.set('pageSize', '24')
+    setLoading(true)
+    api
+      .get<{ data?: { products: Product[]; total: number; totalPages: number; page: number } }>(`/products?${search.toString()}`)
+      .then((res) => {
+        if (cancelled) return
+        const data = res.data?.data
+        if (data?.products) {
+          setRemote({
+            products: data.products,
+            total: data.total,
+            totalPages: data.totalPages,
+            page: data.page,
+          })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRemote(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [query, selectedCategory, seller, budget, locationFilter, organicParam, availability, sort, page])
+
+  const localFiltered = useMemo(() => {
     let list = products.filter((product) => {
       const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
       const matchesQuery = matchProduct(product, query)
@@ -66,6 +110,10 @@ const MarketplacePage = () => {
     return list
   }, [products, selectedCategory, query, seller, sort, recommended, availability, budget, locationFilter, organicParam])
 
+  const filtered = remote?.products || localFiltered
+  const total = remote?.total ?? filtered.length
+  const totalPages = remote?.totalPages ?? 1
+
   return (
     <div className="page-shell">
       <Seo title="Marketplace" description="Browse farm-direct produce with budget search, harvest points, GCash and COD." path="/marketplace" />
@@ -73,14 +121,16 @@ const MarketplacePage = () => {
         <div>
           <h1 className="text-4xl font-bold">Marketplace</h1>
           <p className="text-gray-600 mt-2">
-            {filtered.length} listing{filtered.length === 1 ? '' : 's'} in SOCCSKSARGEN
+            {total} listing{total === 1 ? '' : 's'} in SOCCSKSARGEN
             {query ? ` for “${query}”` : ''}
             {budget ? ` · at or under ${formatPeso(budget)}, highest first` : ''}
             {availability !== 'all' ? ` · ${availability === 'in' ? 'in stock' : availability === 'low' ? 'low stock' : 'sold out'}` : ''}
+            {loading ? ' · updating…' : ''}
           </p>
         </div>
-        <select className="input-field max-w-xs" value={sort} onChange={(event) => updateParams({ sort: event.target.value })}>
+        <select className="input-field max-w-xs" value={sort} onChange={(event) => updateParams({ sort: event.target.value })} aria-label="Sort harvests">
           <option value="featured">Featured</option>
+          <option value="newest">Newest listings</option>
           <option value="price-asc">Price: low to high</option>
           <option value="price-desc">Price: high to low</option>
           <option value="rating">Best ratings</option>
@@ -96,7 +146,7 @@ const MarketplacePage = () => {
               key={amount}
               type="button"
               onClick={() => updateParams({ budget: String(amount) })}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`rounded-full px-4 py-2 text-sm font-semibold min-h-[40px] ${
                 budget === amount ? 'bg-primary-600 text-white' : 'bg-primary-50 text-primary-800'
               }`}
             >
@@ -122,7 +172,7 @@ const MarketplacePage = () => {
             key={value}
             type="button"
             onClick={() => updateParams({ stock: value })}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold ${
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold min-h-[40px] ${
               availability === value ? 'bg-soil-900 text-white' : 'bg-white border border-gray-200 text-gray-700'
             }`}
           >
@@ -132,7 +182,7 @@ const MarketplacePage = () => {
         <button
           type="button"
           onClick={() => updateParams({ organic: organicParam ? null : 'true' })}
-          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 transition-all ${
+          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1.5 transition-all min-h-[40px] ${
             organicParam
               ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
               : 'bg-white border border-gray-200 text-gray-700 hover:border-emerald-300'
@@ -146,7 +196,7 @@ const MarketplacePage = () => {
         <button
           type="button"
           onClick={() => updateParams({ location: null })}
-          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold ${!locationFilter ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-700'}`}
+          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold min-h-[40px] ${!locationFilter ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-700'}`}
         >
           All SOCCSKSARGEN
         </button>
@@ -155,7 +205,7 @@ const MarketplacePage = () => {
             key={place.label}
             type="button"
             onClick={() => updateParams({ location: place.label })}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold ${
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold min-h-[40px] ${
               locationFilter === place.label ? 'bg-primary-600 text-white shadow-glow' : 'bg-white border border-gray-200 text-gray-700'
             }`}
           >
@@ -191,7 +241,7 @@ const MarketplacePage = () => {
             key={category}
             type="button"
             onClick={() => updateParams({ category })}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-all min-h-[40px] ${
               selectedCategory === category ? 'bg-primary-600 text-white shadow-glow' : 'bg-white border border-gray-200 text-gray-700'
             }`}
           >
@@ -206,11 +256,36 @@ const MarketplacePage = () => {
           <Link to="/marketplace" className="btn-primary mt-4">Clear filters</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((product, index) => (
-            <ProductCard key={product.id} product={product} delay={index * 40} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((product, index) => (
+              <ProductCard key={product.id} product={product} delay={index * 40} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-8">
+              <button
+                type="button"
+                className="btn-outline py-2"
+                disabled={page <= 1}
+                onClick={() => updateParams({ page: String(page - 1) })}
+              >
+                Previous
+              </button>
+              <p className="text-sm text-gray-600">
+                Page {remote?.page || page} of {totalPages}
+              </p>
+              <button
+                type="button"
+                className="btn-outline py-2"
+                disabled={page >= totalPages}
+                onClick={() => updateParams({ page: String(page + 1) })}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

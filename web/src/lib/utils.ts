@@ -15,7 +15,9 @@ export function getErrorMessage(error: unknown, fallback = 'Something went wrong
     const response = (error as { response?: { status?: number; data?: { message?: string; error?: string } } }).response
     if (response?.data?.message) return response.data.message
     if (response?.data?.error) return response.data.error
-    if (response?.status === 500) return 'Server temporarily unavailable. Please try again in a few moments.'
+    if (response?.status === 503) return 'The marketplace is temporarily unavailable. Please try again shortly.'
+    if (response?.status === 404) return 'Cannot reach the AgriMarket API. The app may be pointing at the wrong backend URL.'
+    if (response?.status === 500) return 'Server error. Please try again in a few moments.'
     if (response?.status === 401) return 'Invalid email or password. Please try again.'
     if (response?.status === 403) return 'Account is deactivated or unauthorized.'
     if (response?.status === 429) return 'Too many requests. Please wait a moment and try again.'

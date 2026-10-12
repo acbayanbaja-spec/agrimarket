@@ -18,6 +18,8 @@ import { productPhoto } from '../../src/lib/images';
 import { formatPeso, stockLabel } from '../../src/lib/utils';
 import { harvestMeta } from '../../src/lib/commerce';
 import { useAuth } from '../../src/context/AuthContext';
+import mobileApi from '../../src/services/api';
+import type { Product } from '../../src/data/catalog';
 import ProductCard from '../../src/components/ProductCard';
 import AiAssistantModal from '../../src/components/AiAssistantModal';
 import VouchersModal from '../../src/components/VouchersModal';
@@ -31,21 +33,54 @@ export default function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [showAiModal, setShowAiModal] = useState(false);
   const [showVouchers, setShowVouchers] = useState(false);
+  const [relatedRemote, setRelatedRemote] = useState<Product[]>([]);
+  const [remoteProduct, setRemoteProduct] = useState<Product | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const product = products.find((item) => item.id === id);
+  const catalogProduct = products.find((item) => item.id === id);
+  const product = catalogProduct || remoteProduct;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     setQuantity(1);
+    if (!id) return
+    mobileApi
+      .get<any>(`/products/${id}/related`)
+      .then((res) => setRelatedRemote(res?.data?.products || res?.products || []))
+      .catch(() => setRelatedRemote([]))
   }, [id]);
+
+  useEffect(() => {
+    if (!id || catalogProduct) {
+      setRemoteProduct(null);
+      setProductLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProductLoading(true);
+    mobileApi
+      .get<any>(`/products/${id}`)
+      .then((res) => {
+        if (!cancelled) setRemoteProduct(res?.data?.product || res?.product || null);
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteProduct(null);
+      })
+      .finally(() => {
+        if (!cancelled) setProductLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, catalogProduct]);
 
   if (!product) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>🌾</Text>
-          <Text style={styles.title}>Listing not found</Text>
+          <Text style={styles.title}>{productLoading ? 'Loading harvest…' : 'Listing not found'}</Text>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Text style={styles.backBtnText}>Go back to Marketplace</Text>
           </TouchableOpacity>
@@ -61,9 +96,12 @@ export default function ProductDetailScreen() {
   const sellerFeed = posts.filter((post) => post.productId === product.id || post.sellerName === product.seller);
 
   // 4 Related recommendations
-  const related = recommendations
-    .filter((p) => p.id !== product.id && (p.category === product.category || p.location === product.location))
-    .slice(0, 4);
+  const related =
+    relatedRemote.length > 0
+      ? relatedRemote
+      : recommendations
+          .filter((p) => p.id !== product.id && (p.category === product.category || p.location === product.location))
+          .slice(0, 4);
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {

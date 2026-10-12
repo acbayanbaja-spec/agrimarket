@@ -27,6 +27,9 @@ const OrdersPage = () => {
     if (activeTab === 'to_rate' || activeTab === 'Delivered') {
       return myOrders.filter((o) => o.status === 'Delivered')
     }
+    if (activeTab === 'cancelled' || activeTab === 'Cancelled') {
+      return myOrders.filter((o) => o.status === 'Cancelled')
+    }
     return myOrders
   }, [myOrders, activeTab])
 
@@ -36,6 +39,7 @@ const OrdersPage = () => {
     { id: 'to_ship', label: 'To Ship', count: myOrders.filter((o) => o.status === 'Confirmed').length },
     { id: 'to_receive', label: 'To Receive', count: myOrders.filter((o) => o.status === 'Shipped' || o.status === 'Out for delivery').length },
     { id: 'to_rate', label: 'To Rate', count: myOrders.filter((o) => o.status === 'Delivered').length },
+    { id: 'cancelled', label: 'Cancelled', count: myOrders.filter((o) => o.status === 'Cancelled').length },
   ]
 
   return (

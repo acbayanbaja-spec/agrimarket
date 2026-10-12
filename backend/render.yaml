@@ -4,6 +4,7 @@ services:
     env: node
     buildCommand: npm run build
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -32,4 +33,8 @@ services:
       - key: MOBILE_URL
         value: exp://localhost:19000
       - key: DB_REQUIRED
-        value: false
+        value: "true"
+      - key: ALLOW_EMBEDDED_STORE
+        value: "false"
+      - key: DATABASE_URL
+        sync: false

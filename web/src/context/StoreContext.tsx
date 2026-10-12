@@ -37,7 +37,7 @@ export type Order = {
   pointsEarned: number
   pointsRedeemed: number
   total: number
-  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered'
+  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered' | 'Cancelled'
   createdAt: string
   address: string
   payment: 'GCash' | 'Cash on delivery'
@@ -478,7 +478,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const refreshCatalog = async () => {
     try {
       const res = await api.get<{ success?: boolean; data?: { products: Product[] }; products?: Product[] }>(
-        '/products?includeInactive=true'
+        '/products?includeInactive=true&pageSize=500'
       )
       const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
       if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
@@ -859,8 +859,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Storage sync error:', err)
       }
     }
-    const handleOnline = () => setSyncStatus('online')
+    const handleOnline = () => setSyncStatus(navigator.onLine ? 'online' : 'offline')
     const handleOffline = () => setSyncStatus('offline')
+    setSyncStatus(navigator.onLine ? 'online' : 'offline')
     window.addEventListener('storage', handleStorage)
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -1653,18 +1654,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTrades((current) => current.map((trade) => (trade.id === id ? { ...trade, status } : trade)))
   }
 
-  const toggleWishlist = (productId: string) => {
-    setWishlist((current) => {
-      const exists = current.includes(productId)
-      const next = exists ? current.filter((id) => id !== productId) : [...current, productId]
-      notify({
-        userId: user?.id || 'all',
-        title: exists ? 'Removed from Wishlist' : 'Added to Wishlist ❤️',
-        message: exists ? 'Product removed from your saved items.' : 'Saved to your wishlist! View it anytime from Shop or Profile.',
-        href: `/products/${productId}`,
+  useEffect(() => {
+    const token = localStorage.getItem('token') || ''
+    if (!user || token.startsWith('local-') || token.startsWith('demo-')) return
+    api
+      .get<{ data?: { productIds?: string[] } }>('/wishlist')
+      .then((res) => {
+        const ids = res.data?.data?.productIds
+        if (Array.isArray(ids)) setWishlist(ids)
       })
-      return next
+      .catch(() => undefined)
+  }, [user?.id])
+
+  const toggleWishlist = (productId: string) => {
+    const exists = wishlist.includes(productId)
+    const previous = wishlist
+    const next = exists ? wishlist.filter((id) => id !== productId) : [...wishlist, productId]
+    setWishlist(next)
+    notify({
+      userId: user?.id || 'all',
+      title: exists ? 'Removed from Wishlist' : 'Added to Wishlist ❤️',
+      message: exists ? 'Product removed from your saved items.' : 'Saved to your wishlist! View it anytime from Shop or Profile.',
+      href: `/products/${productId}`,
     })
+    const token = localStorage.getItem('token') || ''
+    if (!user || token.startsWith('local-') || token.startsWith('demo-')) return
+    const request = exists ? api.delete(`/wishlist/${productId}`) : api.post(`/wishlist/${productId}`)
+    request
+      .then((res: { data?: { data?: { productIds?: string[] } } }) => {
+        const ids = res.data?.data?.productIds
+        if (Array.isArray(ids)) setWishlist(ids)
+      })
+      .catch(() => setWishlist(previous))
   }
 
   const isWishlisted = (productId: string) => wishlist.includes(productId)

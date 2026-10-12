@@ -9,9 +9,15 @@ const GEMINI_KEY_STORAGE = 'agrimarket_gemini_api_key';
 
 let cachedBaseUrl: string | null = null;
 
+const PRODUCTION_API_ORIGIN = 'https://agrimarket-0y5r.onrender.com';
+
 export function resolveDefaultApiBaseUrl(): string {
   if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+
+  if (process.env.EXPO_PUBLIC_USE_PRODUCTION === 'true') {
+    return PRODUCTION_API_ORIGIN;
   }
 
   // Expo Go provides the host machine's IP in hostUri (e.g. "192.168.1.15:8081")
@@ -77,7 +83,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   // 10-second timeout controller
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
+  const timer = setTimeout(() => controller.abort(), 45000);
 
   try {
     const response = await fetch(url, {
@@ -116,7 +122,7 @@ export const mobileApi = {
     const start = Date.now();
     try {
       const baseUrl = await getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/products`, { method: 'GET' });
+      const res = await fetch(`${baseUrl}/health`, { method: 'GET' });
       return { ok: res.ok, url: baseUrl, latency: Date.now() - start };
     } catch {
       const baseUrl = await getApiBaseUrl();

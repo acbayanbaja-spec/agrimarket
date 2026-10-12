@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
-import pool from '../config/database';
+import pool, { classifyDatabaseError, DatabaseFailureKind } from '../config/database';
+import { databaseUnavailableError, isDatabaseRequired, isEmbeddedFallbackAllowed } from '../config/persistence';
 
 export interface UserEntity {
   id: number;
@@ -760,34 +761,172 @@ export interface DatabaseSchema {
 class DatabaseStore {
   private data: DatabaseSchema;
   private isMySqlConnected: boolean = false;
+  private lastFailureKind: DatabaseFailureKind | null = null;
+  private lastFailureMessage: string | null = null;
+  public readonly readyPromise: Promise<void>;
+  private reconnectTimer: ReturnType<typeof setInterval> | null = null;
+  private wishlists: Map<number, string[]> = new Map();
+  private inventoryMovements: Array<{
+    id: string;
+    productId: string;
+    userId?: number;
+    quantityDelta: number;
+    reason: string;
+    orderId?: string;
+    createdAt: string;
+  }> = [];
+  private orderStatusEvents: Array<{
+    id: string;
+    orderId: string;
+    fromStatus?: string;
+    toStatus: string;
+    actorUserId?: number;
+    note?: string;
+    createdAt: string;
+  }> = [];
 
   constructor() {
-    this.data = this.loadData();
-    this.checkMySqlConnection().catch((err) => {
-      console.warn('Database connection initialization notice:', err.message);
+    this.data = isEmbeddedFallbackAllowed() ? this.loadData() : this.emptySchema();
+    this.readyPromise = this.checkMySqlConnection().catch((err) => {
+      const classified = classifyDatabaseError(err);
+      this.lastFailureKind = classified.kind;
+      this.lastFailureMessage = classified.message;
+      console.warn('Database connection initialization notice:', classified.kind, classified.message);
+      this.startReconnectLoop();
     });
+  }
+
+  public async waitUntilReady() {
+    await this.readyPromise;
   }
 
   public getIsMySqlConnected(): boolean {
     return this.isMySqlConnected;
   }
 
+  public getReadiness() {
+    const required = isDatabaseRequired();
+    const embedded = isEmbeddedFallbackAllowed();
+    const ready = this.isMySqlConnected || (!required && embedded);
+    return {
+      ready,
+      databaseRequired: required,
+      connected: this.isMySqlConnected,
+      mode: this.isMySqlConnected ? 'mysql' : embedded ? 'embedded_dev' : 'unavailable',
+      failureKind: this.isMySqlConnected ? null : this.lastFailureKind,
+      failureMessage: this.isMySqlConnected ? null : this.lastFailureMessage,
+    };
+  }
+
+  public assertPersistentStore() {
+    if (this.isMySqlConnected || isEmbeddedFallbackAllowed()) return;
+    throw databaseUnavailableError();
+  }
+
+  private emptySchema(): DatabaseSchema {
+    return {
+      users: [],
+      products: [],
+      categories: [],
+      orders: [],
+      cart: [],
+      seller_applications: [],
+      reviews: [],
+      posts: [],
+      trades: [],
+      notifications: [],
+      messages: [],
+      delivery_jobs: [],
+      coupons: [],
+      audit_logs: [],
+      processed_webhooks: [],
+    };
+  }
+
+  private async sleep(ms: number) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   private async checkMySqlConnection() {
-    const dbRequired = process.env.DB_REQUIRED === 'true';
+    const maxAttempts = parseInt(process.env.DB_CONNECT_RETRIES || '5', 10);
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const conn = await pool.getConnection();
+        await conn.query('SELECT 1');
+        this.isMySqlConnected = true;
+        this.lastFailureKind = null;
+        this.lastFailureMessage = null;
+        conn.release();
+        console.log('✅ Connected to authoritative MySQL database instance.');
+        await this.initMySqlSchemaAndData();
+        return;
+      } catch (e: any) {
+        lastError = e;
+        this.isMySqlConnected = false;
+        const classified = classifyDatabaseError(e);
+        this.lastFailureKind = classified.kind;
+        this.lastFailureMessage = classified.message;
+        const delay = Math.min(8000, 400 * 2 ** (attempt - 1));
+        console.warn(
+          `⚠️ MySQL connection attempt ${attempt}/${maxAttempts} failed [${classified.kind}]: ${classified.message}`
+        );
+        if (attempt < maxAttempts) {
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    if (isDatabaseRequired()) {
+      console.error(
+        `❌ Authoritative MySQL is required and unavailable [${this.lastFailureKind}]. API will stay live but not ready.`
+      );
+    } else if (isEmbeddedFallbackAllowed()) {
+      console.warn(
+        '⚠️ MySQL is unreachable. Development embedded JSON store is enabled. This mode is forbidden in production.'
+      );
+    } else {
+      console.error('❌ MySQL is unreachable and the embedded store is disabled.');
+    }
+
+    this.startReconnectLoop();
+
+    if (lastError) {
+      throw lastError;
+    }
+  }
+
+  private startReconnectLoop() {
+    if (this.reconnectTimer || this.isMySqlConnected) return;
+    const interval = parseInt(process.env.DB_RECONNECT_MS || '20000', 10);
+    this.reconnectTimer = setInterval(() => {
+      void this.attemptReconnect();
+    }, interval);
+    if (typeof this.reconnectTimer.unref === 'function') {
+      this.reconnectTimer.unref();
+    }
+  }
+
+  private async attemptReconnect() {
+    if (this.isMySqlConnected) return;
     try {
       const conn = await pool.getConnection();
+      await conn.query('SELECT 1');
       this.isMySqlConnected = true;
+      this.lastFailureKind = null;
+      this.lastFailureMessage = null;
       conn.release();
-      console.log('✅ Connected to authoritative MySQL database instance.');
+      console.log('✅ Reconnected to authoritative MySQL database instance.');
+      if (this.reconnectTimer) {
+        clearInterval(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
       await this.initMySqlSchemaAndData();
     } catch (e: any) {
-      this.isMySqlConnected = false;
-      if (dbRequired) {
-        console.error(`❌ FATAL: Authoritative MySQL connection failed (${e.message}). DB_REQUIRED is enabled.`);
-        throw new Error(`Authoritative MySQL connection failed: ${e.message}`);
-      } else {
-        console.warn(`⚠️ Notice: External MySQL host is unreachable (${e.message}). Operating on resilient local embedded data store.`);
-      }
+      const classified = classifyDatabaseError(e);
+      this.lastFailureKind = classified.kind;
+      this.lastFailureMessage = classified.message;
     }
   }
 
@@ -811,30 +950,63 @@ class DatabaseStore {
         console.log('✅ MySQL schema tables verified and ready.');
       }
 
+      try {
+        const [wishlistRows]: any = await pool.query('SELECT user_id, product_id FROM wishlists');
+        this.wishlists.clear();
+        for (const row of wishlistRows || []) {
+          const list = this.wishlists.get(Number(row.user_id)) || [];
+          list.push(String(row.product_id));
+          this.wishlists.set(Number(row.user_id), list);
+        }
+      } catch {
+        // Table is created from schema.sql; ignore until first successful migrate.
+      }
+
+      await pool.query(
+        "INSERT INTO roles (name, description) VALUES ('buyer', 'Marketplace buyer'), ('seller', 'Farm seller'), ('admin', 'Platform administrator'), ('delivery', 'Delivery rider') ON DUPLICATE KEY UPDATE description=VALUES(description)"
+      );
+
       // Check if users table is populated; if empty, safely seed from current in-memory store
       const [rows]: any = await pool.query('SELECT COUNT(*) as count FROM users');
       const count = rows[0]?.count || 0;
-      if (count === 0 && this.data.users.length > 0) {
-        console.log('🔄 Safely migrating existing records into MySQL database...');
-        for (const u of this.data.users) {
+      if (count > 0) {
+        await this.hydrateFromMySql();
+        return;
+      }
+
+      const allowDemoSeed = !disableDemoAccounts;
+      const seedUsers = this.data.users.length > 0 ? this.data.users : allowDemoSeed ? initialUsers : [];
+      const seedCategories = this.data.categories.length > 0 ? this.data.categories : initialCategories;
+      const seedProducts = this.data.products.length > 0 ? this.data.products : initialProducts;
+      const seedCoupons = this.data.coupons.length > 0 ? this.data.coupons : initialCoupons;
+
+      if (count === 0 && seedUsers.length > 0) {
+        console.log('🔄 Seeding empty MySQL catalog from canonical marketplace records...');
+        for (const u of seedUsers) {
           await pool.query(
             'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email)',
             [u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone || null, u.is_verified ? 1 : 0, u.is_active ? 1 : 0]
           );
+          for (const roleName of u.roles || ['buyer']) {
+            await pool.query(
+              'INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ? ON DUPLICATE KEY UPDATE user_id=user_id',
+              [u.id, roleName]
+            );
+          }
         }
-        for (const c of this.data.categories) {
+        for (const c of seedCategories) {
           await pool.query(
             'INSERT INTO categories (id, name, description, icon, image_url, is_active) VALUES (?, ?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE name=VALUES(name)',
             [c.id, c.name, c.description, c.icon, c.imageUrl]
           );
         }
-        for (const p of this.data.products) {
+        for (const p of seedProducts) {
           await pool.query(
             'INSERT INTO products (id, seller_user_id, seller_id, category, name, description, price, unit, stock, rating, reviews_count, image, location, is_organic, is_active, is_unlisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stock=VALUES(stock)',
             [p.id, p.sellerUserId, p.sellerId, p.category, p.name, p.description, p.price, p.unit, p.stock, p.rating, p.reviews, p.image, p.location, p.organic ? 1 : 0, p.isActive !== false ? 1 : 0, p.isUnlisted ? 1 : 0]
           );
         }
-        for (const c of this.data.coupons) {
+        for (const c of seedCoupons) {
           await pool.query(
             'INSERT INTO coupons (code, discount, type, min_spend, description, is_active) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE discount=VALUES(discount)',
             [c.code, c.discount, c.type, c.minSpend, c.description, c.isActive ? 1 : 0]
@@ -855,16 +1027,156 @@ class DatabaseStore {
           }
         }
         console.log('✅ Safely migrated catalog, user, and order records into MySQL.');
+        await this.hydrateFromMySql();
+      } else if (count === 0) {
+        console.warn('⚠️ MySQL users table is empty. Not seeding demo accounts into production automatically.');
       }
     } catch (err: any) {
       console.warn('⚠️ Notice during MySQL schema init / migration:', err.message);
     }
   }
 
+  private async hydrateFromMySql() {
+    try {
+      const [userRows]: any = await pool.query(
+        `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.profile_image,
+                u.is_verified, u.is_active, u.suspension_reason, u.created_at,
+                GROUP_CONCAT(r.name) as roles
+         FROM users u
+         LEFT JOIN user_roles ur ON u.id = ur.user_id
+         LEFT JOIN roles r ON ur.role_id = r.id
+         GROUP BY u.id`
+      );
+      this.data.users = (userRows || []).map((row: any) => ({
+        id: Number(row.id),
+        email: row.email,
+        password_hash: row.password_hash,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        phone: row.phone || undefined,
+        profile_image: row.profile_image || undefined,
+        roles: row.roles ? String(row.roles).split(',').filter(Boolean) : ['buyer'],
+        is_verified: Boolean(row.is_verified),
+        is_active: Boolean(row.is_active),
+        suspension_reason: row.suspension_reason || undefined,
+        created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+      }));
+
+      try {
+        const [categoryRows]: any = await pool.query(
+          'SELECT id, name, description, icon, image_url FROM categories WHERE is_active = 1 OR is_active IS NULL'
+        );
+        if (categoryRows?.length) {
+          this.data.categories = categoryRows.map((row: any) => ({
+            id: String(row.id),
+            name: row.name,
+            description: row.description || '',
+            icon: row.icon || '',
+            imageUrl: row.image_url || '',
+          }));
+        }
+      } catch (err: any) {
+        console.warn('Category hydrate skipped:', err.message);
+      }
+
+      try {
+        const [productRows]: any = await pool.query(
+          'SELECT * FROM products WHERE COALESCE(is_deleted, 0) = 0'
+        );
+        if (productRows?.length) {
+          this.data.products = productRows.map((row: any) => ({
+            id: String(row.id),
+            name: row.name,
+            category: row.category,
+            price: Number(row.price),
+            unit: row.unit,
+            stock: Number(row.stock || 0),
+            rating: Number(row.rating || 5),
+            reviews: Number(row.reviews_count || 0),
+            seller: row.seller_id,
+            sellerId: row.seller_id,
+            sellerUserId: Number(row.seller_user_id),
+            location: row.location || '',
+            image: row.image || '',
+            photos: row.image ? [row.image] : [],
+            description: row.description || '',
+            organic: Boolean(row.is_organic),
+            tradeable: false,
+            lat: 0,
+            lng: 0,
+            created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+            isActive: row.is_active !== 0 && row.is_active !== false,
+            is_active: row.is_active !== 0 && row.is_active !== false,
+            isUnlisted: Boolean(row.is_unlisted),
+            isDeleted: Boolean(row.is_deleted),
+          }));
+        }
+      } catch (err: any) {
+        console.warn('Product hydrate skipped:', err.message);
+      }
+
+      try {
+        const [orderRows]: any = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+        const [itemRows]: any = await pool.query('SELECT * FROM order_items');
+        const itemsByOrder = new Map<string, any[]>();
+        for (const item of itemRows || []) {
+          const list = itemsByOrder.get(item.order_id) || [];
+          list.push({
+            productId: item.product_id,
+            name: item.name,
+            price: Number(item.price),
+            quantity: Number(item.quantity),
+            unit: item.unit || 'kg',
+            image: item.image || '',
+            seller: item.seller || '',
+            sellerId: item.seller_id || '',
+            sellerUserId: Number(item.seller_user_id),
+            pickupLocation: item.pickup_location || '',
+            prepStatus: item.prep_status || 'unpacked',
+            prepNotes: item.prep_notes || undefined,
+          });
+          itemsByOrder.set(item.order_id, list);
+        }
+        if (orderRows?.length) {
+          this.data.orders = orderRows.map((row: any) => ({
+            id: row.id,
+            receiptNo: row.receipt_no,
+            userId: Number(row.user_id),
+            buyerName: row.buyer_name,
+            buyerPhone: row.buyer_phone || undefined,
+            items: itemsByOrder.get(row.id) || [],
+            subtotal: Number(row.subtotal),
+            shippingFee: Number(row.shipping_fee || 0),
+            shippingDiscount: Number(row.shipping_discount || 0),
+            couponCode: row.coupon_code || undefined,
+            pointsEarned: Number(row.points_earned || 0),
+            pointsRedeemed: Number(row.points_redeemed || 0),
+            total: Number(row.total),
+            status: row.status,
+            payment: row.payment,
+            paymentRef: row.payment_ref || undefined,
+            paymentStatus: row.payment_status || 'pending',
+            driverId: row.driver_id || undefined,
+            address: row.address,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+          }));
+        }
+      } catch (err: any) {
+        console.warn('Order hydrate skipped:', err.message);
+      }
+
+      console.log(
+        `✅ Hydrated in-memory cache from MySQL (${this.data.users.length} users, ${this.data.products.length} products, ${this.data.orders.length} orders).`
+      );
+    } catch (err: any) {
+      console.warn('⚠️ MySQL hydrate failed:', err.message);
+    }
+  }
+
   public async executeMySql(query: string, params: any[] = []) {
     if (!this.isMySqlConnected) {
-      if (process.env.DB_REQUIRED === 'true') {
-        throw new Error('Database persistence failed: Authoritative MySQL is not connected.');
+      if (isDatabaseRequired()) {
+        throw databaseUnavailableError();
       }
       return;
     }
@@ -872,8 +1184,8 @@ class DatabaseStore {
       await pool.query(query, params);
     } catch (err: any) {
       console.error(`MySQL persistence failure: ${err.message}`);
-      if (process.env.DB_REQUIRED === 'true') {
-        throw new Error(`Authoritative MySQL query failed: ${err.message}`);
+      if (isDatabaseRequired()) {
+        throw databaseUnavailableError();
       }
     }
   }
@@ -963,6 +1275,9 @@ class DatabaseStore {
   }
 
   public saveData(dataToSave?: DatabaseSchema) {
+    if (!isEmbeddedFallbackAllowed()) {
+      return;
+    }
     try {
       if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -1159,7 +1474,15 @@ class DatabaseStore {
   public updateProduct(id: string, updates: Partial<ProductEntity>) {
     const idx = this.data.products.findIndex((p) => p.id === id);
     if (idx !== -1) {
-      this.data.products[idx] = { ...this.data.products[idx], ...updates };
+      const previous = this.data.products[idx];
+      if (updates.stock !== undefined && Number(updates.stock) !== previous.stock) {
+        this.recordInventoryMovement({
+          productId: id,
+          quantityDelta: Number(updates.stock) - previous.stock,
+          reason: 'seller_adjust',
+        });
+      }
+      this.data.products[idx] = { ...previous, ...updates };
       this.saveData();
 
       this.executeMySql(
@@ -1289,6 +1612,11 @@ class DatabaseStore {
         prod.stock === 0 ? 'out_of_stock' : prod.stock <= 10 ? 'low_stock' : 'in_stock';
       updatedProducts.push({ ...prod });
       this.executeMySql('UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?', [item.quantity, item.productId]);
+      this.recordInventoryMovement({
+        productId: item.productId,
+        quantityDelta: -item.quantity,
+        reason: 'order_deduct',
+      });
     }
 
     this.saveData();
@@ -1313,6 +1641,12 @@ class DatabaseStore {
         }
         updatedProducts.push({ ...prod });
         this.executeMySql('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.productId]);
+        this.recordInventoryMovement({
+          productId: item.productId,
+          quantityDelta: item.quantity,
+          reason: 'order_restore',
+          orderId,
+        });
       }
     }
 
@@ -1490,7 +1824,7 @@ class DatabaseStore {
     if (this.isMySqlConnected) {
       this.executeOrderTransaction(order).catch((err) => {
         console.error('MySQL Order Transaction Error:', err.message);
-        if (process.env.DB_REQUIRED === 'true') {
+        if (isDatabaseRequired()) {
           throw err;
         }
       });
@@ -1516,7 +1850,7 @@ class DatabaseStore {
     this.saveData();
 
     if (!this.isMySqlConnected) {
-      if (process.env.DB_REQUIRED === 'true') {
+      if (isDatabaseRequired()) {
         throw new Error('Database persistence failed: Authoritative MySQL is not connected.');
       }
     }
@@ -1524,9 +1858,10 @@ class DatabaseStore {
     return order;
   }
 
-  public updateOrderStatus(id: string, status: OrderEntity['status'], extra?: Partial<OrderEntity>) {
+  public updateOrderStatus(id: string, status: OrderEntity['status'], extra?: Partial<OrderEntity>, actorUserId?: number) {
     const idx = this.data.orders.findIndex((o) => o.id === id);
     if (idx !== -1) {
+      const previous = this.data.orders[idx].status;
       // If cancelled, restore stock once safely
       if (status === 'Cancelled') {
         this.restoreOrderStock(id);
@@ -1537,6 +1872,7 @@ class DatabaseStore {
         status,
         ...extra,
       };
+      this.recordOrderStatusEvent(id, previous, status, actorUserId, extra?.rejectedReason);
 
       this.executeMySql(
         'UPDATE orders SET status = ?, payment_status = COALESCE(?, payment_status), driver_id = COALESCE(?, driver_id) WHERE id = ?',
@@ -1667,7 +2003,22 @@ class DatabaseStore {
     });
   }
 
+  public findReviewByUserAndProduct(userId: number, productId: string) {
+    return this.data.reviews.find(
+      (r) => r.userId === userId && r.productId === productId && r.status !== 'hidden'
+    );
+  }
+
   public addReview(review: ReviewEntity) {
+    const duplicate = this.findReviewByUserAndProduct(review.userId, review.productId);
+    if (duplicate) {
+      const err: Error & { statusCode?: number; code?: string } = new Error(
+        'You have already reviewed this product.'
+      );
+      err.statusCode = 409;
+      err.code = 'DUPLICATE_REVIEW';
+      throw err;
+    }
     const entity: ReviewEntity = {
       ...review,
       status: review.status || 'published',
@@ -1924,6 +2275,83 @@ class DatabaseStore {
     }
     this.saveData();
     return newLog;
+  }
+
+  public getWishlist(userId: number): string[] {
+    return [...(this.wishlists.get(userId) || [])];
+  }
+
+  public addToWishlist(userId: number, productId: string): string[] {
+    const current = this.wishlists.get(userId) || [];
+    if (!current.includes(productId)) {
+      this.wishlists.set(userId, [...current, productId]);
+      this.executeMySql('INSERT IGNORE INTO wishlists (user_id, product_id) VALUES (?, ?)', [userId, productId]);
+    }
+    return this.getWishlist(userId);
+  }
+
+  public removeFromWishlist(userId: number, productId: string): string[] {
+    const current = this.wishlists.get(userId) || [];
+    this.wishlists.set(
+      userId,
+      current.filter((id) => id !== productId)
+    );
+    this.executeMySql('DELETE FROM wishlists WHERE user_id = ? AND product_id = ?', [userId, productId]);
+    return this.getWishlist(userId);
+  }
+
+  public recordInventoryMovement(entry: {
+    productId: string;
+    userId?: number;
+    quantityDelta: number;
+    reason: string;
+    orderId?: string;
+  }) {
+    const movement = {
+      id: `inv-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      ...entry,
+    };
+    this.inventoryMovements.unshift(movement);
+    this.inventoryMovements = this.inventoryMovements.slice(0, 2000);
+    this.executeMySql(
+      'INSERT INTO inventory_movements (id, product_id, user_id, quantity_delta, reason, order_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [movement.id, movement.productId, movement.userId || null, movement.quantityDelta, movement.reason, movement.orderId || null]
+    );
+    return movement;
+  }
+
+  public getInventoryMovements(productId: string) {
+    return this.inventoryMovements.filter((m) => m.productId === productId).slice(0, 50);
+  }
+
+  public recordOrderStatusEvent(
+    orderId: string,
+    fromStatus: string | undefined,
+    toStatus: string,
+    actorUserId?: number,
+    note?: string
+  ) {
+    const event = {
+      id: `ose-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      orderId,
+      fromStatus,
+      toStatus,
+      actorUserId,
+      note,
+      createdAt: new Date().toISOString(),
+    };
+    this.orderStatusEvents.unshift(event);
+    this.orderStatusEvents = this.orderStatusEvents.slice(0, 2000);
+    this.executeMySql(
+      'INSERT INTO order_status_events (id, order_id, from_status, to_status, actor_user_id, note) VALUES (?, ?, ?, ?, ?, ?)',
+      [event.id, orderId, fromStatus || null, toStatus, actorUserId || null, note || null]
+    );
+    return event;
+  }
+
+  public getOrderStatusEvents(orderId: string) {
+    return this.orderStatusEvents.filter((e) => e.orderId === orderId);
   }
 }
 

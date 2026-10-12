@@ -15,9 +15,17 @@ const descriptions: Record<Order['status'], string> = {
   Shipped: 'Rider collected fresh crates from the farm stall and departed for regional hub.',
   'Out for delivery': 'Rider is on the final drop-off route in SOCCSKSARGEN. Please have cash/GCash ready.',
   Delivered: 'Harvest safely received! Earned loyalty AgriCoins credited to your account.',
+  Cancelled: 'This order was cancelled. Stock is restored when a pending or confirmed harvest is cancelled.',
 }
 
 export const OrderTimeline = ({ status }: { status: Order['status'] }) => {
+  if (status === 'Cancelled') {
+    return (
+      <div className="bg-rose-50 border border-rose-100 rounded-2xl p-3.5 text-sm text-rose-800 font-medium">
+        {descriptions.Cancelled}
+      </div>
+    )
+  }
   const activeIndex = steps.findIndex((s) => s.key === status)
   const safeActive = activeIndex >= 0 ? activeIndex : 0
 

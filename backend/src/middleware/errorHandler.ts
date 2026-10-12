@@ -1,22 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
 
 export const errorHandler = (
-  error: Error,
+  error: Error & { statusCode?: number; code?: string },
   _req: Request,
   res: Response,
   _next: NextFunction
 ) => {
-  console.error('Error:', error);
+  const statusCode = error.statusCode || 500;
+  const errorCode =
+    error.code ||
+    (statusCode === 503 ? 'DATABASE_UNAVAILABLE' : 'INTERNAL_SERVER_ERROR');
+  const message =
+    statusCode === 500
+      ? 'Internal server error'
+      : error.message || 'Request failed';
 
-  // Default error
-  const statusCode = 500;
-  const message = 'Internal server error';
+  if (statusCode >= 500) {
+    console.error('Error:', error);
+  }
 
   res.status(statusCode).json({
     success: false,
     message,
     data: null,
-    errorCode: 'INTERNAL_SERVER_ERROR',
+    errorCode,
+    requestId: (_req as Request & { requestId?: string }).requestId,
   });
 };
 

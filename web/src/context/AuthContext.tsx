@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return nextUser
     } catch (error: any) {
       const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
-      if (isNetworkError) {
+      if (import.meta.env.DEV && isNetworkError) {
         const localMatch = findLocalAccount(email, password)
         if (localMatch) {
           const nextUser: User = {
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(nextUser, body.token)
     } catch (error: any) {
       const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
-      if (isNetworkError) {
+      if (import.meta.env.DEV && isNetworkError) {
         const locals = readLocalUsers()
         if (locals.some((l) => l.email.toLowerCase() === payload.email.toLowerCase())) {
           throw new Error('An account with this email already exists.')

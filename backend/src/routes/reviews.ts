@@ -59,6 +59,10 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
         o.items.some((it: any) => it.productId === productId)
     );
 
+    if (db.findReviewByUserAndProduct(user.id, productId)) {
+      return res.status(409).json(errorResponse('You have already reviewed this product', null, 'DUPLICATE_REVIEW', 409));
+    }
+
     const isVerifiedPurchase = !!eligibleOrder;
     if (!isVerifiedPurchase && !user.roles.includes('admin')) {
       return res

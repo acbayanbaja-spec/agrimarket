@@ -36,8 +36,8 @@ This guide will help you deploy the AgriMarket platform to:
 Add these in Vercel dashboard → Settings → Environment Variables:
 
 ```
-VITE_API_URL=https://agrimarket-backend.onrender.com
-VITE_SOCKET_URL=https://agrimarket-backend.onrender.com
+VITE_API_URL=https://agrimarket-0y5r.onrender.com
+VITE_SOCKET_URL=https://agrimarket-0y5r.onrender.com
 ```
 
 ### Step 3: Deploy
@@ -100,7 +100,7 @@ MOBILE_URL=exp://localhost:19000
 
 1. Click "Create Web Service"
 2. Render will build and deploy (~3-5 minutes)
-3. You'll get a URL like: `https://agrimarket-backend.onrender.com`
+3. You'll get a URL like: `https://agrimarket-0y5r.onrender.com`
 
 ### Step 4: Run Database Migrations
 
@@ -120,8 +120,8 @@ npm run seed
 1. Go back to Vercel dashboard
 2. Update environment variables with your Render URL:
 ```
-VITE_API_URL=https://agrimarket-backend.onrender.com
-VITE_SOCKET_URL=https://agrimarket-backend.onrender.com
+VITE_API_URL=https://agrimarket-0y5r.onrender.com
+VITE_SOCKET_URL=https://agrimarket-0y5r.onrender.com
 ```
 3. Redeploy Vercel
 
@@ -210,16 +210,16 @@ PAYMENT_API_KEY=your_payment_provider_key
 Update with production backend URL:
 
 ```
-VITE_API_URL=https://agrimarket-backend.onrender.com
-VITE_SOCKET_URL=https://agrimarket-backend.onrender.com
+VITE_API_URL=https://agrimarket-0y5r.onrender.com
+VITE_SOCKET_URL=https://agrimarket-0y5r.onrender.com
 ```
 
 ### Mobile (Expo)
 Update `mobile/.env`:
 
 ```
-EXPO_PUBLIC_API_URL=https://agrimarket-backend.onrender.com
-EXPO_PUBLIC_SOCKET_URL=https://agrimarket-backend.onrender.com
+EXPO_PUBLIC_API_URL=https://agrimarket-0y5r.onrender.com
+EXPO_PUBLIC_SOCKET_URL=https://agrimarket-0y5r.onrender.com
 ```
 
 ---
@@ -233,7 +233,7 @@ EXPO_PUBLIC_SOCKET_URL=https://agrimarket-backend.onrender.com
 4. Test navigation
 
 ### Test Backend API
-1. Test health endpoint: `https://agrimarket-backend.onrender.com/health`
+1. Test health endpoint: `https://agrimarket-0y5r.onrender.com/health`
 2. Test authentication endpoints
 3. Verify database connectivity
 
@@ -252,10 +252,19 @@ EXPO_PUBLIC_SOCKET_URL=https://agrimarket-backend.onrender.com
 - **Environment variables not working**: Redeploy after adding variables
 - **API connection failed**: Verify CORS settings in backend
 
+### Login shows "Server error during login"
+The live web app must call `https://agrimarket-0y5r.onrender.com` (not `agrimarket-backend.onrender.com`). Set Vercel `VITE_API_URL` / `VITE_SOCKET_URL` and redeploy the frontend.
+
+Then confirm MySQL on Render:
+1. Open `https://agrimarket-0y5r.onrender.com/health` — `database.connected` must be `true` and `mode` should be `mysql`.
+2. Open `https://agrimarket-0y5r.onrender.com/ready` — must return HTTP 200.
+3. If health shows DNS/auth/TLS failure, copy the current Aiven hostname into Render `DB_HOST` (or `DATABASE_URL`), keep `DB_SSL=true`, and restart the service.
+4. After MySQL connects, an empty `users` table is seeded with the login-page demo accounts unless `DISABLE_DEMO_ACCOUNTS=true`.
+
 ### Render Issues
 - **Service not starting**: Check Render logs
-- **Database connection failed**: Verify Aiven credentials
-- **Migration needed**: Use Render Shell to run migrations
+- **Database connection failed**: Verify Aiven hostname, user, password, port, and `DB_SSL=true`
+- **Migration needed**: Schema is applied on boot from `backend/src/database/schema.sql`
 
 ### EAS Build Issues
 - **Build fails**: Check EAS build logs

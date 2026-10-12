@@ -71,7 +71,7 @@ function App() {
                   <Route path="admin-dashboard" element={<ProtectedRoute roles={['admin']}><AdminDashboardPage /></ProtectedRoute>} />
                   <Route path="delivery" element={<ProtectedRoute roles={['delivery', 'admin']}><DeliveryDashboardPage /></ProtectedRoute>} />
                   <Route path="rider-dashboard" element={<ProtectedRoute roles={['delivery', 'admin']}><RiderDashboardPage /></ProtectedRoute>} />
-                  <Route path="analytics" element={<ProtectedRoute roles={['seller', 'admin']}><AnalyticsPage /></ProtectedRoute>} />
+                  <Route path="analytics" element={<ProtectedRoute roles={['buyer', 'seller', 'admin', 'delivery']}><AnalyticsPage /></ProtectedRoute>} />
                   <Route path="become-seller" element={<ProtectedRoute><BecomeSellerPage /></ProtectedRoute>} />
                   <Route path="messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
                   <Route path="feed" element={<ProtectedRoute roles={['buyer', 'seller', 'admin', 'delivery']}><FeedPage /></ProtectedRoute>} />

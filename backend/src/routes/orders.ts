@@ -9,6 +9,7 @@ import {
   broadcastDeliveryUpdate,
   broadcastProductUpdated,
 } from '../sockets';
+import { ORDER_STATUSES, canTransitionOrder, OrderStatus } from '../lib/orderTransitions';
 
 const router = Router();
 
@@ -106,13 +107,19 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
           {
             ...order,
             items: sellerItems,
+            timeline: db.getOrderStatusEvents(order.id),
           },
           'Order retrieved successfully'
         )
       );
     }
 
-    return res.json(successResponse(order, 'Order retrieved successfully'));
+    return res.json(
+      successResponse(
+        { ...order, timeline: db.getOrderStatusEvents(order.id) },
+        'Order retrieved successfully'
+      )
+    );
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'ORDER_FETCH_FAILED', 500));
   }
@@ -338,8 +345,7 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(400).json(errorResponse('Status is required', null, 'MISSING_STATUS', 400));
     }
 
-    const validStatuses = ['Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled'];
-    if (!validStatuses.includes(status)) {
+    if (!ORDER_STATUSES.includes(status as OrderStatus)) {
       return res.status(400).json(errorResponse(`Invalid status: ${status}`, null, 'INVALID_STATUS', 400));
     }
 
@@ -361,12 +367,15 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
     // Strict rider check: Rider must be assigned to this order to update its status
     const isDriver = Boolean(existing.driverId && existing.driverId === user.id);
 
-    // Terminal state protection
-    if (existing.status === 'Delivered') {
-      return res.status(400).json(errorResponse('Delivered orders cannot have their status changed', null, 'ORDER_COMPLETED', 400));
-    }
-    if (existing.status === 'Cancelled') {
-      return res.status(400).json(errorResponse('Cancelled orders cannot have their status changed', null, 'ORDER_CANCELLED', 400));
+    if (!canTransitionOrder(existing.status, status as OrderStatus)) {
+      return res.status(400).json(
+        errorResponse(
+          `Cannot change order from '${existing.status}' to '${status}'`,
+          null,
+          existing.status === 'Delivered' ? 'ORDER_COMPLETED' : existing.status === 'Cancelled' ? 'ORDER_CANCELLED' : 'INVALID_TRANSITION',
+          400
+        )
+      );
     }
 
     // Lifecycle state transition & role permissions matrix
@@ -386,30 +395,18 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
         }
       }
     } else if (status === 'Confirmed') {
-      if (existing.status !== 'Pending') {
-        return res.status(400).json(errorResponse(`Cannot confirm order currently in '${existing.status}' status`, null, 'INVALID_TRANSITION', 400));
-      }
       if (!isAdmin && !isSeller) {
         return res.status(403).json(errorResponse('Only the assigned seller or admin can confirm this order', null, 'FORBIDDEN', 403));
       }
     } else if (status === 'Shipped') {
-      if (existing.status !== 'Confirmed') {
-        return res.status(400).json(errorResponse(`Order must be 'Confirmed' before being marked 'Shipped' (current: '${existing.status}')`, null, 'INVALID_TRANSITION', 400));
-      }
       if (!isAdmin && !isSeller && !isDriver) {
         return res.status(403).json(errorResponse('Unauthorized to mark order shipped', null, 'FORBIDDEN', 403));
       }
     } else if (status === 'Out for delivery') {
-      if (existing.status !== 'Shipped' && existing.status !== 'Confirmed') {
-        return res.status(400).json(errorResponse(`Order must be 'Shipped' or 'Confirmed' before going out for delivery (current: '${existing.status}')`, null, 'INVALID_TRANSITION', 400));
-      }
       if (!isAdmin && !isDriver) {
         return res.status(403).json(errorResponse('Only the assigned delivery rider or admin can mark order out for delivery', null, 'FORBIDDEN', 403));
       }
     } else if (status === 'Delivered') {
-      if (existing.status !== 'Out for delivery' && existing.status !== 'Shipped') {
-        return res.status(400).json(errorResponse(`Order must be in delivery before being marked 'Delivered' (current: '${existing.status}')`, null, 'INVALID_TRANSITION', 400));
-      }
       if (!isAdmin && !isDriver) {
         return res.status(403).json(errorResponse('Only the assigned delivery rider or admin can confirm delivery', null, 'FORBIDDEN', 403));
       }
@@ -431,7 +428,7 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
     }
     if (driverId) extra.driverId = Number(driverId);
 
-    const updated = db.updateOrderStatus(orderId, status, extra);
+    const updated = db.updateOrderStatus(orderId, status, extra, user.id);
     if (!updated) {
       return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
     }

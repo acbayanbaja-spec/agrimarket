@@ -34,6 +34,22 @@ export const paymentService = {
     }
 
     const providerConfigured = this.isProviderConfigured();
+    if (order.paymentRef && order.paymentStatus === 'pending' && (!order.payment || order.payment === payload.paymentMethod)) {
+      return {
+        orderId: order.id,
+        transactionRef: order.paymentRef,
+        amount: order.total,
+        paymentMethod: payload.paymentMethod,
+        status: 'pending',
+        isLiveGateway: providerConfigured,
+        providerConfigured,
+        simulationNotice: providerConfigured
+          ? null
+          : 'Payment provider credentials not configured. Checkout is in simulation/pending mode. Funds will not be marked as escrow-held without live settlement.',
+        checkoutUrl: providerConfigured ? `https://checkout.agrimarket.ph/pay/${order.paymentRef}` : null,
+        idempotent: true,
+      };
+    }
     const transactionRef = `TXN-${payload.paymentMethod.replace(/\s+/g, '_').toUpperCase()}-${Date.now().toString().slice(-6)}`;
 
     // Honest persistence: paymentStatus remains pending

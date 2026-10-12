@@ -46,8 +46,8 @@ You're almost there! Here's what you need to do to get your AgriMarket platform 
 
 2. **Configure Environment Variables**
    ```
-   VITE_API_URL=https://agrimarket-backend.onrender.com
-   VITE_SOCKET_URL=https://agrimarket-backend.onrender.com
+   VITE_API_URL=https://agrimarket-0y5r.onrender.com
+   VITE_SOCKET_URL=https://agrimarket-0y5r.onrender.com
    ```
 
 3. **Deploy**
@@ -91,7 +91,7 @@ You're almost there! Here's what you need to do to get your AgriMarket platform 
 3. **Deploy**
    - Click "Create Web Service"
    - Wait ~3-5 minutes
-   - Get your Render URL (e.g., `https://agrimarket-backend.onrender.com`)
+   - Get your Render URL (e.g., `https://agrimarket-0y5r.onrender.com`)
 
 4. **Run Database Migrations**
    - Go to Render dashboard → your service → "Shell" tab

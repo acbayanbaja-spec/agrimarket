@@ -24,7 +24,9 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     
     res.status(201).json(successResponse(result, 'User registered successfully'));
   } catch (error: any) {
-    res.status(400).json(errorResponse(error.message, null, 'REGISTRATION_FAILED', 400));
+    const statusCode = error.statusCode || 400;
+    const errorCode = error.code || 'REGISTRATION_FAILED';
+    res.status(statusCode).json(errorResponse(error.message, null, errorCode, statusCode));
   }
 });
 
@@ -67,7 +69,9 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
     
     return res.json(successResponse(user, 'User retrieved successfully'));
   } catch (error: any) {
-    return res.status(500).json(errorResponse(error.message, null, 'GET_USER_FAILED', 500));
+    const statusCode = error.statusCode || 500;
+    const errorCode = error.code || 'GET_USER_FAILED';
+    return res.status(statusCode).json(errorResponse(error.message, null, errorCode, statusCode));
   }
 });
 

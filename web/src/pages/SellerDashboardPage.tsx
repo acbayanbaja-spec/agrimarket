@@ -36,6 +36,7 @@ import { fileToDataUrl, formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 import OrderTimeline from '../components/OrderTimeline'
+import api from '../services/api'
 
 type SellerTab = 'products' | 'orders' | 'messages' | 'analytics' | 'feed'
 
@@ -125,6 +126,7 @@ const SellerDashboardPage = () => {
     availabilityStatus: 'in_stock',
     isUnlisted: false,
   })
+  const [inventoryHistory, setInventoryHistory] = useState<Array<{ id: string; createdAt: string; quantityDelta: number; reason: string }>>([])
 
   // Packing & Prep Modal / Drawer State
   const [packingModal, setPackingModal] = useState<{
@@ -332,6 +334,12 @@ const SellerDashboardPage = () => {
       availabilityStatus: product.availabilityStatus || (product.stock > 0 ? 'in_stock' : 'out_of_stock'),
       isUnlisted: Boolean(product.isUnlisted || product.isActive === false),
     })
+    api
+      .get<{ data?: { movements?: Array<{ id: string; createdAt: string; quantityDelta: number; reason: string }> } }>(
+        `/products/${product.id}/inventory`
+      )
+      .then((res) => setInventoryHistory(res.data?.data?.movements || []))
+      .catch(() => setInventoryHistory([]))
   }
 
   const handleSaveEditProduct = (event: React.FormEvent) => {
@@ -1713,6 +1721,23 @@ const SellerDashboardPage = () => {
                   </select>
                 </div>
               </div>
+
+              {inventoryHistory.length > 0 && (
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-2">Inventory movements</p>
+                  <ul className="space-y-1 max-h-28 overflow-y-auto">
+                    {inventoryHistory.slice(0, 8).map((row) => (
+                      <li key={row.id} className="flex justify-between text-[11px] text-gray-600">
+                        <span>
+                          {row.reason} · {row.quantityDelta > 0 ? '+' : ''}
+                          {row.quantityDelta}
+                        </span>
+                        <span>{new Date(row.createdAt).toLocaleDateString()}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>

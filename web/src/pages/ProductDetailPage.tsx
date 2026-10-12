@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect } from 'react'
+import { useState, useLayoutEffect, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { MapPin, Star, Truck, Repeat, Coins, ShieldCheck, Clock, Heart, Zap } from 'lucide-react'
@@ -15,6 +15,8 @@ import ProductImage from '../components/ProductImage'
 import QuantityStepper from '../components/QuantityStepper'
 import ProductReviewsSection from '../components/ProductReviewsSection'
 import Seo from '../components/Seo'
+import api from '../services/api'
+import type { Product } from '../data/catalog'
 
 const ProductDetailPage = () => {
   const { id } = useParams()
@@ -38,20 +40,61 @@ const ProductDetailPage = () => {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
-  const product = products.find((item) => item.id === id)
+  const [relatedRemote, setRelatedRemote] = useState<Product[]>([])
+  const [remoteProduct, setRemoteProduct] = useState<Product | null>(null)
+  const [productLoading, setProductLoading] = useState(false)
+  const catalogProduct = products.find((item) => item.id === id)
+  const product = catalogProduct || remoteProduct
   const feedback = product ? reviewsFor(product.id) : []
+
+  useEffect(() => {
+    if (!id) return
+    api
+      .get<{ data?: { products?: Product[] } }>(`/products/${id}/related`)
+      .then((res) => setRelatedRemote(res.data?.data?.products || []))
+      .catch(() => setRelatedRemote([]))
+  }, [id])
+
+  useEffect(() => {
+    if (!id || catalogProduct) {
+      setRemoteProduct(null)
+      setProductLoading(false)
+      return
+    }
+    let cancelled = false
+    setProductLoading(true)
+    api
+      .get<{ data?: { product?: Product } }>(`/products/${id}`)
+      .then((res) => {
+        if (!cancelled) setRemoteProduct(res.data?.data?.product || null)
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteProduct(null)
+      })
+      .finally(() => {
+        if (!cancelled) setProductLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, catalogProduct])
 
   if (!product) {
     return (
       <div className="page-shell text-center">
-        <h1 className="text-3xl font-bold mb-3">Product not found</h1>
-        <p className="text-gray-600 mb-6">It may have been harvested already.</p>
+        <h1 className="text-3xl font-bold mb-3">{productLoading ? 'Loading harvest…' : 'Product not found'}</h1>
+        <p className="text-gray-600 mb-6">
+          {productLoading ? 'Fetching this listing from the marketplace.' : 'It may have been harvested already.'}
+        </p>
         <Link to="/marketplace" className="btn-primary">Back to marketplace</Link>
       </div>
     )
   }
 
-  const related = recommended.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4)
+  const related =
+    relatedRemote.length > 0
+      ? relatedRemote
+      : recommended.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4)
   const gallery = product.photos?.length ? product.photos : [product.image]
   const out = product.stock <= 0
   const meta = harvestMeta(product)
@@ -168,6 +211,7 @@ const ProductDetailPage = () => {
                     : 'bg-white border-gray-200 text-gray-500 hover:text-rose-600 hover:border-rose-200'
                 }`}
                 title="Add to Wishlist"
+                aria-label={isWishlisted(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
               >
                 <Heart className={`h-5 w-5 ${isWishlisted(product.id) ? 'fill-rose-500' : ''}`} />
               </button>

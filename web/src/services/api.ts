@@ -1,22 +1,9 @@
 import axios from 'axios'
-
-const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL
-  if (typeof window !== 'undefined' && window.location) {
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    if (!isLocalhost) {
-      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-        return envUrl
-      }
-      return 'https://agrimarket-backend.onrender.com'
-    }
-  }
-  return envUrl || 'http://localhost:5000'
-}
+import { resolveApiOrigin } from '../config/apiOrigin'
 
 const api = axios.create({
-  baseURL: `${getApiBaseUrl()}/api`,
-  timeout: 45000,
+  baseURL: `${resolveApiOrigin()}/api`,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },

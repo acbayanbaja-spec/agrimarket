@@ -12,10 +12,12 @@ import DownloadAppModal from '../components/DownloadAppModal'
 import FloatingQuickActions from '../components/FloatingQuickActions'
 import AgriAiAssistant from '../components/AgriAiAssistant'
 import { scrollToTopNow } from '../components/ScrollToTop'
+import { useStore } from '../context/StoreContext'
 
 const MainLayout = () => {
   const { isAuthenticated, user, logout, hasRole } = useAuth()
   const { count } = useCart()
+  const { syncStatus } = useStore()
   const [open, setOpen] = useState(false)
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
 
@@ -31,6 +33,12 @@ const MainLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50">
+      <a href="#main-content" className="skip-link">Skip to marketplace content</a>
+      {syncStatus === 'offline' && (
+        <div role="status" className="bg-amber-100 text-amber-950 text-sm text-center px-4 py-2 font-semibold">
+          You are offline. Browse cached harvests; orders will retry when the connection returns.
+        </div>
+      )}
       <InstallBanner />
       <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -76,9 +84,7 @@ const MainLayout = () => {
                   {hasRole('delivery') && (
                     <Link to="/delivery" className="btn-ghost text-primary-700" title="Delivery Command Desk (Fleet & Dispatch)"><Bike className="h-5 w-5" /></Link>
                   )}
-                  {(hasRole('admin') || hasRole('seller')) && (
-                    <Link to="/analytics" className="btn-ghost" title="Analytics"><LineChart className="h-5 w-5" /></Link>
-                  )}
+                  <Link to="/analytics" className="btn-ghost" title="Analytics"><LineChart className="h-5 w-5" /></Link>
                   <Link to={dashboardLink} className="btn-ghost" title={hasRole('delivery') ? 'Rider Performance & Earnings Dashboard' : 'Dashboard'}>
                     <LayoutDashboard className="h-5 w-5" />
                   </Link>
@@ -133,6 +139,7 @@ const MainLayout = () => {
               {isAuthenticated ? (
                 <>
                   <Link to="/orders" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">My Orders</Link>
+                  <Link to="/analytics" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Analytics</Link>
                   <Link to="/messages" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Messages</Link>
                   <Link to="/profile" onClick={() => { setOpen(false); scrollToTopNow() }} className="block py-1.5 font-medium">Profile</Link>
                   {hasRole('delivery') && (
@@ -152,7 +159,7 @@ const MainLayout = () => {
         </div>
       )}
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
       <BottomNav />

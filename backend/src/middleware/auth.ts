@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { db } from '../database/store';
+import { authService } from '../services/authService';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -34,8 +35,25 @@ export const authenticate = async (
       roles: string[];
     };
 
-    // Verify user exists and check suspension status
-    const liveUser = db.getUserById(decoded.id);
+    // Verify user exists and check suspension status (memory cache, then MySQL)
+    let liveUser = db.getUserById(decoded.id);
+    if (!liveUser) {
+      const fromDb = await authService.getUserById(decoded.id);
+      if (fromDb) {
+        liveUser = {
+          id: fromDb.id,
+          email: fromDb.email,
+          password_hash: '',
+          first_name: fromDb.first_name || fromDb.firstName || '',
+          last_name: fromDb.last_name || fromDb.lastName || '',
+          phone: fromDb.phone,
+          roles: fromDb.roles || decoded.roles || ['buyer'],
+          is_verified: fromDb.is_verified !== false,
+          is_active: fromDb.is_active !== false,
+          created_at: new Date().toISOString(),
+        };
+      }
+    }
     if (!liveUser) {
       return res.status(401).json({
         success: false,
@@ -63,7 +81,15 @@ export const authenticate = async (
     };
 
     return next();
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'DATABASE_UNAVAILABLE' || error?.statusCode === 503) {
+      return res.status(503).json({
+        success: false,
+        message: 'Marketplace data is temporarily unavailable. Please try again shortly.',
+        data: null,
+        errorCode: 'DATABASE_UNAVAILABLE',
+      });
+    }
     return res.status(401).json({
       success: false,
       message: 'Invalid or expired token',

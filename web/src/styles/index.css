@@ -2,9 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #15803d;
+  --color-primary-strong: #14532d;
+  --color-accent: #22c55e;
+  --color-warning: #ca8a04;
+  --color-danger: #dc2626;
+  --color-info: #0369a1;
+  --color-surface: #f7f4ef;
+  --color-text: #111827;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --shadow-soft: 0 18px 50px -24px rgba(21, 128, 61, 0.35);
+  --focus-ring: 0 0 0 3px rgba(22, 163, 74, 0.35);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --duration-fast: 160ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --z-nav: 50;
+  --z-overlay: 60;
+}
+
 @layer base {
   html, body {
     scroll-behavior: auto !important;
+  }
+
+  :focus-visible {
+    outline: 3px solid #16a34a;
+    outline-offset: 2px;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -3rem;
+    z-index: 80;
+    background: #14532d;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+  }
+
+  .skip-link:focus {
+    top: 0.75rem;
   }
 
   body {
@@ -94,4 +137,13 @@
   0% { transform: scale(0.6); }
   70% { transform: scale(1.12); }
   100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

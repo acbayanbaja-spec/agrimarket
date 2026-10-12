@@ -3,9 +3,23 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Search, Wallet, Package, Bike } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
-import { BUDGET_PRESETS, filterByBudget, harvestMeta, matchProduct, parseSearchQuery } from '../lib/commerce'
+import { BUDGET_PRESETS, filterByBudget, matchProduct, parseSearchQuery } from '../lib/commerce'
 import { formatPeso } from '../lib/utils'
 import ProductImage from './ProductImage'
+import api from '../services/api'
+
+type Suggestion = {
+  id: string
+  name: string
+  seller: string
+  price: number
+  image?: string
+  category?: string
+  location?: string
+  rating?: number
+  reviews?: number
+  stock?: number
+}
 
 type Props = {
   compact?: boolean
@@ -19,18 +33,33 @@ const SearchBar = ({ compact, onSubmitted }: Props) => {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [remoteSuggestions, setRemoteSuggestions] = useState<Suggestion[]>([])
   const boxRef = useRef<HTMLDivElement>(null)
 
   const isDelivery = hasRole('delivery') || location.pathname.startsWith('/delivery')
   const parsed = parseSearchQuery(query)
 
-  const suggestions = useMemo(() => {
+  const localSuggestions = useMemo(() => {
     if (isDelivery) return []
     let list = products.filter((product) => product.stock > 0 && matchProduct(product, parsed.text))
     if (parsed.budget) list = filterByBudget(list, parsed.budget)
     else list = [...list].sort((a, b) => b.rating - a.rating)
     return list.slice(0, 6)
   }, [products, parsed.budget, parsed.text, isDelivery])
+
+  useEffect(() => {
+    if (isDelivery) return
+    const q = parsed.text || query.trim()
+    const timer = window.setTimeout(() => {
+      api
+        .get<{ data?: { suggestions?: Suggestion[] } }>(`/products/suggestions?q=${encodeURIComponent(q)}`)
+        .then((res) => setRemoteSuggestions(res.data?.data?.suggestions || []))
+        .catch(() => setRemoteSuggestions([]))
+    }, 220)
+    return () => window.clearTimeout(timer)
+  }, [isDelivery, parsed.text, query])
+
+  const suggestions = remoteSuggestions.length ? remoteSuggestions : localSuggestions
 
   const orderSuggestions = useMemo(() => {
     if (!isDelivery) return []
@@ -99,6 +128,7 @@ const SearchBar = ({ compact, onSubmitted }: Props) => {
               ? 'Search orders by order #, receipt, buyer, or address'
               : 'Search harvests, sellers, or cities in SOCCSKSARGEN'
           }
+          aria-label={isDelivery ? 'Search delivery orders' : 'Search harvests'}
           className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none bg-white text-sm"
         />
         <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -191,9 +221,7 @@ const SearchBar = ({ compact, onSubmitted }: Props) => {
                 </button>
               )}
               <ul>
-                {suggestions.map((product) => {
-                  const meta = harvestMeta(product)
-                  return (
+                {suggestions.map((product) => (
                     <li key={product.id}>
                       <button
                         type="button"
@@ -208,14 +236,14 @@ const SearchBar = ({ compact, onSubmitted }: Props) => {
                         <span className="flex-1 min-w-0">
                           <span className="block text-sm font-semibold truncate">{product.name}</span>
                           <span className="block text-xs text-gray-500">
-                            {product.seller} · {meta.sold} sold · +{meta.points} pts
+                            {product.seller}
+                            {product.location ? ` · ${product.location}` : ''}
                           </span>
                         </span>
                         <span className="text-sm font-bold text-primary-700">{formatPeso(product.price)}</span>
                       </button>
                     </li>
-                  )
-                })}
+                ))}
               </ul>
               {suggestions.length === 0 && (
                 <p className="px-4 py-3 text-sm text-gray-500">No harvests match yet. Try a city or crop name.</p>

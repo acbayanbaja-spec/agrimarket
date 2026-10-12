@@ -1,7 +1,10 @@
 export const config = {
   port: parseInt(process.env.PORT || '5000'),
   nodeEnv: process.env.NODE_ENV || 'development',
-  corsOrigin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+  corsOrigin: process.env.CORS_ORIGIN?.split(',') || [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ],
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',

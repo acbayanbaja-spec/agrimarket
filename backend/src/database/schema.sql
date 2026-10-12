@@ -76,7 +76,11 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_seller_user_id (seller_user_id),
   INDEX idx_category (category),
-  INDEX idx_is_active (is_active)
+  INDEX idx_is_active (is_active),
+  INDEX idx_product_name (name),
+  INDEX idx_product_location (location),
+  INDEX idx_product_price (price),
+  INDEX idx_product_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -256,5 +260,36 @@ CREATE TABLE IF NOT EXISTS coupons (
   description TEXT,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS wishlists (
+  user_id INT NOT NULL,
+  product_id VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, product_id),
+  INDEX idx_wishlist_product (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS inventory_movements (
+  id VARCHAR(50) PRIMARY KEY,
+  product_id VARCHAR(50) NOT NULL,
+  user_id INT,
+  quantity_delta INT NOT NULL,
+  reason VARCHAR(100) NOT NULL,
+  order_id VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_inventory_product (product_id),
+  INDEX idx_inventory_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS order_status_events (
+  id VARCHAR(50) PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL,
+  from_status VARCHAR(50),
+  to_status VARCHAR(50) NOT NULL,
+  actor_user_id INT,
+  note TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_status_event_order (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

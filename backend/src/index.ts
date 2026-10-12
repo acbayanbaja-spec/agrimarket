@@ -27,8 +27,11 @@ import adminRoutes from './routes/admin';
 import aiRoutes from './routes/ai';
 import paymentRoutes from './routes/payments';
 import uploadRoutes from './routes/upload';
+import wishlistRoutes from './routes/wishlist';
+import analyticsRoutes from './routes/analytics';
 import path from 'path';
 import { db } from './database/store';
+import { isDatabaseRequired, isEmbeddedFallbackAllowed } from './config/persistence';
 
 dotenv.config();
 
@@ -36,8 +39,30 @@ const app = express();
 const httpServer = createServer(app);
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow all origins (mobile apps, local network, different ports, deployed domains)
-    callback(null, true);
+    if (!origin || config.nodeEnv !== 'production') {
+      callback(null, true);
+      return;
+    }
+    const allowed = new Set(
+      [...config.corsOrigin, config.frontend.url, config.frontend.mobileUrl]
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    );
+    if (allowed.has('*') || allowed.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    try {
+      const host = new URL(origin).hostname;
+      if (host.endsWith('.vercel.app') || host.endsWith('.onrender.com')) {
+        callback(null, true);
+        return;
+      }
+    } catch {
+      callback(null, false);
+      return;
+    }
+    callback(null, false);
   },
   credentials: true,
 };
@@ -56,6 +81,13 @@ initSocket(io);
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(compression());
 app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  const requestId =
+    (req.headers['x-request-id'] as string) || `req-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
+  res.setHeader('X-Request-Id', requestId);
+  (req as express.Request & { requestId?: string }).requestId = requestId;
+  next();
+});
 app.use(
   express.json({
     limit: '10mb',
@@ -87,34 +119,53 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.get('/health', (_req, res) => {
-  const isDbConnected = db.getIsMySqlConnected();
-  res.json({
+const healthPayload = () => {
+  const readiness = db.getReadiness();
+  return {
     status: 'ok',
     version: '1.0.0',
     environment: config.nodeEnv,
     database: {
-      connected: isDbConnected,
-      mode: isDbConnected ? 'authoritative_mysql' : 'resilient_embedded',
+      connected: readiness.connected,
+      required: readiness.databaseRequired,
+      mode: readiness.mode,
       type: 'mysql',
+      failureKind: readiness.failureKind,
     },
     timestamp: new Date().toISOString(),
-  });
+  };
+};
+
+const readyPayload = () => {
+  const readiness = db.getReadiness();
+  return {
+    status: readiness.ready ? 'ready' : 'not_ready',
+    database: {
+      connected: readiness.connected,
+      required: readiness.databaseRequired,
+      mode: readiness.mode,
+      failureKind: readiness.failureKind,
+    },
+    timestamp: new Date().toISOString(),
+  };
+};
+
+app.get('/health', (_req, res) => {
+  res.json(healthPayload());
 });
 
 app.get('/api/health', (_req, res) => {
-  const isDbConnected = db.getIsMySqlConnected();
-  res.json({
-    status: 'ok',
-    version: '1.0.0',
-    environment: config.nodeEnv,
-    database: {
-      connected: isDbConnected,
-      mode: isDbConnected ? 'authoritative_mysql' : 'resilient_embedded',
-      type: 'mysql',
-    },
-    timestamp: new Date().toISOString(),
-  });
+  res.json(healthPayload());
+});
+
+app.get('/ready', (_req, res) => {
+  const payload = readyPayload();
+  res.status(payload.status === 'ready' ? 200 : 503).json(payload);
+});
+
+app.get('/api/ready', (_req, res) => {
+  const payload = readyPayload();
+  res.status(payload.status === 'ready' ? 200 : 503).json(payload);
 });
 
 // API Routes
@@ -134,6 +185,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling
 app.use(notFoundHandler);
@@ -145,4 +198,19 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${config.nodeEnv}`);
   console.log(`🌐 CORS origins: ${config.corsOrigin.join(', ')}`);
+  if (config.nodeEnv === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-secret-key')) {
+    console.error('❌ JWT_SECRET is missing or using the insecure default. Set a strong secret on Render before going live.');
+  }
+  console.log(
+    `🗄️ Persistence: mysqlRequired=${isDatabaseRequired()} embeddedFallback=${isEmbeddedFallbackAllowed()}`
+  );
+  db.readyPromise.then(() => {
+    const readiness = db.getReadiness();
+    console.log(`🗄️ Database ready=${readiness.ready} mode=${readiness.mode}`);
+  }).catch(() => {
+    const readiness = db.getReadiness();
+    console.error(
+      `🗄️ Database not ready mode=${readiness.mode} kind=${readiness.failureKind} ${readiness.failureMessage || ''}`
+    );
+  });
 });
