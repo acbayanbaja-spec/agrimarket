@@ -139,16 +139,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const login = async (email: string, password: string) => {
-    const local = findLocalAccount(email, password)
-    if (local) {
-      const nextUser = withApprovedRoles(normalizeUser(local))
-      setSession(nextUser, `local-${local.id}`)
-      return nextUser
-    }
     try {
-      const { data } = await api.post('/auth/login', { email, password })
+      const { data } = await api.post('/auth/login', { email: email.trim(), password })
       const payload = data.data || data
-      const nextUser = withApprovedRoles(normalizeUser(payload.user))
+      if (!payload?.token || !payload?.user) {
+        throw new Error('Invalid response from server')
+      }
+      const nextUser = normalizeUser(payload.user)
       setSession(nextUser, payload.token)
       return nextUser
     } catch (error) {
@@ -160,30 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data } = await api.post('/auth/register', payload)
       const body = data.data || data
+      if (!body?.token || !body?.user) {
+        throw new Error('Registration failed')
+      }
       const nextUser = normalizeUser(body.user)
       setSession(nextUser, body.token)
     } catch (error) {
-      const existing = [...demoAccounts, ...readLocalUsers()].find(
-        (account) => account.email.toLowerCase() === payload.email.toLowerCase()
-      )
-      if (existing) {
-        throw new Error('An account with this email already exists.')
-      }
-
-      const apiMessage = getErrorMessage(error, '')
-      const networkFailed = !('response' in (error as object) && (error as { response?: unknown }).response)
-
-      if (!networkFailed && apiMessage && !apiMessage.toLowerCase().includes('network')) {
-        throw new Error(apiMessage)
-      }
-
-      const localUser: LocalAccount = {
-        ...payload,
-        id: Date.now(),
-        roles: ['buyer'],
-      }
-      writeLocalUsers([...readLocalUsers(), localUser])
-      setSession(withApprovedRoles(normalizeUser(localUser)), `local-${localUser.id}`)
+      throw new Error(getErrorMessage(error, 'Registration failed. Please check your details and try again.'))
     }
   }
 

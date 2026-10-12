@@ -80,33 +80,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
         return nextUser;
       }
-    } catch {
-      // Fallback to offline demo credentials if offline
+      throw new Error('Invalid response from server');
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Unable to sign in. Please verify your credentials.';
+      throw new Error(msg);
     }
-
-    const match = demoAccounts.find(
-      (account) => account.email.toLowerCase() === email.trim().toLowerCase() && account.password === password
-    );
-    if (!match) {
-      throw new Error('Unknown account. Try buyer@agrimarket.com / buyer123 or driver@agrimarket.com / driver123');
-    }
-
-    const nextUser: User = {
-      id: match.id,
-      email: match.email,
-      firstName: match.firstName,
-      lastName: match.lastName,
-      phone: match.phone,
-      roles: match.roles,
-    };
-    const mockToken = `demo-${match.id}`;
-
-    setUser(nextUser);
-    setToken(mockToken);
-
-    await SecureStore.setItemAsync(TOKEN_KEY, mockToken);
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
-    return nextUser;
   };
 
   const logout = async () => {

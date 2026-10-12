@@ -24,7 +24,31 @@ router.get('/conversations', authenticate, (req: AuthRequest, res: Response) => 
 // @access  Private
 router.get('/conversations/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const messages = db.getMessages(req.params.id);
+    const user = req.user!;
+    const orderId = req.params.id;
+
+    if (orderId && orderId !== 'general') {
+      const order = db.getOrderById(orderId);
+      if (order) {
+        const isAdmin = user.roles.includes('admin');
+        const isBuyer = order.userId === user.id;
+        const isDriver = order.driverId === user.id;
+        const isSeller = order.items.some(
+          (it: any) =>
+            it.sellerUserId === user.id ||
+            it.sellerId === `seller-${user.id}` ||
+            it.sellerId === `user-${user.id}` ||
+            ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
+              (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+        );
+
+        if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
+          return res.status(403).json(errorResponse('You do not have permission to view messages for this order', null, 'FORBIDDEN', 403));
+        }
+      }
+    }
+
+    const messages = db.getMessages(orderId);
     return res.json(successResponse(messages, 'Order messages loaded'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'MESSAGES_FAILED', 500));
@@ -38,14 +62,36 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
     const body = req.body;
+    const orderId = String(body.orderId || 'general');
+
+    if (orderId && orderId !== 'general') {
+      const order = db.getOrderById(orderId);
+      if (order) {
+        const isAdmin = user.roles.includes('admin');
+        const isBuyer = order.userId === user.id;
+        const isDriver = order.driverId === user.id;
+        const isSeller = order.items.some(
+          (it: any) =>
+            it.sellerUserId === user.id ||
+            it.sellerId === `seller-${user.id}` ||
+            it.sellerId === `user-${user.id}` ||
+            ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
+              (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+        );
+
+        if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
+          return res.status(403).json(errorResponse('You are not authorized to post messages to this order thread', null, 'FORBIDDEN', 403));
+        }
+      }
+    }
 
     const fullUser = db.getUserById(user.id);
     const displayName = fullUser ? `${fullUser.first_name} ${fullUser.last_name}`.trim() : user.email.split('@')[0];
 
     const message: MessageEntity = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      orderId: String(body.orderId || 'general'),
-      fromRole: body.fromRole || (user.roles.includes('delivery') ? 'delivery' : 'buyer'),
+      orderId,
+      fromRole: body.fromRole || (user.roles.includes('delivery') ? 'delivery' : user.roles.includes('seller') ? 'seller' : 'buyer'),
       fromName: body.fromName || displayName,
       fromUserId: user.id,
       toUserId: Number(body.toUserId || 3),
@@ -58,7 +104,7 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
 
     const created = db.addMessage(message);
 
-    // Broadcast over WebSocket if active
+    // Broadcast over WebSocket strictly to authorized rooms
     if (io) {
       io.to(`conversation:${message.orderId}`).emit('new_message', created);
       io.to(`user:${message.toUserId}`).emit('notification', {

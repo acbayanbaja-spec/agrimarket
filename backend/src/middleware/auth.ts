@@ -28,46 +28,39 @@ export const authenticate = async (
       });
     }
 
-    if (token.startsWith('local-') || token.startsWith('demo-')) {
-      const id = Number(token.split('-')[1]);
-      const demo: Record<number, { email: string; roles: string[] }> = {
-        1: { email: 'admin@agrimarket.com', roles: ['admin'] },
-        2: { email: 'seller@agrimarket.com', roles: ['seller', 'buyer'] },
-        3: { email: 'buyer@agrimarket.com', roles: ['buyer'] },
-        4: { email: 'driver@agrimarket.com', roles: ['delivery'] },
-        12: { email: 'seller.koronadal@agrimarket.com', roles: ['seller', 'buyer'] },
-        13: { email: 'seller.midsayap@agrimarket.com', roles: ['seller', 'buyer'] },
-        14: { email: 'seller.gensan@agrimarket.com', roles: ['seller', 'buyer'] },
-        15: { email: 'seller.tacurong@agrimarket.com', roles: ['seller', 'buyer'] },
-        16: { email: 'seller.poultry@agrimarket.com', roles: ['seller', 'buyer'] },
-        17: { email: 'seller.lakesebu@agrimarket.com', roles: ['seller', 'buyer'] },
-      };
-      const account = demo[id] || { email: 'local@agrimarket.com', roles: ['buyer'] };
-      req.user = { id: Number.isFinite(id) ? id : 3, email: account.email, roles: account.roles };
-    } else {
-      const decoded = jwt.verify(token, config.jwt.secret) as {
-        id: number;
-        email: string;
-        roles: string[];
-      };
+    const decoded = jwt.verify(token, config.jwt.secret) as {
+      id: number;
+      email: string;
+      roles: string[];
+    };
 
-      req.user = decoded;
+    // Verify user exists and check suspension status
+    const liveUser = db.getUserById(decoded.id);
+    if (!liveUser) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account not found or revoked',
+        data: null,
+        errorCode: 'AUTH_USER_NOT_FOUND',
+      });
     }
 
-    // Enforce administrative suspension
-    if (req.user) {
-      const liveUser = db.getUserById(req.user.id);
-      if (liveUser && liveUser.is_active === false) {
-        return res.status(403).json({
-          success: false,
-          message: liveUser.suspension_reason
-            ? `Your account has been suspended by an administrator: ${liveUser.suspension_reason}`
-            : 'Your account has been suspended by an administrator. Please contact support.',
-          data: null,
-          errorCode: 'ACCOUNT_SUSPENDED'
-        });
-      }
+    if (liveUser.is_active === false) {
+      return res.status(403).json({
+        success: false,
+        message: liveUser.suspension_reason
+          ? `Your account has been suspended by an administrator: ${liveUser.suspension_reason}`
+          : 'Your account has been suspended by an administrator. Please contact support.',
+        data: null,
+        errorCode: 'ACCOUNT_SUSPENDED',
+      });
     }
+
+    req.user = {
+      id: liveUser.id,
+      email: liveUser.email,
+      roles: liveUser.roles || decoded.roles || ['buyer'],
+    };
 
     return next();
   } catch (error) {
@@ -75,7 +68,7 @@ export const authenticate = async (
       success: false,
       message: 'Invalid or expired token',
       data: null,
-      errorCode: 'AUTH_TOKEN_INVALID'
+      errorCode: 'AUTH_TOKEN_INVALID',
     });
   }
 };
@@ -90,32 +83,25 @@ export const optionalAuth = async (
     if (!token) {
       return next();
     }
-    if (token.startsWith('local-') || token.startsWith('demo-')) {
-      const id = Number(token.split('-')[1]);
-      const demo: Record<number, { email: string; roles: string[] }> = {
-        1: { email: 'admin@agrimarket.com', roles: ['admin'] },
-        2: { email: 'seller@agrimarket.com', roles: ['seller', 'buyer'] },
-        3: { email: 'buyer@agrimarket.com', roles: ['buyer'] },
-        4: { email: 'driver@agrimarket.com', roles: ['delivery'] },
-        12: { email: 'seller.koronadal@agrimarket.com', roles: ['seller', 'buyer'] },
-        13: { email: 'seller.midsayap@agrimarket.com', roles: ['seller', 'buyer'] },
-        14: { email: 'seller.gensan@agrimarket.com', roles: ['seller', 'buyer'] },
-        15: { email: 'seller.tacurong@agrimarket.com', roles: ['seller', 'buyer'] },
-        16: { email: 'seller.poultry@agrimarket.com', roles: ['seller', 'buyer'] },
-        17: { email: 'seller.lakesebu@agrimarket.com', roles: ['seller', 'buyer'] },
-      };
-      const account = demo[id] || { email: 'local@agrimarket.com', roles: ['buyer'] };
-      req.user = { id: Number.isFinite(id) ? id : 3, email: account.email, roles: account.roles };
-      return next();
-    }
+
     const decoded = jwt.verify(token, config.jwt.secret) as {
       id: number;
       email: string;
       roles: string[];
     };
-    req.user = decoded;
+
+    const liveUser = db.getUserById(decoded.id);
+    if (liveUser && liveUser.is_active !== false) {
+      req.user = {
+        id: liveUser.id,
+        email: liveUser.email,
+        roles: liveUser.roles || decoded.roles || ['buyer'],
+      };
+    }
+
     return next();
   } catch {
+    // Optional auth - gracefully treat invalid/expired tokens as unauthenticated
     return next();
   }
 };

@@ -6,7 +6,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 import { config } from './config';
-import { apiLimiter } from './middleware/rateLimit';
+import { apiLimiter, authLimiter, aiLimiter } from './middleware/rateLimit';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { initSocket } from './sockets';
 
@@ -63,6 +63,10 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Rate limiting
 app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/ai', aiLimiter);
 
 // Health check
 app.get('/health', (req, res) => {

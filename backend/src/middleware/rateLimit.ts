@@ -26,3 +26,17 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+export const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute
+  message: {
+    success: false,
+    message: 'AI query rate limit reached. Please wait a moment before trying again.',
+    data: null,
+    errorCode: 'AI_RATE_LIMIT_EXCEEDED',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+

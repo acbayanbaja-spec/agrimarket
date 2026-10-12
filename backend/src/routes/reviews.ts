@@ -30,8 +30,8 @@ router.get('/product/:productId', (req: Request, res: Response) => {
 });
 
 // @route   POST /api/reviews
-// @desc    Create a product review
-// @access  Private
+// @desc    Create a verified product review
+// @access  Private (Verified Buyer)
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
@@ -39,6 +39,38 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
 
     if (!productId || !rating) {
       return res.status(400).json(errorResponse('Product ID and rating are required', null, 'BAD_REQUEST', 400));
+    }
+
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json(errorResponse('Rating must be between 1 and 5', null, 'INVALID_RATING', 400));
+    }
+
+    const product = db.getProductById(productId);
+    if (!product) {
+      return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
+    }
+
+    // Purchase Verification: Check that buyer has an order containing this product
+    const userOrders = db.getOrdersByUserId(user.id);
+    const eligibleOrder = userOrders.find(
+      (o) =>
+        (o.status === 'Delivered' || o.status === 'Confirmed' || o.status === 'Shipped') &&
+        o.items.some((it: any) => it.productId === productId)
+    );
+
+    const isVerifiedPurchase = !!eligibleOrder;
+    if (!isVerifiedPurchase && !user.roles.includes('admin')) {
+      return res
+        .status(403)
+        .json(
+          errorResponse(
+            'Only buyers with a completed or active purchase of this product can submit a review.',
+            null,
+            'VERIFIED_PURCHASE_REQUIRED',
+            403
+          )
+        );
     }
 
     const fullUser = db.getUserById(user.id);
@@ -49,11 +81,13 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       productId,
       userId: user.id,
       userName: displayName || 'Verified Buyer',
-      rating: Number(rating),
+      rating: numRating,
       comment: String(comment || ''),
       photos: Array.isArray(photos) ? photos : [],
       status: 'published',
       createdAt: new Date().toISOString(),
+      isVerifiedPurchase,
+      orderId: eligibleOrder ? eligibleOrder.id : undefined,
     };
 
     const created = db.addReview(newReview);

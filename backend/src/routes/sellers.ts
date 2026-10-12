@@ -1,5 +1,5 @@
-import { Router, Request, Response } from 'express';
-import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
+import { Router, Response } from 'express';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { db, SellerApplicationEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
@@ -7,23 +7,23 @@ import { io } from '../index';
 const router = Router();
 
 // @route   POST /api/sellers/application
-// @desc    Submit seller application with farm info and broadcast to admin
-// @access  Public / Optional Auth
-router.post('/application', optionalAuth, (req: AuthRequest, res: Response) => {
+// @desc    Submit seller application with farm info (Authenticated user only)
+// @access  Private (buyer)
+router.post('/application', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const body = req.body;
-    const user = req.user || {
-      id: Number(body.userId) || 3,
-      email: body.email || 'buyer@agrimarket.com',
-      roles: ['buyer'],
-    };
+    const user = req.user!;
+
+    if (!body.farmName || !body.location) {
+      return res.status(400).json(errorResponse('Farm name and location are required', null, 'BAD_REQUEST', 400));
+    }
 
     const newApp: SellerApplicationEntity = {
       id: body.id || `app-${Date.now()}`,
       userId: user.id,
       name: body.name || `${user.email.split('@')[0]}`,
-      farmName: body.farmName || 'SOCCSKSARGEN Farm',
-      location: body.location || 'South Cotabato',
+      farmName: String(body.farmName).trim(),
+      location: String(body.location).trim(),
       description: body.description || '',
       phone: body.phone || '+639180000000',
       categories: body.categories || 'Vegetables',
@@ -33,18 +33,18 @@ router.post('/application', optionalAuth, (req: AuthRequest, res: Response) => {
       permitDocument: body.permitDocument || '/images/farm.jpg',
       farmPhoto: body.farmPhoto || '/images/farm.jpg',
       status: 'Pending',
-      createdAt: body.createdAt || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
 
     const saved = db.addSellerApplication(newApp);
 
-    // Broadcast new seller application in real-time to Admin and all devices
+    // Securely broadcast new application ONLY to authorized administrators
     if (io) {
-      io.emit('seller_application_submitted', saved);
-      io.emit('application_created', saved);
+      io.to('role:admin').emit('seller_application_submitted', saved);
+      io.to('role:admin').emit('application_created', saved);
     }
 
-    return res.status(201).json(successResponse(saved, 'Seller application submitted for review'));
+    return res.status(201).json(successResponse(saved, 'Seller application submitted for administrator review'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'APPLICATION_FAILED', 500));
   }
@@ -52,8 +52,8 @@ router.post('/application', optionalAuth, (req: AuthRequest, res: Response) => {
 
 // @route   GET /api/sellers/applications
 // @desc    Get all seller applications for central moderation and sync
-// @access  Public / Optional Auth
-router.get('/applications', (req: Request, res: Response) => {
+// @access  Private (Admin only)
+router.get('/applications', authenticate, authorize('admin'), (req: AuthRequest, res: Response) => {
   try {
     const apps = db.getSellerApplications();
     return res.json(successResponse(apps, 'Seller applications retrieved'));
@@ -63,11 +63,11 @@ router.get('/applications', (req: Request, res: Response) => {
 });
 
 // @route   GET /api/sellers/application
-// @desc    Get user seller application status
-// @access  Public / Optional Auth
-router.get('/application', optionalAuth, (req: AuthRequest, res: Response) => {
+// @desc    Get current user seller application status
+// @access  Private
+router.get('/application', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id || Number(req.query.userId) || 0;
+    const userId = req.user!.id;
     const app = db.getSellerApplicationByUserId(userId);
     return res.json(successResponse(app || null, 'Application status retrieved'));
   } catch (error: any) {
@@ -77,8 +77,8 @@ router.get('/application', optionalAuth, (req: AuthRequest, res: Response) => {
 
 // @route   PUT /api/sellers/application/:id/review
 // @desc    Review and approve/reject/request revision for seller application centrally
-// @access  Public / Optional Auth
-router.put('/application/:id/review', optionalAuth, (req: AuthRequest, res: Response) => {
+// @access  Private (Admin only)
+router.put('/application/:id/review', authenticate, authorize('admin'), (req: AuthRequest, res: Response) => {
   try {
     const { status, reviewNotes } = req.body;
     const allowed = ['Approved', 'Rejected', 'Needs Revision'];
@@ -86,7 +86,7 @@ router.put('/application/:id/review', optionalAuth, (req: AuthRequest, res: Resp
       return res.status(400).json(errorResponse('Status must be Approved, Rejected, or Needs Revision', null, 'BAD_REQUEST', 400));
     }
 
-    const reviewerEmail = req.user?.email || 'admin@agrimarket.com';
+    const reviewerEmail = req.user!.email;
     const updated = db.updateSellerApplicationStatus(req.params.id, status, reviewNotes, reviewerEmail);
     if (!updated) {
       return res.status(404).json(errorResponse('Application not found', null, 'NOT_FOUND', 404));

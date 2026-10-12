@@ -140,6 +140,8 @@ export interface ReviewEntity {
   status?: 'published' | 'hidden' | 'flagged';
   moderationReason?: string;
   moderatedAt?: string;
+  isVerifiedPurchase?: boolean;
+  orderId?: string;
 }
 
 export interface PostEntity {

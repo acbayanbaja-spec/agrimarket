@@ -13,22 +13,6 @@ export const initSocket = (io: SocketIOServer) => {
       return next();
     }
 
-    if (token.startsWith('local-') || token.startsWith('demo-')) {
-      const parsedId = Number(token.split('-')[1]);
-      const id = Number.isFinite(parsedId) ? parsedId : 0;
-      const dbUser = db.getUserById(id);
-      if (dbUser) {
-        socket.data.user = {
-          id: dbUser.id,
-          email: dbUser.email,
-          roles: dbUser.roles || ['buyer'],
-        };
-      } else {
-        socket.data.user = { id, email: 'demo@agrimarket.com', roles: ['buyer'] };
-      }
-      return next();
-    }
-
     try {
       const decoded = jwt.verify(token, config.jwt.secret) as {
         id: number;
@@ -37,14 +21,19 @@ export const initSocket = (io: SocketIOServer) => {
       };
 
       const dbUser = db.getUserById(decoded.id);
+      if (!dbUser || dbUser.is_active === false) {
+        socket.data.user = { id: 0, email: 'guest@agrimarket.com', roles: ['guest'] };
+        return next();
+      }
+
       socket.data.user = {
-        id: decoded.id,
-        email: decoded.email,
-        roles: dbUser?.roles || decoded.roles || ['buyer'],
+        id: dbUser.id,
+        email: dbUser.email,
+        roles: dbUser.roles || decoded.roles || ['buyer'],
       };
       return next();
     } catch {
-      // Allow fallback connection so guest device still receives catalog broadcasts
+      // Allow fallback connection so guest device still receives public catalog broadcasts
       socket.data.user = { id: 0, email: 'guest@agrimarket.com', roles: ['guest'] };
       return next();
     }
@@ -87,32 +76,51 @@ export const initSocket = (io: SocketIOServer) => {
     socket.on('authenticate', (token: string) => {
       try {
         if (!token) return;
-        if (token.startsWith('local-') || token.startsWith('demo-')) {
-          const id = Number(token.split('-')[1]);
-          const dbUser = db.getUserById(id);
-          if (dbUser) {
-            socket.data.user = { id: dbUser.id, email: dbUser.email, roles: dbUser.roles };
-            setupSocketRooms(socket);
-          }
-          return;
-        }
         const decoded = jwt.verify(token, config.jwt.secret) as any;
         const dbUser = db.getUserById(decoded.id);
-        socket.data.user = {
-          id: decoded.id,
-          email: decoded.email,
-          roles: dbUser?.roles || decoded.roles || ['buyer'],
-        };
-        setupSocketRooms(socket);
+        if (dbUser && dbUser.is_active !== false) {
+          socket.data.user = {
+            id: decoded.id,
+            email: decoded.email,
+            roles: dbUser.roles || decoded.roles || ['buyer'],
+          };
+          setupSocketRooms(socket);
+        }
       } catch (err) {
         console.warn('Socket authentication update error:', err);
       }
     });
 
-    // Handle joining conversation rooms
+    // Handle joining conversation rooms with authorization check
     socket.on('join_conversation', (conversationId: string) => {
-      socket.join(`conversation:${conversationId}`);
-      console.log(`User ${userId} joined conversation ${conversationId}`);
+      const authUser = socket.data.user;
+      if (!authUser || !authUser.id) {
+        return; // Unauthenticated guest cannot join private message rooms
+      }
+
+      const isAdmin = authUser.roles?.includes('admin');
+      const order = db.getOrderById(conversationId);
+
+      let isAllowed = isAdmin;
+      if (order) {
+        const isBuyer = order.userId === authUser.id;
+        const isDriver = order.driverId === authUser.id;
+        const isSeller = order.items?.some(
+          (it: any) => it.sellerUserId === authUser.id || it.sellerId === `seller-${authUser.id}`
+        );
+        isAllowed = isAllowed || isBuyer || isDriver || isSeller;
+      } else {
+        // Direct non-order conversation: check if user is sender or receiver
+        const msgs = db.getMessages(conversationId);
+        isAllowed = isAllowed || msgs.some((m) => m.fromUserId === authUser.id || m.toUserId === authUser.id);
+      }
+
+      if (isAllowed) {
+        socket.join(`conversation:${conversationId}`);
+        console.log(`User ${userId} joined authorized conversation ${conversationId}`);
+      } else {
+        console.warn(`User ${userId} denied access to conversation ${conversationId}`);
+      }
     });
 
     // Handle leaving conversation rooms
@@ -193,20 +201,18 @@ export const broadcastOrderCreated = (io: SocketIOServer, order: any) => {
   }
 
   // 2. Direct seller rooms for each distinct seller in the order
-  const sellerUserIds: number[] = Array.from(new Set(order.items?.map((i: any) => Number(i.sellerUserId)).filter(Boolean) as number[]));
+  const sellerUserIds: number[] = Array.from(
+    new Set(order.items?.map((i: any) => Number(i.sellerUserId)).filter(Boolean) as number[])
+  );
   sellerUserIds.forEach((sId: number) => {
     io.to(`user:${sId}`).emit('order_created', order);
     io.to(`user:${sId}`).emit('new_order', order);
     io.to(`user:${sId}`).emit('order_update', order);
   });
 
-  // 3. Admin room
+  // 3. Admin room for central oversight
   io.to('role:admin').emit('order_created', order);
   io.to('role:admin').emit('order_update', order);
-
-  // 4. Global broadcast so all tabs stay synced
-  io.emit('order_created', order);
-  io.emit('new_order', order);
 };
 
 export const broadcastOrderUpdated = (io: SocketIOServer, order: any) => {
@@ -217,7 +223,9 @@ export const broadcastOrderUpdated = (io: SocketIOServer, order: any) => {
   }
 
   // 2. Direct seller rooms
-  const sellerUserIds: number[] = Array.from(new Set(order.items?.map((i: any) => Number(i.sellerUserId)).filter(Boolean) as number[]));
+  const sellerUserIds: number[] = Array.from(
+    new Set(order.items?.map((i: any) => Number(i.sellerUserId)).filter(Boolean) as number[])
+  );
   sellerUserIds.forEach((sId: number) => {
     io.to(`user:${sId}`).emit('order_updated', order);
     io.to(`user:${sId}`).emit('order_update', order);
@@ -233,18 +241,20 @@ export const broadcastOrderUpdated = (io: SocketIOServer, order: any) => {
   // 4. Admin room
   io.to('role:admin').emit('order_updated', order);
   io.to('role:admin').emit('order_update', order);
-
-  // 5. Global broadcast
-  io.emit('order_updated', order);
-  io.emit('order_update', order);
 };
 
 export const broadcastDeliveryUpdate = (io: SocketIOServer, driverId: number, deliveryUpdate: any) => {
   if (driverId) {
     io.to(`user:${driverId}`).emit('delivery_update', deliveryUpdate);
   }
+  // If order details exist, notify buyer and seller
+  if (deliveryUpdate?.orderId) {
+    const order = db.getOrderById(deliveryUpdate.orderId);
+    if (order && order.userId) {
+      io.to(`user:${order.userId}`).emit('delivery_update', deliveryUpdate);
+    }
+  }
   io.to('role:admin').emit('delivery_update', deliveryUpdate);
-  io.emit('delivery_update', deliveryUpdate);
 };
 
 export const sendNotification = (io: SocketIOServer, userId: number | 'all', notification: any) => {

@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { optionalAuth, authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { db, OrderEntity, DeliveryJobEntity, ProductEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
@@ -14,15 +14,10 @@ const router = Router();
 
 // @route   GET /api/orders
 // @desc    Get user orders or seller/admin/driver orders with strict RBAC
-// @access  Public / Optional Auth
-router.get('/', optionalAuth, (req: AuthRequest, res: Response) => {
+// @access  Private
+router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const user = req.user;
-    if (!user) {
-      // Unauthenticated users do not see private orders
-      return res.json(successResponse([], 'No authenticated user; orders empty'));
-    }
-
+    const user = req.user!;
     const isSeller = user.roles.includes('seller');
     const isAdmin = user.roles.includes('admin');
     const isDriver = user.roles.includes('delivery');
@@ -82,31 +77,29 @@ router.get('/', optionalAuth, (req: AuthRequest, res: Response) => {
 
 // @route   GET /api/orders/:id
 // @desc    Get order by ID or receipt number
-// @access  Public / Optional Auth
-router.get('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
+// @access  Private
+router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const user = req.user;
+    const user = req.user!;
     const order = db.getOrderById(req.params.id);
     if (!order) {
       return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
     }
 
-    if (user) {
-      const isAdmin = user.roles.includes('admin');
-      const isBuyer = order.userId === user.id;
-      const isDriver = order.driverId === user.id;
-      const isSeller = order.items.some(
-        (it: any) =>
-          it.sellerUserId === user.id ||
-          it.sellerId === `seller-${user.id}` ||
-          it.sellerId === `user-${user.id}` ||
-          ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-            (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
-      );
+    const isAdmin = user.roles.includes('admin');
+    const isBuyer = order.userId === user.id;
+    const isDriver = order.driverId === user.id;
+    const isSeller = order.items.some(
+      (it: any) =>
+        it.sellerUserId === user.id ||
+        it.sellerId === `seller-${user.id}` ||
+        it.sellerId === `user-${user.id}` ||
+        ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
+          (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+    );
 
-      if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
-        return res.status(403).json(errorResponse('Access denied to this order', null, 'FORBIDDEN', 403));
-      }
+    if (!isAdmin && !isBuyer && !isDriver && !isSeller) {
+      return res.status(403).json(errorResponse('Access denied to this order', null, 'FORBIDDEN', 403));
     }
 
     return res.json(successResponse(order, 'Order retrieved successfully'));
@@ -117,14 +110,14 @@ router.get('/:id', optionalAuth, (req: AuthRequest, res: Response) => {
 
 // @route   POST /api/orders
 // @desc    Create new order in centralized database with atomic stock deduction and multi-device sync
-// @access  Public / Optional Auth
-router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
+// @access  Private (Buyer / Seller)
+router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const body = req.body;
-    const user = req.user || (body.userId ? db.getUserById(Number(body.userId)) : null);
+    const user = req.user!;
 
     // Role Enforcement: Admin cannot place orders
-    if (user?.roles && user.roles.includes('admin')) {
+    if (user.roles && user.roles.includes('admin')) {
       return res
         .status(403)
         .json(
@@ -137,8 +130,8 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
         );
     }
 
-    // Role Enforcement: Delivery riders cannot place orders
-    if (user?.roles && user.roles.includes('delivery') && !user.roles.includes('buyer')) {
+    // Role Enforcement: Delivery riders cannot place orders unless they are also buyers
+    if (user.roles && user.roles.includes('delivery') && !user.roles.includes('buyer')) {
       return res
         .status(403)
         .json(
@@ -150,26 +143,31 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
       return res.status(400).json(errorResponse('Order must contain at least one item', null, 'INVALID_ITEMS', 400));
     }
 
-    // Enrich order items with canonical product and seller data
-    const enrichedItems = body.items.map((item: any) => {
+    // Enrich order items with canonical product and seller data (server-authoritative pricing)
+    const enrichedItems: any[] = [];
+    for (const item of body.items) {
       const prod = db.getProductById(item.productId);
-      return {
-        productId: item.productId,
-        name: item.name || item.title || prod?.name || 'Product',
-        title: item.title || item.name || prod?.name || 'Product',
-        price: Number(item.price ?? prod?.price ?? 0),
-        quantity: Math.max(1, Number(item.quantity || 1)),
-        unit: item.unit || prod?.unit || 'kg',
-        image: item.image || prod?.image || '',
-        seller: item.seller || prod?.seller || 'Farm Seller',
-        sellerId:
-          item.sellerId || prod?.sellerId || (prod?.sellerUserId ? `seller-${prod.sellerUserId}` : 'seller-2'),
-        sellerUserId: Number(item.sellerUserId ?? prod?.sellerUserId ?? 2),
-        pickupLocation: item.pickupLocation || item.location || prod?.location || 'SOCCSKSARGEN stall',
-        prepStatus: item.prepStatus || 'unpacked',
-        prepNotes: item.prepNotes || '',
-      };
-    });
+      if (!prod) {
+        return res
+          .status(400)
+          .json(errorResponse(`Product not found: ${item.productId}`, null, 'PRODUCT_NOT_FOUND', 400));
+      }
+      enrichedItems.push({
+        productId: prod.id,
+        name: prod.name || 'Product',
+        title: prod.name || 'Product',
+        price: Number(prod.price), // Strict server-side authoritative price; client price ignored
+        quantity: Math.max(1, Math.floor(Number(item.quantity || 1))),
+        unit: prod.unit || 'kg',
+        image: prod.image || '',
+        seller: prod.seller || 'Farm Seller',
+        sellerId: prod.sellerId || (prod.sellerUserId ? `seller-${prod.sellerUserId}` : 'seller-2'),
+        sellerUserId: Number(prod.sellerUserId || 2),
+        pickupLocation: prod.location || 'SOCCSKSARGEN stall',
+        prepStatus: 'unpacked',
+        prepNotes: '',
+      });
+    }
 
     // Server-side atomic stock validation and deduction
     let updatedProducts: ProductEntity[] = [];
@@ -188,22 +186,33 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
       });
     }
 
-    const orderId = body.id || `ORD-${Date.now().toString().slice(-8)}`;
-    const receiptNo = body.receiptNo || `RCPT-${Date.now().toString().slice(-8)}`;
-    const buyerId = user ? user.id : Number(body.userId) || 3;
-    const buyerEmail = user ? user.email : body.buyerEmail || 'buyer@agrimarket.com';
+    const orderId = `ORD-${Date.now().toString().slice(-8)}`;
+    const receiptNo = `RCPT-${Date.now().toString().slice(-8)}`;
+    const buyerId = user.id;
+    const buyerEmail = user.email;
 
     // Calculate subtotal and totals server-side
     const subtotal = enrichedItems.reduce((sum: number, it: any) => sum + Number(it.price) * Number(it.quantity), 0);
-    const shippingFee = Number(body.shippingFee ?? 50);
-    const shippingDiscount = Number(body.shippingDiscount ?? (body.couponCode === 'FREESHIP' ? 50 : 0));
-    const pointsRedeemed = Number(body.pointsRedeemed ?? 0);
-    const total = Number(body.total ?? Math.max(0, subtotal + shippingFee - shippingDiscount - pointsRedeemed));
+    const shippingFee = 50; // Regional standard delivery fee
+    let shippingDiscount = 0;
+    let couponDiscount = 0;
+
+    const coupon = (body.couponCode || '').trim().toUpperCase();
+    if (coupon === 'FREESHIP') {
+      shippingDiscount = shippingFee;
+    } else if (coupon === 'AGRIFARM30') {
+      couponDiscount = 30;
+    } else if (coupon === 'HARVEST50') {
+      couponDiscount = 50;
+    }
+
+    const pointsRedeemed = Math.min(Math.max(0, Number(body.pointsRedeemed || 0)), subtotal);
+    const total = Math.max(0, subtotal + shippingFee - shippingDiscount - couponDiscount - pointsRedeemed);
     const pointsEarned = Math.floor(subtotal / 10);
 
     const buyerName =
       body.buyerName ||
-      (user ? `${(user as any).first_name || (user as any).firstName || ''} ${(user as any).last_name || (user as any).lastName || ''}`.trim() : '') ||
+      `${(user as any).first_name || (user as any).firstName || ''} ${(user as any).last_name || (user as any).lastName || ''}`.trim() ||
       buyerEmail.split('@')[0];
 
     const newOrder: OrderEntity = {
@@ -215,19 +224,19 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
       items: enrichedItems,
       subtotal,
       shippingFee,
-      shippingDiscount,
-      couponCode: body.couponCode,
+      shippingDiscount: shippingDiscount + couponDiscount,
+      couponCode: coupon || undefined,
       pointsEarned,
       pointsRedeemed,
       total,
       status: 'Pending',
-      createdAt: body.createdAt || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       address: body.address || 'SOCCSKSARGEN Delivery Address',
       payment: body.payment || 'GCash',
-      paymentRef: body.paymentRef || (body.payment === 'GCash' ? `GC-${Date.now().toString().slice(-4)}` : undefined),
-      paymentStatus: body.payment === 'GCash' || body.payment === 'Maya' ? 'escrow_held' : 'pending',
-      lat: body.lat || 6.5004,
-      lng: body.lng || 124.8436,
+      paymentRef: body.paymentRef || undefined,
+      paymentStatus: 'pending',
+      lat: typeof body.lat === 'number' ? body.lat : 6.5004,
+      lng: typeof body.lng === 'number' ? body.lng : 124.8436,
       prepStatus: 'unpacked',
     };
 
@@ -270,12 +279,17 @@ router.post('/', optionalAuth, (req: AuthRequest, res: Response) => {
 
 // @route   PUT /api/orders/:id/status
 // @desc    Update order status centrally (Confirmed by seller, Cancelled, Shipped, Out for delivery, Delivered)
-// @access  Public / Optional Auth
-router.put('/:id/status', optionalAuth, (req: AuthRequest, res: Response) => {
+// @access  Private (Buyer / Seller / Driver / Admin)
+router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const { status, driverId, cancellationReason, rejectedReason } = req.body;
     if (!status) {
       return res.status(400).json(errorResponse('Status is required', null, 'MISSING_STATUS', 400));
+    }
+
+    const validStatuses = ['Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json(errorResponse(`Invalid status: ${status}`, null, 'INVALID_STATUS', 400));
     }
 
     const orderId = req.params.id;
@@ -284,46 +298,70 @@ router.put('/:id/status', optionalAuth, (req: AuthRequest, res: Response) => {
       return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
     }
 
-    const user = req.user;
-    if (user) {
-      const isAdmin = user.roles.includes('admin');
-      const isBuyer = existing.userId === user.id;
-      const isSeller = existing.items.some(
-        (it: any) =>
-          it.sellerUserId === user.id ||
-          it.sellerId === `seller-${user.id}` ||
-          it.sellerId === `user-${user.id}` ||
-          ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-            (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
-      );
-      const isDriver = existing.driverId === user.id || user.roles.includes('delivery');
+    const user = req.user!;
+    const isAdmin = user.roles.includes('admin');
+    const isBuyer = existing.userId === user.id;
+    const isSeller = existing.items.some(
+      (it: any) =>
+        it.sellerUserId === user.id ||
+        it.sellerId === `seller-${user.id}` ||
+        it.sellerId === `user-${user.id}` ||
+        ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
+          (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+    );
+    const isDriver = existing.driverId === user.id || (user.roles.includes('delivery') && (!existing.driverId || existing.driverId === user.id));
 
-      // Permissions check per status transition
-      if (status === 'Cancelled') {
+    // Terminal state protection
+    if (existing.status === 'Delivered') {
+      return res.status(400).json(errorResponse('Delivered orders cannot have their status changed', null, 'ORDER_COMPLETED', 400));
+    }
+    if (existing.status === 'Cancelled') {
+      return res.status(400).json(errorResponse('Cancelled orders cannot have their status changed', null, 'ORDER_CANCELLED', 400));
+    }
+
+    // Lifecycle state transition & role permissions matrix
+    if (status === 'Cancelled') {
+      if (existing.status === 'Pending') {
         if (!isAdmin && !isBuyer && !isSeller) {
-          return res.status(403).json(errorResponse('Unauthorized to cancel this order', null, 'UNAUTHORIZED', 403));
+          return res.status(403).json(errorResponse('Unauthorized to cancel this order', null, 'FORBIDDEN', 403));
         }
-        if (isBuyer && existing.status !== 'Pending') {
-          return res.status(400).json(errorResponse('Buyers can only cancel pending orders', null, 'CANNOT_CANCEL', 400));
-        }
-      }
-
-      if (status === 'Confirmed') {
+      } else if (existing.status === 'Confirmed') {
         if (!isAdmin && !isSeller) {
-          return res.status(403).json(errorResponse('Only the assigned seller or admin can confirm this order', null, 'UNAUTHORIZED', 403));
+          return res.status(403).json(errorResponse('Only the seller or an administrator can cancel a confirmed order', null, 'FORBIDDEN', 403));
+        }
+      } else {
+        // Shipped or Out for delivery
+        if (!isAdmin) {
+          return res.status(403).json(errorResponse('Only an administrator can cancel an in-transit order', null, 'FORBIDDEN', 403));
         }
       }
-
-      if (status === 'Shipped') {
-        if (!isAdmin && !isSeller && !isDriver) {
-          return res.status(403).json(errorResponse('Unauthorized to mark order shipped', null, 'UNAUTHORIZED', 403));
-        }
+    } else if (status === 'Confirmed') {
+      if (existing.status !== 'Pending') {
+        return res.status(400).json(errorResponse(`Cannot confirm order currently in '${existing.status}' status`, null, 'INVALID_TRANSITION', 400));
       }
-
-      if (status === 'Out for delivery' || status === 'Delivered') {
-        if (!isAdmin && !isDriver) {
-          return res.status(403).json(errorResponse('Only assigned delivery riders or admin can update delivery progress', null, 'UNAUTHORIZED', 403));
-        }
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json(errorResponse('Only the assigned seller or admin can confirm this order', null, 'FORBIDDEN', 403));
+      }
+    } else if (status === 'Shipped') {
+      if (existing.status !== 'Confirmed') {
+        return res.status(400).json(errorResponse(`Order must be 'Confirmed' before being marked 'Shipped' (current: '${existing.status}')`, null, 'INVALID_TRANSITION', 400));
+      }
+      if (!isAdmin && !isSeller && !isDriver) {
+        return res.status(403).json(errorResponse('Unauthorized to mark order shipped', null, 'FORBIDDEN', 403));
+      }
+    } else if (status === 'Out for delivery') {
+      if (existing.status !== 'Shipped' && existing.status !== 'Confirmed') {
+        return res.status(400).json(errorResponse(`Order must be 'Shipped' or 'Confirmed' before going out for delivery (current: '${existing.status}')`, null, 'INVALID_TRANSITION', 400));
+      }
+      if (!isAdmin && !isDriver) {
+        return res.status(403).json(errorResponse('Only the assigned delivery rider or admin can mark order out for delivery', null, 'FORBIDDEN', 403));
+      }
+    } else if (status === 'Delivered') {
+      if (existing.status !== 'Out for delivery' && existing.status !== 'Shipped') {
+        return res.status(400).json(errorResponse(`Order must be in delivery before being marked 'Delivered' (current: '${existing.status}')`, null, 'INVALID_TRANSITION', 400));
+      }
+      if (!isAdmin && !isDriver) {
+        return res.status(403).json(errorResponse('Only the assigned delivery rider or admin can confirm delivery', null, 'FORBIDDEN', 403));
       }
     }
 
@@ -332,7 +370,7 @@ router.put('/:id/status', optionalAuth, (req: AuthRequest, res: Response) => {
     if (status === 'Shipped') extra.shippedAt = new Date().toISOString();
     if (status === 'Delivered') {
       (extra as any).deliveredAt = new Date().toISOString();
-      extra.paymentStatus = 'paid';
+      extra.paymentStatus = existing.paymentStatus === 'escrow_held' ? 'escrow_held' : 'paid';
     }
     if (status === 'Cancelled') {
       extra.rejectedReason = rejectedReason || cancellationReason || 'Cancelled by user';
@@ -505,8 +543,8 @@ router.put('/:id/assign-rider', authenticate, (req: AuthRequest, res: Response) 
 
 // @route   PUT /api/orders/:id/prepare
 // @desc    Update order items preparation status and packaging notes (Seller Packing & Preparation)
-// @access  Public / Optional Auth
-router.put('/:id/prepare', optionalAuth, (req: AuthRequest, res: Response) => {
+// @access  Private (Seller / Admin)
+router.put('/:id/prepare', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const { prepStatus, packingNotes, productId, items } = req.body;
     const orderId = req.params.id;
@@ -515,9 +553,21 @@ router.put('/:id/prepare', optionalAuth, (req: AuthRequest, res: Response) => {
       return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
     }
 
-    const user = req.user;
-    if (user && !user.roles.includes('admin') && !user.roles.includes('seller')) {
-      return res.status(403).json(errorResponse('Only sellers and admins can update product preparation', null, 'UNAUTHORIZED', 403));
+    const user = req.user!;
+    const isAdmin = user.roles.includes('admin');
+    const isSeller = order.items.some(
+      (it: any) =>
+        it.sellerUserId === user.id ||
+        it.sellerId === `seller-${user.id}` ||
+        it.sellerId === `user-${user.id}` ||
+        ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
+          (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+    );
+
+    if (!isAdmin && !isSeller) {
+      return res
+        .status(403)
+        .json(errorResponse('Only authorized sellers for this order or admins can update preparation', null, 'FORBIDDEN', 403));
     }
 
     let updated: OrderEntity | null = null;
@@ -533,7 +583,19 @@ router.put('/:id/prepare', optionalAuth, (req: AuthRequest, res: Response) => {
         packedAt: prepStatus === 'packed' ? new Date().toISOString() : order.packedAt,
       };
       if (items && Array.isArray(items)) {
-        extra.items = items;
+        // Safely update prep status and notes only; never allow tampering with prices or products
+        const updatedItems = order.items.map((existingItem: any) => {
+          const match = items.find((i: any) => i.productId === existingItem.productId);
+          if (match) {
+            return {
+              ...existingItem,
+              prepStatus: match.prepStatus || existingItem.prepStatus,
+              prepNotes: match.prepNotes !== undefined ? match.prepNotes : existingItem.prepNotes,
+            };
+          }
+          return existingItem;
+        });
+        extra.items = updatedItems;
       }
       const newStatus = order.status === 'Pending' ? 'Confirmed' : order.status;
       updated = db.updateOrderStatus(orderId, newStatus, extra);
@@ -545,7 +607,6 @@ router.put('/:id/prepare', optionalAuth, (req: AuthRequest, res: Response) => {
 
     if (io) {
       broadcastOrderUpdated(io, updated);
-      io.emit('order_packed', updated);
     }
 
     return res.json(successResponse(updated, 'Agricultural product packing and preparation updated successfully'));
