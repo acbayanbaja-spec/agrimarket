@@ -138,7 +138,40 @@ router.get('/:id', (req: AuthRequest, res: Response) => {
       return res.status(404).json(errorResponse('Product not found or has been removed', null, 'NOT_FOUND', 404));
     }
 
-    return res.json(successResponse({ product }, 'Product retrieved successfully'));
+    const related = relatedProducts(db.getProducts(), product, 4);
+    const variations =
+      product.variations && product.variations.length > 0
+        ? product.variations
+        : [
+            {
+              id: 'var-1',
+              name: `Single ${product.unit || 'kg'} Pack`,
+              multiplier: 1,
+              price: product.price,
+              unit: product.unit || 'kg',
+              inStock: product.stock > 0,
+            },
+            {
+              id: 'var-2',
+              name: `5× ${product.unit || 'kg'} Value Bundle`,
+              multiplier: 5,
+              price: Math.round(product.price * 5 * 0.95),
+              unit: product.unit || 'kg',
+              inStock: product.stock >= 5,
+            },
+            {
+              id: 'var-3',
+              name: `25× ${product.unit || 'kg'} Wholesale Crate`,
+              multiplier: 25,
+              price: Math.round(product.price * 25 * 0.9),
+              unit: product.unit || 'kg',
+              inStock: product.stock >= 25,
+            },
+          ];
+
+    return res.json(
+      successResponse({ product: { ...product, variations }, related }, 'Product retrieved successfully')
+    );
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'PRODUCT_FETCH_FAILED', 500));
   }
@@ -359,6 +392,47 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
     );
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'PRODUCT_DELETE_FAILED', 500));
+  }
+});
+
+// @route   POST /api/products/:id/report
+// @desc    Submit user report against a listing (misleading, price gouging, spoiled, etc.)
+// @access  Private (Authenticated users)
+router.post('/:id/report', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const product = db.getProductById(req.params.id);
+    if (!product) {
+      return res.status(404).json(errorResponse('Product not found', null, 'NOT_FOUND', 404));
+    }
+
+    const { reason, details } = req.body;
+    if (!reason || !String(reason).trim()) {
+      return res.status(400).json(errorResponse('Reason is required to submit a listing report', null, 'BAD_REQUEST', 400));
+    }
+
+    const report = db.addListingReport({
+      id: `rep-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      productId: product.id,
+      productName: product.name,
+      sellerId: product.sellerId,
+      reporterUserId: user.id,
+      reporterName: `${(user as any).firstName || (user as any).first_name || 'AgriMarket'} ${(user as any).lastName || (user as any).last_name || 'Member'}`.trim(),
+      reporterEmail: user.email,
+      reason: String(reason).trim(),
+      details: details ? String(details).trim() : undefined,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    });
+
+    return res.status(201).json(
+      successResponse(
+        report,
+        'Thank you for protecting our community. Your report has been submitted to moderators.'
+      )
+    );
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'REPORT_FAILED', 500));
   }
 });
 

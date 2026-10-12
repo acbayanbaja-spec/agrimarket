@@ -566,7 +566,7 @@ const DeliveryDashboardPage = () => {
                 </div>
 
                 {/* Milestone Stepper */}
-                <OrderTimeline status={order.status} />
+                <OrderTimeline status={order.status} statusHistory={order.statusHistory} />
 
                 {/* Rider Assignment Info & Dispatch Controls */}
                 <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">

@@ -228,9 +228,20 @@ const CheckoutPage = () => {
         </div>
         {payment === 'GCash' && (
           <div className="rounded-2xl bg-sky-50 border border-sky-100 p-4 space-y-2">
-            <p className="font-semibold">GCash checkout</p>
-            <p className="text-sm text-gray-700">Send {formatPeso(total)} to <strong>0917 000 2468</strong> (AgriMarket Treasury).</p>
-            <input required className="input-field" placeholder="GCash reference number" value={gcashRef} onChange={(event) => setGcashRef(event.target.value)} />
+            <p className="font-semibold text-sky-950">GCash Digital Settlement</p>
+            <p className="text-sm text-gray-700">
+              Send {formatPeso(total)} to <strong>0917 000 2468</strong> (AgriMarket Treasury).
+            </p>
+            <input
+              required
+              className="input-field"
+              placeholder="GCash reference number (e.g. 9012 3456 7890)"
+              value={gcashRef}
+              onChange={(event) => setGcashRef(event.target.value)}
+            />
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-[11px] text-amber-900 leading-snug">
+              <strong>Treasury Notice:</strong> Digital payment status remains <em>Pending Verification</em> until reconciliation. AgriMarket never claims funds are held in escrow or settled without genuine payment provider confirmation.
+            </div>
           </div>
         )}
         <div>

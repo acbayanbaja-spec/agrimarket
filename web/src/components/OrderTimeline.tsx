@@ -1,24 +1,37 @@
-import { FileText, CheckCircle2, Package, Truck, Home } from 'lucide-react'
+import { useState } from 'react'
+import { FileText, CheckCircle2, Package, Boxes, Clock, Truck, Home, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Order } from '../context/StoreContext'
 
 const steps: Array<{ key: Order['status']; label: string; icon: typeof FileText }> = [
   { key: 'Pending', label: 'Order Placed', icon: FileText },
   { key: 'Confirmed', label: 'Farm Confirmed', icon: Package },
-  { key: 'Shipped', label: 'Rider Picked Up', icon: CheckCircle2 },
-  { key: 'Out for delivery', label: 'In Transit', icon: Truck },
+  { key: 'Preparing', label: 'Harvest Packing', icon: Boxes },
+  { key: 'Ready for Pickup', label: 'Ready for Courier', icon: Clock },
+  { key: 'Shipped', label: 'In Transit', icon: CheckCircle2 },
+  { key: 'Out for delivery', label: 'Out for Delivery', icon: Truck },
   { key: 'Delivered', label: 'Delivered', icon: Home },
 ]
 
 const descriptions: Record<Order['status'], string> = {
-  Pending: 'Order transmitted to the SOCCSKSARGEN farm stall. Awaiting farmer preparation.',
-  Confirmed: 'Harvest confirmed and packed into crates. Local delivery rider dispatched for pickup.',
-  Shipped: 'Rider collected fresh crates from the farm stall and departed for regional hub.',
-  'Out for delivery': 'Rider is on the final drop-off route in SOCCSKSARGEN. Please have cash/GCash ready.',
+  Pending: 'Order transmitted to the SOCCSKSARGEN farm stall. Awaiting farmer confirmation.',
+  Confirmed: 'Harvest confirmed by farm stall. Produce queued for sorting and crates.',
+  Preparing: 'Produce is being freshly harvested, washed, and packed into crates.',
+  'Ready for Pickup': 'Packed crates staged at the farm stall ready for courier collection.',
+  Shipped: 'Rider collected fresh crates from the farm and departed for regional routing.',
+  'Out for delivery': 'Rider is on the final drop-off route in SOCCSKSARGEN. Please have payment ready.',
   Delivered: 'Harvest safely received! Earned loyalty AgriCoins credited to your account.',
-  Cancelled: 'This order was cancelled. Stock is restored when a pending or confirmed harvest is cancelled.',
+  Cancelled: 'This order was cancelled. Stock has been restored safely in the central database.',
 }
 
-export const OrderTimeline = ({ status }: { status: Order['status'] }) => {
+export const OrderTimeline = ({
+  status,
+  statusHistory,
+}: {
+  status: Order['status']
+  statusHistory?: Order['statusHistory']
+}) => {
+  const [showAudit, setShowAudit] = useState(false)
+
   if (status === 'Cancelled') {
     return (
       <div className="bg-rose-50 border border-rose-100 rounded-2xl p-3.5 text-sm text-rose-800 font-medium">
@@ -30,9 +43,9 @@ export const OrderTimeline = ({ status }: { status: Order['status'] }) => {
   const safeActive = activeIndex >= 0 ? activeIndex : 0
 
   return (
-    <div className="bg-gradient-to-b from-gray-50/80 to-white rounded-2xl p-3.5 sm:p-4 border border-gray-100/90 shadow-sm">
+    <div className="bg-gradient-to-b from-gray-50/80 to-white rounded-2xl p-3.5 sm:p-4 border border-gray-100/90 shadow-sm space-y-3">
       {/* Shopee & Lazada Stepper Line */}
-      <div className="relative flex items-center justify-between mb-3 px-2 sm:px-4">
+      <div className="relative flex items-center justify-between px-2 sm:px-4">
         {/* Continuous progress track */}
         <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-gray-200 z-0">
           <div
@@ -57,11 +70,12 @@ export const OrderTimeline = ({ status }: { status: Order['status'] }) => {
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'bg-white text-gray-400 border-2 border-gray-300'
                 }`}
+                title={step.label}
               >
                 <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
               <span
-                className={`mt-1.5 text-[10px] sm:text-[11px] font-semibold text-center whitespace-nowrap hidden sm:block ${
+                className={`mt-1.5 text-[9px] sm:text-[10px] font-semibold text-center whitespace-nowrap hidden md:block ${
                   isCurrent
                     ? 'text-primary-800 font-bold'
                     : isDone
@@ -77,15 +91,58 @@ export const OrderTimeline = ({ status }: { status: Order['status'] }) => {
       </div>
 
       {/* Current Step Description Card */}
-      <div className="bg-primary-50/70 border border-primary-100 rounded-xl px-3 py-2 text-center text-xs text-primary-900 font-medium flex items-center justify-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span>{descriptions[status] || descriptions.Pending}</span>
+      <div className="bg-primary-50/70 border border-primary-100 rounded-xl px-3 py-2 text-center text-xs text-primary-900 font-medium flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-left">{descriptions[status] || descriptions.Pending}</span>
+        </div>
+        {statusHistory && statusHistory.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowAudit(!showAudit)}
+            className="text-[11px] font-bold text-primary-700 hover:text-primary-800 shrink-0 inline-flex items-center gap-1"
+          >
+            {showAudit ? 'Hide Audit' : 'Audit Trail'}
+            {showAudit ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+        )}
       </div>
+
+      {/* Structured Status Audit Trail */}
+      {showAudit && statusHistory && statusHistory.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-3 space-y-2 text-xs animate-fade-up">
+          <p className="font-bold text-gray-700 uppercase tracking-wider text-[10px]">
+            Status Audit Trail ({statusHistory.length} events recorded)
+          </p>
+          <div className="divide-y divide-gray-100">
+            {statusHistory.map((item, idx) => (
+              <div key={idx} className="py-1.5 flex items-start justify-between gap-3">
+                <div>
+                  <span className="font-semibold text-gray-800">{item.status}</span>
+                  <span className="text-gray-500 ml-1.5">
+                    by {item.changedByName || 'System'} ({item.changedByRole || 'admin'})
+                  </span>
+                  {item.note && <p className="text-gray-600 text-[11px] italic mt-0.5">"{item.note}"</p>}
+                </div>
+                <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                  {new Date(item.timestamp).toLocaleString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export default OrderTimeline
+

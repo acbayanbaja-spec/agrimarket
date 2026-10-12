@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validate } from '../middleware/validation';
-import { registerSchema, loginSchema } from '../validators/authValidator';
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/authValidator';
 import { authService } from '../services/authService';
 import { successResponse, errorResponse } from '../utils/response';
 
@@ -85,15 +85,31 @@ router.post('/refresh', (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @desc    Request password reset
 // @access  Public
-router.post('/forgot-password', (req, res) => {
-  res.json({ message: 'Forgot password endpoint - to be implemented' });
+router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.requestPasswordReset(email);
+    return res.json(successResponse(result, result.message));
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    const errorCode = error.code || 'FORGOT_PASSWORD_FAILED';
+    return res.status(statusCode).json(errorResponse(error.message, null, errorCode, statusCode));
+  }
 });
 
 // @route   POST /api/auth/reset-password
 // @desc    Reset password with token
 // @access  Public
-router.post('/reset-password', (req, res) => {
-  res.json({ message: 'Reset password endpoint - to be implemented' });
+router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const result = await authService.resetPassword(token, password);
+    return res.json(successResponse(result, result.message));
+  } catch (error: any) {
+    const statusCode = error.statusCode || 400;
+    const errorCode = error.code || 'RESET_PASSWORD_FAILED';
+    return res.status(statusCode).json(errorResponse(error.message, null, errorCode, statusCode));
+  }
 });
 
 export default router;

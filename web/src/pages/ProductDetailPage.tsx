@@ -1,7 +1,21 @@
 import { useState, useLayoutEffect, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { MapPin, Star, Truck, Repeat, Coins, ShieldCheck, Clock, Heart, Zap } from 'lucide-react'
+import {
+  MapPin,
+  Star,
+  Truck,
+  Repeat,
+  Coins,
+  ShieldCheck,
+  Clock,
+  Heart,
+  Zap,
+  Flag,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+} from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
@@ -27,6 +41,13 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [showMap, setShowMap] = useState(false)
+  const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('misleading')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reporting, setReporting] = useState(false)
+  const [reportSuccess, setReportSuccess] = useState(false)
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>([])
 
   useLayoutEffect(() => {
     scrollToTopNow()
@@ -100,6 +121,36 @@ const ProductDetailPage = () => {
   const meta = harvestMeta(product)
   const sellerFeed = posts.filter((post) => post.productId === product.id || (post.sellerName === product.seller && post.category === product.category)).slice(0, 4)
 
+  useEffect(() => {
+    if (!product?.id) return
+    try {
+      const raw = localStorage.getItem('agrimarket_recently_viewed')
+      const parsed: string[] = raw ? JSON.parse(raw) : []
+      const updated = [product.id, ...parsed.filter((item) => item !== product.id)].slice(0, 8)
+      localStorage.setItem('agrimarket_recently_viewed', JSON.stringify(updated))
+      setRecentlyViewedIds(updated.filter((item) => item !== product.id))
+    } catch {
+      // Ignore storage errors in restricted contexts
+    }
+  }, [product?.id])
+
+  const variations: Array<{ id: string; name: string; multiplier: number; price: number; unit: string; inStock?: boolean }> =
+    (product as any).variations && (product as any).variations.length > 0
+      ? (product as any).variations
+      : [
+          { id: 'var-1', name: `Single ${product.unit || 'kg'} Pack`, multiplier: 1, price: product.price, unit: product.unit || 'kg', inStock: product.stock > 0 },
+          { id: 'var-2', name: `5× ${product.unit || 'kg'} Value Bundle`, multiplier: 5, price: Math.round(product.price * 5 * 0.95), unit: product.unit || 'kg', inStock: product.stock >= 5 },
+          { id: 'var-3', name: `25× ${product.unit || 'kg'} Wholesale Crate`, multiplier: 25, price: Math.round(product.price * 25 * 0.90), unit: product.unit || 'kg', inStock: product.stock >= 25 },
+        ]
+
+  const activeVariation = variations.find((v) => v.id === selectedVariationId) || variations[0]
+  const currentPrice = activeVariation ? activeVariation.price : product.price
+
+  const recentlyViewedProducts = recentlyViewedIds
+    .map((viewedId) => products.find((p) => p.id === viewedId))
+    .filter((p): p is Product => Boolean(p))
+    .slice(0, 4)
+
   const submitReview = async (event: React.FormEvent) => {
     event.preventDefault()
     addReview({ productId: product.id, rating, comment: comment.trim(), photos })
@@ -116,8 +167,39 @@ const ProductDetailPage = () => {
       toast('Delivery riders do not place orders. Manage parcels in your Delivery Desk.')
       return
     }
-    addItem(product, quantity)
-    toast(`Added to cart · ${product.name}`, '/cart')
+    const itemToAdd = {
+      ...product,
+      price: currentPrice,
+      unit: activeVariation ? activeVariation.name : product.unit,
+    }
+    addItem(itemToAdd, quantity)
+    toast(`Added to cart · ${product.name} (${activeVariation?.name || product.unit})`, '/cart')
+  }
+
+  const handleReportListing = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isAuthenticated) {
+      toast('Please log in first to report a listing', '/login')
+      return
+    }
+    setReporting(true)
+    try {
+      await api.post(`/products/${product.id}/report`, {
+        reason: reportReason,
+        details: reportDetails,
+      })
+      setReportSuccess(true)
+      toast('Listing report submitted to marketplace moderators')
+      setTimeout(() => {
+        setShowReportModal(false)
+        setReportSuccess(false)
+        setReportDetails('')
+      }, 1800)
+    } catch (err: any) {
+      toast(err.response?.data?.message || 'Failed to submit report. Please try again.')
+    } finally {
+      setReporting(false)
+    }
   }
 
   return (
@@ -146,10 +228,43 @@ const ProductDetailPage = () => {
             {product.tradeable && <span className="chip bg-primary-50 text-primary-800"><Repeat className="h-3 w-3 mr-1" /> Tradable</span>}
           </div>
           <div className="flex items-baseline gap-3 mt-6">
-            <p className="text-3xl font-bold">{formatPeso(product.price)}</p>
-            <p className="text-gray-400 line-through">{formatPeso(meta.originalPrice)}</p>
-            <span className="text-base font-medium text-gray-500">/ {product.unit}</span>
+            <p className="text-3xl font-bold">{formatPeso(currentPrice)}</p>
+            <p className="text-gray-400 line-through">
+              {formatPeso(meta.originalPrice * (activeVariation?.multiplier || 1))}
+            </p>
+            <span className="text-base font-medium text-gray-500">
+              / {activeVariation?.name || product.unit}
+            </span>
           </div>
+
+          {/* Product Packaging / Bundle Variations */}
+          {variations.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                Packaging / Bundle Size:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {variations.map((v) => {
+                  const isSelected = (selectedVariationId || variations[0].id) === v.id
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setSelectedVariationId(v.id)}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                        isSelected
+                          ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-primary-400'
+                      }`}
+                    >
+                      {v.name} · {formatPeso(v.price)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <p className="mt-4 text-gray-700 leading-relaxed">{product.description}</p>
           <div className="mt-5 grid sm:grid-cols-2 gap-2 text-sm">
             <p className="rounded-xl bg-amber-50 px-3 py-2 inline-flex items-center gap-2"><Coins className="h-4 w-4" /> Earn {meta.points * quantity} pts (₱10 = 1 pt)</p>
@@ -158,16 +273,26 @@ const ProductDetailPage = () => {
             <p className="rounded-xl bg-soil-100 px-3 py-2 inline-flex items-center gap-2"><Truck className="h-4 w-4" /> {meta.guarantee}</p>
           </div>
           <p className="mt-4 text-sm text-gray-500">Sold by <Link className="font-semibold text-primary-700" to={`/marketplace?seller=${encodeURIComponent(product.seller)}`}>{product.seller}</Link> · {product.stock} {product.unit} available · SOCCSKSARGEN</p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:underline" href={mapsUrl(product.lat, product.lng)} target="_blank" rel="noreferrer">
-              <MapPin className="h-4 w-4" /> Open GPS pin on Google Maps
-            </a>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <a className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:underline" href={mapsUrl(product.lat, product.lng)} target="_blank" rel="noreferrer">
+                <MapPin className="h-4 w-4" /> Open GPS pin on Google Maps
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowMap(!showMap)}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-700 underline"
+              >
+                {showMap ? 'Hide map preview' : 'Preview map location'}
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setShowMap(!showMap)}
-              className="text-xs font-semibold text-gray-500 hover:text-gray-700 underline"
+              onClick={() => setShowReportModal(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-rose-600 transition-colors"
+              title="Report this listing to moderators"
             >
-              {showMap ? 'Hide map preview' : 'Preview map location'}
+              <Flag className="h-3.5 w-3.5" /> Report listing
             </button>
           </div>
           {showMap && (
@@ -197,7 +322,7 @@ const ProductDetailPage = () => {
               <>
                 <QuantityStepper value={quantity} max={Math.max(product.stock, 1)} onChange={setQuantity} disabled={out} />
                 <button type="button" className="btn-primary" disabled={out} onClick={addToCart}>
-                  {out ? 'Out of stock' : `Confirm add · ${formatPeso(product.price * quantity)}`}
+                  {out ? 'Out of stock' : `Confirm add · ${formatPeso(currentPrice * quantity)}`}
                 </button>
               </>
             )}
@@ -275,6 +400,116 @@ const ProductDetailPage = () => {
             {related.map((item) => (
               <ProductCard key={item.id} product={item} />
             ))}
+          </div>
+        </div>
+      )}
+      {/* Recently Viewed Harvests Shelf */}
+      {recentlyViewedProducts.length > 0 && (
+        <div className="mt-16">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">Recently Viewed Harvests</h2>
+              <p className="text-xs text-gray-500">Pick up where you left off browsing SOCCSKSARGEN farms</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recentlyViewedProducts.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Report Listing Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-9 w-9 rounded-xl bg-rose-100 text-rose-700 grid place-items-center">
+                  <Flag className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-bold">Report This Listing</h3>
+                  <p className="text-xs text-gray-500">{product.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {reportSuccess ? (
+              <div className="py-6 text-center space-y-2">
+                <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto grid place-items-center">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <h4 className="font-bold text-gray-900">Report Submitted</h4>
+                <p className="text-xs text-gray-600">
+                  Thank you for keeping AgriMarket trustworthy. Platform moderators will review this listing.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleReportListing} className="space-y-4">
+                <p className="text-xs text-gray-600">
+                  Help us maintain fair pricing, safe agricultural quality, and authentic farmer identities across Region XII.
+                </p>
+
+                <div>
+                  <label className="label" htmlFor="report-reason">
+                    Reason for Report
+                  </label>
+                  <select
+                    id="report-reason"
+                    className="input-field text-sm"
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                  >
+                    <option value="misleading">Misleading description, origin, or photos</option>
+                    <option value="spoiled">Spoiled, damaged, or poor quality produce reported</option>
+                    <option value="price_gouging">Abnormal price gouging or incorrect unit</option>
+                    <option value="fake_organic">Unsubstantiated or fake organic claim</option>
+                    <option value="fraud">Suspected fake farmer or scam stall</option>
+                    <option value="other">Other policy violation</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="report-details">
+                    Additional Details / Evidence (Optional)
+                  </label>
+                  <textarea
+                    id="report-details"
+                    rows={3}
+                    className="input-field text-sm"
+                    placeholder="Describe what is inaccurate or suspicious about this harvest..."
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(false)}
+                    className="btn-outline flex-1 py-2 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={reporting}
+                    className="btn-primary flex-1 py-2 text-sm bg-rose-600 hover:bg-rose-700 border-rose-600"
+                  >
+                    {reporting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

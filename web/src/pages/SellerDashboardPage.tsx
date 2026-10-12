@@ -1249,7 +1249,7 @@ const SellerDashboardPage = () => {
                         </div>
                       </div>
 
-                      <OrderTimeline status={order.status} />
+                      <OrderTimeline status={order.status} statusHistory={order.statusHistory} />
                     </div>
                   )
                 })}

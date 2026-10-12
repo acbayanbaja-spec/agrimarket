@@ -7,8 +7,18 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useStore, type Order } from '../../src/context/StoreContext';
 import { formatPeso } from '../../src/lib/utils';
 import { productPhoto } from '../../src/lib/images';
+import OrderTimeline from '../../src/components/OrderTimeline';
 
-const orderTabs = ['All', 'Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered'] as const;
+const orderTabs = [
+  'All',
+  'Pending',
+  'Confirmed',
+  'Preparing',
+  'Ready for Pickup',
+  'Shipped',
+  'Out for delivery',
+  'Delivered',
+] as const;
 
 export default function OrdersScreen() {
   const { user, hasRole, isAuthenticated } = useAuth();
@@ -163,22 +173,8 @@ export default function OrdersScreen() {
                   </View>
                 </View>
 
-                {/* Stepper Progress Bar */}
-                <View style={styles.stepperContainer}>
-                  <View style={[styles.stepDot, { backgroundColor: '#15803d' }]} />
-                  <View style={[styles.stepLine, (isConfirmed || isShipped || isTransit || isDelivered) && styles.stepLineActive]} />
-                  <View style={[styles.stepDot, (isConfirmed || isShipped || isTransit || isDelivered) && styles.stepDotActive]} />
-                  <View style={[styles.stepLine, (isShipped || isTransit || isDelivered) && styles.stepLineActive]} />
-                  <View style={[styles.stepDot, (isShipped || isTransit || isDelivered) && styles.stepDotActive]} />
-                  <View style={[styles.stepLine, isDelivered && styles.stepLineActive]} />
-                  <View style={[styles.stepDot, isDelivered && styles.stepDotActive]} />
-                </View>
-                <View style={styles.stepperLabels}>
-                  <Text style={styles.stepperLabel}>Placed</Text>
-                  <Text style={styles.stepperLabel}>Packed</Text>
-                  <Text style={styles.stepperLabel}>Transit</Text>
-                  <Text style={styles.stepperLabel}>Delivered</Text>
-                </View>
+                {/* Order Timeline with 6 milestones and audit trail */}
+                <OrderTimeline order={order} />
 
                 {/* Order Items */}
                 <View style={styles.itemsList}>
@@ -221,8 +217,18 @@ export default function OrdersScreen() {
                   </TouchableOpacity>
                 )}
                 {hasRole('seller') && order.status === 'Confirmed' && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => updateOrderStatus(order.id, 'Preparing')}>
+                    <Text style={styles.actionBtnText}>Start Packing Crates (Preparing)</Text>
+                  </TouchableOpacity>
+                )}
+                {hasRole('seller') && order.status === 'Preparing' && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => updateOrderStatus(order.id, 'Ready for Pickup')}>
+                    <Text style={styles.actionBtnText}>Mark Ready for Courier Collection</Text>
+                  </TouchableOpacity>
+                )}
+                {hasRole('seller') && order.status === 'Ready for Pickup' && (
                   <TouchableOpacity style={styles.actionBtn} onPress={() => markShipped(order.id)}>
-                    <Text style={styles.actionBtnText}>Mark Shipped (Courier Collected)</Text>
+                    <Text style={styles.actionBtnText}>Hand Over to Courier (Mark Shipped)</Text>
                   </TouchableOpacity>
                 )}
 
@@ -237,6 +243,21 @@ export default function OrdersScreen() {
                     <TouchableOpacity style={styles.actionBtn} onPress={() => pingBuyer(order)}>
                       <Text style={styles.actionBtnText}>Send SMS to Buyer ({order.buyerPhone || 'No Phone'})</Text>
                     </TouchableOpacity>
+                    {order.status === 'Out for delivery' ? (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { backgroundColor: '#15803d', marginTop: 6 }]}
+                        onPress={() => updateOrderStatus(order.id, 'Delivered')}
+                      >
+                        <Text style={styles.actionBtnText}>✓ Confirm Delivered & Handover</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, { backgroundColor: '#0284c7', marginTop: 6 }]}
+                        onPress={() => updateOrderStatus(order.id, 'Out for delivery')}
+                      >
+                        <Text style={styles.actionBtnText}>Pick Up & Depart (Out for Delivery)</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 

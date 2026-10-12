@@ -256,4 +256,100 @@ export const authService = {
     }
     return null;
   },
+
+  async requestPasswordReset(email: string) {
+    await db.waitUntilReady();
+    const cleanEmail = email.trim().toLowerCase();
+
+    let existingUser: any = null;
+    if (db.getIsMySqlConnected()) {
+      try {
+        const conn = await pool.getConnection();
+        try {
+          const [rows]: any = await conn.query('SELECT id, email, first_name FROM users WHERE email = ?', [cleanEmail]);
+          existingUser = rows[0] || null;
+        } finally {
+          conn.release();
+        }
+      } catch (err: any) {
+        if (!isEmbeddedFallbackAllowed()) throw databaseUnavailableError();
+      }
+    }
+    if (!existingUser) {
+      existingUser = db.getUserByEmail(cleanEmail);
+    }
+
+    if (!existingUser) {
+      return { message: 'If this email exists, password reset instructions have been dispatched.' };
+    }
+
+    const resetToken = jwt.sign(
+      { sub: existingUser.id, email: existingUser.email, purpose: 'pwd_reset' },
+      config.jwt.secret,
+      { expiresIn: '1h' }
+    );
+
+    db.addAuditLog({
+      adminId: existingUser.id,
+      adminEmail: existingUser.email,
+      action: 'PASSWORD_RESET_REQUESTED',
+      targetType: 'user',
+      targetId: String(existingUser.id),
+      details: `Password reset requested for ${cleanEmail}`,
+    });
+
+    return {
+      message: 'If this email exists, password reset instructions have been dispatched.',
+      resetToken: process.env.NODE_ENV === 'production' ? undefined : resetToken,
+    };
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    await db.waitUntilReady();
+    let payload: any;
+    try {
+      payload = jwt.verify(token, config.jwt.secret);
+      if (payload.purpose !== 'pwd_reset' || !payload.sub) {
+        throw new Error('Invalid token purpose');
+      }
+    } catch {
+      const err: any = new Error('Invalid or expired password reset token');
+      err.statusCode = 400;
+      err.code = 'INVALID_RESET_TOKEN';
+      throw err;
+    }
+
+    const userId = Number(payload.sub);
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    if (db.getIsMySqlConnected()) {
+      try {
+        const conn = await pool.getConnection();
+        try {
+          await conn.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId]);
+        } finally {
+          conn.release();
+        }
+      } catch (err: any) {
+        if (!isEmbeddedFallbackAllowed()) throw databaseUnavailableError();
+      }
+    }
+
+    const localUser = db.getUserById(userId);
+    if (localUser) {
+      localUser.password_hash = passwordHash;
+      db.saveData();
+    }
+
+    db.addAuditLog({
+      adminId: userId,
+      adminEmail: payload.email || 'user',
+      action: 'PASSWORD_RESET_COMPLETED',
+      targetType: 'user',
+      targetId: String(userId),
+      details: `Password reset successfully completed for user ID ${userId}`,
+    });
+
+    return { message: 'Password has been successfully updated. You may now log in.' };
+  },
 };

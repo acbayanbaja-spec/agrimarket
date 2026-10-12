@@ -30,11 +30,27 @@ export type Order = {
   pointsEarned: number
   pointsRedeemed: number
   total: number
-  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered' | 'Cancelled'
+  status:
+    | 'Pending'
+    | 'Confirmed'
+    | 'Preparing'
+    | 'Ready for Pickup'
+    | 'Shipped'
+    | 'Out for delivery'
+    | 'Delivered'
+    | 'Cancelled'
   createdAt: string
   address: string
   payment: 'GCash' | 'Cash on delivery'
   driverId?: number
+  statusHistory?: Array<{
+    status: string
+    changedBy: number
+    changedByName: string
+    changedByRole: string
+    timestamp: string
+    note?: string
+  }>
 }
 
 export type SellerApplication = {

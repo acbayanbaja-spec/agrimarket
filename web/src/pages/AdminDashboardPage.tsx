@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ShieldCheck,
@@ -31,6 +31,7 @@ import {
   Layers,
   FileText,
   UserCheck,
+  Flag,
 } from 'lucide-react'
 import {
   useStore,
@@ -45,6 +46,7 @@ import { type Product } from '../data/catalog'
 import { formatPeso } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
+import api from '../services/api'
 
 type AdminTab =
   | 'overview'
@@ -54,6 +56,7 @@ type AdminTab =
   | 'categories'
   | 'promotions'
   | 'reviews'
+  | 'reports'
   | 'audit'
 
 const statuses: Order['status'][] = ['Pending', 'Confirmed', 'Shipped', 'Out for delivery', 'Delivered']
@@ -115,6 +118,51 @@ const AdminDashboardPage = () => {
   const [reviewStatusFilter, setReviewStatusFilter] = useState<string>('all')
   const [auditSearch, setAuditSearch] = useState<string>('')
   const [auditActionFilter, setAuditActionFilter] = useState<string>('all')
+
+  // Listing Reports State
+  const [reportSearch, setReportSearch] = useState<string>('')
+  const [reportStatusFilter, setReportStatusFilter] = useState<string>('all')
+  const [reportsList, setReportsList] = useState<
+    Array<{
+      id: string
+      productId: string
+      productName: string
+      sellerId?: string
+      reporterUserId: number
+      reporterName: string
+      reporterEmail?: string
+      reason: string
+      details?: string
+      status: 'pending' | 'resolved' | 'dismissed'
+      resolutionAction?: string
+      createdAt: string
+    }>
+  >([])
+
+  const fetchReports = () => {
+    api
+      .get<{ data?: any }>('/admin/reports')
+      .then((res) => {
+        setReportsList(res.data?.data || [])
+      })
+      .catch(() => setReportsList([]))
+  }
+
+  useEffect(() => {
+    fetchReports()
+  }, [])
+
+  const handleResolveReport = async (
+    reportId: string,
+    action: 'dismiss' | 'flag_listing' | 'delist_product'
+  ) => {
+    try {
+      await api.put(`/admin/reports/${reportId}/resolve`, { action })
+      fetchReports()
+    } catch (err: any) {
+      console.error('Failed to resolve report', err)
+    }
+  }
 
   // Modals
   const [inspectDoc, setInspectDoc] = useState<string | null>(null)
@@ -304,6 +352,21 @@ const AdminDashboardPage = () => {
     return Array.from(new Set(auditLogs.map((l) => l.action)))
   }, [auditLogs])
 
+  // Filtered Listing Reports
+  const filteredReports = useMemo(() => {
+    return reportsList.filter((r) => {
+      const q = reportSearch.toLowerCase()
+      const matchesSearch =
+        reportSearch === '' ||
+        r.productName.toLowerCase().includes(q) ||
+        r.reporterName.toLowerCase().includes(q) ||
+        (r.reason && r.reason.toLowerCase().includes(q)) ||
+        (r.details && r.details.toLowerCase().includes(q))
+      const matchesStatus = reportStatusFilter === 'all' || r.status === reportStatusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [reportsList, reportSearch, reportStatusFilter])
+
   // Handlers
   const handleConfirmSuspension = async () => {
     if (!suspendModal.user) return
@@ -440,6 +503,7 @@ const AdminDashboardPage = () => {
           { id: 'users', label: 'Accounts & Access', icon: Users, count: suspendedUsersCount ? `${suspendedUsersCount} suspended` : usersList.length },
           { id: 'sellers', label: 'Seller KYC', icon: FileCheck, count: pendingApps.length + needsRevisionApps.length || undefined, badgeTone: pendingApps.length > 0 ? 'bg-amber-500 text-white' : undefined },
           { id: 'catalog', label: 'Listing Moderation', icon: Package, count: flaggedProductsCount || undefined, badgeTone: flaggedProductsCount > 0 ? 'bg-rose-500 text-white' : undefined },
+          { id: 'reports', label: 'Listing Reports', icon: Flag, count: reportsList.filter((r) => r.status === 'pending').length || undefined, badgeTone: reportsList.filter((r) => r.status === 'pending').length > 0 ? 'bg-rose-500 text-white' : undefined },
           { id: 'categories', label: 'Categories', icon: Layers, count: categoriesList.length },
           { id: 'promotions', label: 'Promotions & Discounts', icon: Percent, count: promotions.length },
           { id: 'reviews', label: 'Reviews Safety', icon: Star, count: flaggedReviewsCount || undefined, badgeTone: flaggedReviewsCount > 0 ? 'bg-amber-500 text-white' : undefined },
@@ -1582,6 +1646,161 @@ const AdminDashboardPage = () => {
                         Delete
                       </button>
                     </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB: LISTING REPORTS (Buyer flags, scam prevention, counterfeit & quality)
+          ========================================================================= */}
+      {activeTab === 'reports' && (
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-soft p-5 sm:p-6 space-y-5 animate-fade-up">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Flag className="w-5 h-5 text-rose-600" /> Listing Reports & Safety Moderation
+              </h2>
+              <p className="text-xs text-gray-500">
+                Buyer reports on inaccurate pricing, misrepresentation, counterfeit regional produce, expired harvest, or abusive behavior.
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+              {reportsList.filter((r) => r.status === 'pending').length} Actionable Flag{reportsList.filter((r) => r.status === 'pending').length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search reports by product, reporter, reason, or details..."
+                value={reportSearch}
+                onChange={(e) => setReportSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Filter reports by status"
+                value={reportStatusFilter}
+                onChange={(e) => setReportStatusFilter(e.target.value)}
+                className="px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="all">All Statuses ({reportsList.length})</option>
+                <option value="pending">Pending Review ({reportsList.filter((r) => r.status === 'pending').length})</option>
+                <option value="resolved">Resolved ({reportsList.filter((r) => r.status === 'resolved').length})</option>
+                <option value="dismissed">Dismissed ({reportsList.filter((r) => r.status === 'dismissed').length})</option>
+              </select>
+            </div>
+          </div>
+
+          {filteredReports.length === 0 ? (
+            <div className="py-12 text-center text-gray-400">
+              <Flag className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+              <p className="font-semibold text-gray-600">No listing reports found</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {reportsList.length === 0
+                  ? 'All marketplace listings are in good standing with zero pending community reports.'
+                  : 'No reports matched your current filter criteria.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredReports.map((report) => {
+                return (
+                  <div
+                    key={report.id}
+                    className="p-4 rounded-2xl border border-gray-100 bg-gray-50/60 hover:bg-gray-50 transition-colors space-y-3"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/product/${report.productId}`}
+                            className="font-bold text-gray-900 hover:text-primary-700 hover:underline text-sm"
+                          >
+                            {report.productName}
+                          </Link>
+                          <span className="text-xs text-gray-400 font-mono">
+                            (ID: {report.productId})
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          Reported by <span className="font-medium text-gray-900">{report.reporterName}</span>
+                          {report.reporterEmail ? ` (${report.reporterEmail})` : ''} •{' '}
+                          <span className="text-gray-400">
+                            {new Date(report.createdAt).toLocaleString('en-PH')}
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                            report.status === 'pending'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : report.status === 'resolved'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          {report.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-gray-100 text-xs space-y-1">
+                      <p className="font-semibold text-rose-700 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Reason: {report.reason}
+                      </p>
+                      {report.details && (
+                        <p className="text-gray-700 pl-5 whitespace-pre-wrap">{report.details}</p>
+                      )}
+                      {report.resolutionAction && (
+                        <p className="text-xs text-emerald-700 font-medium pt-1 border-t border-gray-100 mt-2">
+                          Resolution: {report.resolutionAction}
+                        </p>
+                      )}
+                    </div>
+
+                    {report.status === 'pending' && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200/60">
+                        <button
+                          type="button"
+                          onClick={() => handleResolveReport(report.id, 'dismiss')}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 transition-colors"
+                        >
+                          Dismiss Report
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResolveReport(report.id, 'flag_listing')}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 transition-colors"
+                        >
+                          Flag Listing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `Delist "${report.productName}" from the public catalog? This prevents further purchases.`
+                              )
+                            ) {
+                              handleResolveReport(report.id, 'delist_product')
+                            }
+                          }}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition-colors shadow-sm"
+                        >
+                          Delist Product
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}

@@ -51,6 +51,32 @@ export interface ProductEntity {
   moderatedAt?: string;
   moderatedBy?: string;
   isDeleted?: boolean;
+  variations?: Array<{
+    id: string;
+    name: string;
+    multiplier: number;
+    price: number;
+    unit: string;
+    inStock?: boolean;
+  }>;
+}
+
+export interface ProductVariation {
+  id: string;
+  name: string;
+  multiplier: number;
+  price: number;
+  unit: string;
+  inStock?: boolean;
+}
+
+export interface OrderStatusAudit {
+  status: 'Pending' | 'Confirmed' | 'Preparing' | 'Ready for Pickup' | 'Shipped' | 'Out for delivery' | 'Delivered' | 'Cancelled';
+  changedBy?: number;
+  changedByName?: string;
+  changedByRole?: string;
+  timestamp: string;
+  note?: string;
 }
 
 export interface OrderItemEntity {
@@ -83,7 +109,7 @@ export interface OrderEntity {
   pointsEarned: number;
   pointsRedeemed: number;
   total: number;
-  status: 'Pending' | 'Confirmed' | 'Shipped' | 'Out for delivery' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'Preparing' | 'Ready for Pickup' | 'Shipped' | 'Out for delivery' | 'Delivered' | 'Cancelled';
   createdAt: string;
   address: string;
   payment: 'GCash' | 'Cash on delivery' | 'Maya' | 'Card';
@@ -99,6 +125,7 @@ export interface OrderEntity {
   packedAt?: string;
   rejectedReason?: string;
   stockRestored?: boolean;
+  statusHistory?: OrderStatusAudit[];
 }
 
 export interface CartItemEntity {
@@ -240,6 +267,23 @@ export interface AuditLogEntity {
   details: string;
   ipAddress?: string;
   createdAt: string;
+}
+
+export interface ListingReportEntity {
+  id: string;
+  productId: string;
+  productName: string;
+  sellerId?: string;
+  reporterUserId: number;
+  reporterName: string;
+  reporterEmail?: string;
+  reason: string;
+  details?: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  resolutionAction?: string;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
 }
 
 const DATA_DIR = path.join(__dirname, '../../data');
@@ -756,6 +800,7 @@ export interface DatabaseSchema {
   coupons: CouponEntity[];
   audit_logs: AuditLogEntity[];
   processed_webhooks: Array<{ eventId: string; orderId: string; processedAt: string }>;
+  listingReports: ListingReportEntity[];
 }
 
 class DatabaseStore {
@@ -840,6 +885,7 @@ class DatabaseStore {
       coupons: [],
       audit_logs: [],
       processed_webhooks: [],
+      listingReports: [],
     };
   }
 
@@ -1246,6 +1292,7 @@ class DatabaseStore {
           coupons: parsed.coupons || initialCoupons,
           audit_logs: parsed.audit_logs && parsed.audit_logs.length > 0 ? parsed.audit_logs : initialAuditLogs,
           processed_webhooks: parsed.processed_webhooks || [],
+          listingReports: parsed.listingReports || parsed.listing_reports || [],
         };
       }
     } catch (err) {
@@ -1268,6 +1315,7 @@ class DatabaseStore {
       coupons: initialCoupons,
       audit_logs: initialAuditLogs,
       processed_webhooks: [],
+      listingReports: [],
     };
 
     this.saveData(defaultData);
@@ -1561,28 +1609,124 @@ class DatabaseStore {
   }
 
   // --- Orders ---
+  public hydrateOrderStatusHistory(order: OrderEntity): OrderEntity {
+    if (order.statusHistory && order.statusHistory.length > 0) {
+      return order;
+    }
+    const history: OrderStatusAudit[] = [];
+    history.push({
+      status: 'Pending',
+      changedBy: order.userId,
+      changedByName: order.buyerName || 'Buyer',
+      changedByRole: 'buyer',
+      timestamp: order.createdAt || new Date().toISOString(),
+      note: 'Order placed by buyer',
+    });
+
+    if (order.sellerConfirmedAt) {
+      history.push({
+        status: 'Confirmed',
+        changedByName: 'Farmer Juan (Seller)',
+        changedByRole: 'seller',
+        timestamp: order.sellerConfirmedAt,
+        note: 'Harvest confirmed by farm stall',
+      });
+    }
+
+    if (order.prepStatus === 'packing' || order.status === 'Preparing') {
+      history.push({
+        status: 'Preparing',
+        changedByName: 'Farmer Juan (Seller)',
+        changedByRole: 'seller',
+        timestamp: order.packedAt || order.sellerConfirmedAt || order.createdAt,
+        note: order.packingNotes || 'Harvest crates being gathered and packed',
+      });
+    }
+
+    if (order.prepStatus === 'packed' || order.status === 'Ready for Pickup') {
+      history.push({
+        status: 'Ready for Pickup',
+        changedByName: 'Farmer Juan (Seller)',
+        changedByRole: 'seller',
+        timestamp: order.packedAt || order.sellerConfirmedAt || order.createdAt,
+        note: 'Crates packed and staged for regional dispatch',
+      });
+    }
+
+    if (order.shippedAt) {
+      history.push({
+        status: 'Shipped',
+        changedBy: order.driverId,
+        changedByName: 'Courier Dispatched',
+        changedByRole: 'delivery',
+        timestamp: order.shippedAt,
+        note: 'Rider picked up harvest from farm',
+      });
+    }
+
+    if (order.status === 'Out for delivery') {
+      history.push({
+        status: 'Out for delivery',
+        changedBy: order.driverId,
+        changedByName: 'Delivery Courier',
+        changedByRole: 'delivery',
+        timestamp: order.shippedAt || order.createdAt,
+        note: 'Out for direct delivery across SOCCSKSARGEN',
+      });
+    }
+
+    if (order.status === 'Delivered') {
+      history.push({
+        status: 'Delivered',
+        changedBy: order.driverId,
+        changedByName: 'Delivery Courier',
+        changedByRole: 'delivery',
+        timestamp: (order as any).deliveredAt || order.shippedAt || order.createdAt,
+        note: 'Harvest safely received by customer',
+      });
+    }
+
+    if (order.status === 'Cancelled') {
+      history.push({
+        status: 'Cancelled',
+        changedByName: 'Platform',
+        changedByRole: 'system',
+        timestamp: new Date().toISOString(),
+        note: order.rejectedReason || 'Order was cancelled',
+      });
+    }
+
+    return {
+      ...order,
+      statusHistory: history,
+    };
+  }
+
   public getOrders() {
-    return this.data.orders;
+    return this.data.orders.map((o) => this.hydrateOrderStatusHistory(o));
   }
 
   public getOrderById(id: string) {
-    return this.data.orders.find((o) => o.id === id || o.receiptNo === id);
+    const o = this.data.orders.find((o) => o.id === id || o.receiptNo === id);
+    return o ? this.hydrateOrderStatusHistory(o) : undefined;
   }
 
   public getOrdersByUserId(userId: number) {
-    return this.data.orders.filter((o) => o.userId === userId);
+    return this.data.orders.filter((o) => o.userId === userId).map((o) => this.hydrateOrderStatusHistory(o));
   }
 
   public getOrdersBySellerId(sellerId: string, sellerUserId?: number) {
-    return this.data.orders.filter((o) =>
-      o.items.some(
-        (item) =>
-          item.sellerId === sellerId ||
-          (sellerUserId && item.sellerUserId === sellerUserId) ||
-          (sellerUserId && item.sellerId === `seller-${sellerUserId}`) ||
-          (sellerUserId && item.sellerId === `user-${sellerUserId}`)
+    return this.data.orders
+      .filter((o) =>
+        o.items.some(
+          (item) =>
+            item.sellerId === sellerId ||
+            (sellerUserId && item.sellerUserId === sellerUserId) ||
+            (sellerUserId && item.sellerId === `seller-${sellerUserId}`) ||
+            (sellerUserId && item.sellerId === `user-${sellerUserId}`)
+        )
       )
-    );
+      .map((o) => this.hydrateOrderStatusHistory(o));
   }
 
   public validateAndDeductStock(items: OrderItemEntity[]): ProductEntity[] {
@@ -1821,6 +1965,19 @@ class DatabaseStore {
       return existing;
     }
 
+    if (!order.statusHistory || order.statusHistory.length === 0) {
+      order.statusHistory = [
+        {
+          status: order.status,
+          changedBy: order.userId,
+          changedByName: order.buyerName || 'Buyer',
+          changedByRole: 'buyer',
+          timestamp: order.createdAt || new Date().toISOString(),
+          note: 'Order placed by buyer',
+        },
+      ];
+    }
+
     if (this.isMySqlConnected) {
       this.executeOrderTransaction(order).catch((err) => {
         console.error('MySQL Order Transaction Error:', err.message);
@@ -1867,10 +2024,26 @@ class DatabaseStore {
         this.restoreOrderStock(id);
       }
 
+      const actorUser = actorUserId ? this.getUserById(actorUserId) : undefined;
+      const actorRole = actorUser?.roles?.[0] || 'system';
+      const actorName = actorUser ? `${actorUser.first_name} ${actorUser.last_name}`.trim() : 'Platform';
+
+      const auditEntry: OrderStatusAudit = {
+        status,
+        changedBy: actorUserId,
+        changedByName: actorName,
+        changedByRole: actorRole,
+        timestamp: new Date().toISOString(),
+        note: extra?.rejectedReason || extra?.packingNotes || undefined,
+      };
+
+      const existingHistory = this.data.orders[idx].statusHistory || [];
+
       this.data.orders[idx] = {
         ...this.data.orders[idx],
         status,
         ...extra,
+        statusHistory: [...existingHistory, auditEntry],
       };
       this.recordOrderStatusEvent(id, previous, status, actorUserId, extra?.rejectedReason);
 
@@ -2352,6 +2525,48 @@ class DatabaseStore {
 
   public getOrderStatusEvents(orderId: string) {
     return this.orderStatusEvents.filter((e) => e.orderId === orderId);
+  }
+
+  // --- Listing Reports & Moderation ---
+  public getListingReports(statusFilter?: string) {
+    let reports = this.data.listingReports || [];
+    if (statusFilter && statusFilter !== 'all') {
+      reports = reports.filter((r) => r.status === statusFilter);
+    }
+    return reports;
+  }
+
+  public addListingReport(report: ListingReportEntity) {
+    if (!this.data.listingReports) {
+      this.data.listingReports = [];
+    }
+    this.data.listingReports.unshift(report);
+    this.saveData();
+    return report;
+  }
+
+  public resolveListingReport(id: string, action: string, resolvedBy: string, notes?: string) {
+    if (!this.data.listingReports) return null;
+    const idx = this.data.listingReports.findIndex((r) => r.id === id);
+    if (idx === -1) return null;
+
+    const report = this.data.listingReports[idx];
+    report.status = action === 'dismiss' ? 'dismissed' : 'resolved';
+    report.resolutionAction = action;
+    report.resolvedAt = new Date().toISOString();
+    report.resolvedBy = resolvedBy;
+    if (notes) {
+      report.details = report.details ? `${report.details} | Moderator Note: ${notes}` : `Moderator Note: ${notes}`;
+    }
+
+    if (action === 'flag_listing') {
+      this.moderateProduct(report.productId, 'flag', `Report resolved: ${report.reason}`);
+    } else if (action === 'delist_product') {
+      this.moderateProduct(report.productId, 'delist', `Report resolved: ${report.reason}`);
+    }
+
+    this.saveData();
+    return report;
   }
 }
 

@@ -202,6 +202,16 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.menuRow} onPress={() => router.push('/analytics' as any)}>
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconCircle, { backgroundColor: '#f0fdf4' }]}>
+                <Ionicons name="bar-chart" size={18} color="#15803d" />
+              </View>
+              <Text style={styles.menuTitle}>Marketplace Analytics & Reports</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuRow} onPress={() => router.push('/become-seller')}>
             <View style={styles.menuLeft}>
               <View style={[styles.menuIconCircle, { backgroundColor: '#fef3c7' }]}>

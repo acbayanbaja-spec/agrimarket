@@ -576,6 +576,46 @@ router.delete('/products/:id', (req: AuthRequest, res: Response) => {
   }
 });
 
+// @route   GET /api/admin/reports
+// @desc    List all submitted product listing reports
+router.get('/reports', (req: AuthRequest, res: Response) => {
+  try {
+    const status = req.query.status as string | undefined;
+    const reports = db.getListingReports(status);
+    return res.json(successResponse(reports, 'Listing reports retrieved'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'REPORTS_FETCH_FAILED', 500));
+  }
+});
+
+// @route   PUT /api/admin/reports/:id/resolve
+// @desc    Resolve or dismiss a listing report
+router.put('/reports/:id/resolve', (req: AuthRequest, res: Response) => {
+  try {
+    const { action, resolutionNotes } = req.body; // 'dismiss' | 'flag_listing' | 'delist_product'
+    const reportId = req.params.id;
+    const adminUser = req.user!;
+    const adminEmail = adminUser.email || 'admin@agrimarket.com';
+
+    const updated = db.resolveListingReport(reportId, action, adminEmail, resolutionNotes);
+    if (!updated) {
+      return res.status(404).json(errorResponse('Report not found', null, 'NOT_FOUND', 404));
+    }
+
+    recordAuditLog(
+      req,
+      `REPORT_RESOLVED_${String(action || 'RESOLVED').toUpperCase()}`,
+      'product',
+      updated.productId,
+      `Moderator resolved report ${reportId} with action ${action}: ${resolutionNotes || 'No notes'}`
+    );
+
+    return res.json(successResponse(updated, 'Report resolved successfully'));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'REPORT_RESOLUTION_FAILED', 500));
+  }
+});
+
 // ==========================================
 // 5. CATEGORIES MAINTENANCE (CRUD)
 // ==========================================

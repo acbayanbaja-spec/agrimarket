@@ -71,6 +71,14 @@ export default function CheckoutScreen() {
           </Pressable>
         ))}
       </View>
+      {payment === 'GCash' && (
+        <View style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd', borderWidth: 1, borderRadius: 12, padding: 10, marginVertical: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: '#0369a1' }}>GCash Treasury: 0917 000 2468</Text>
+          <Text style={{ fontSize: 10, color: '#0c4a6e', marginTop: 2 }}>
+            Digital payments remain Pending Verification until reconciliation. AgriMarket never claims funds are held in escrow without provider confirmation.
+          </Text>
+        </View>
+      )}
       <Pressable style={styles.pointsBox} onPress={() => setUsePoints((value) => !value)}>
         <Text style={styles.pointsTitle}>{usePoints ? '✓' : '○'} Apply harvest points to shipping</Text>
         <Text style={styles.pointsCopy}>Wallet {loyaltyPoints} pts · use {redeemed} now · earn {earned} after this order. Seller confirms before a rider is pinged.</Text>

@@ -17,6 +17,8 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
           ? 'delivery'
           : 'buyer';
 
+    const range = (req.query.range as '7d' | '30d' | 'year' | 'all') || 'all';
+
     const payload = computeRoleAnalytics({
       role,
       userId: user.id,
@@ -24,6 +26,7 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
       products: db.getProducts(true),
       users: db.getUsers(),
       deliveries: db.getDeliveries(),
+      range,
     });
 
     return res.json(successResponse(payload, 'Analytics retrieved'));

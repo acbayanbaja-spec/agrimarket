@@ -450,6 +450,13 @@ async function runTests() {
   assert(fakeReview.status === 404 || fakeReview.status === 403, 'Unverified review on unpurchased product blocked', fakeReview.body);
 
   // 6.2 Reviewing product p-tomato which buyer legitimately purchased and received
+  const existingReviewsRes = await request('/api/reviews/product/p-tomato');
+  for (const rev of existingReviewsRes.body?.data?.reviews || []) {
+    await request(`/api/reviews/${rev.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+  }
   const legitimateReview = await request('/api/reviews', {
     method: 'POST',
     headers: { Authorization: `Bearer ${buyerToken}` },
@@ -960,7 +967,12 @@ async function runTests() {
       dbFailureVisible = true;
     }
   } catch (err: any) {
-    dbFailureVisible = err.message.includes('Authoritative MySQL') || err.message.includes('Database persistence failed');
+    dbFailureVisible =
+      err.code === 'DATABASE_UNAVAILABLE' ||
+      err.statusCode === 503 ||
+      err.message.includes('Authoritative MySQL') ||
+      err.message.includes('Database persistence failed') ||
+      err.message.includes('temporarily unavailable');
   } finally {
     delete process.env.DB_REQUIRED;
   }

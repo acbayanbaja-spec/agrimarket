@@ -71,28 +71,44 @@ export function computeRoleAnalytics(input: {
   products: ProductLike[];
   users: UserLike[];
   deliveries?: Array<{ driverId?: number; status: string }>;
+  range?: '7d' | '30d' | 'year' | 'all';
 }) {
-  const { role, userId, orders, products, users, deliveries = [] } = input;
+  const { role, userId, orders, products, users, deliveries = [], range = 'all' } = input;
+
+  let startDate: Date | null = null;
+  const now = new Date();
+  if (range === '7d') {
+    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  } else if (range === '30d') {
+    startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  } else if (range === 'year') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+  }
+
+  const rangeOrders = startDate
+    ? orders.filter((o) => new Date(o.createdAt) >= startDate!)
+    : orders;
 
   if (role === 'admin') {
-    const gmv = orders.filter((o) => completed(o.status)).reduce((sum, o) => sum + o.total, 0);
+    const gmv = rangeOrders.filter((o) => completed(o.status)).reduce((sum, o) => sum + o.total, 0);
     return {
       role,
+      range,
       metrics: {
         gmv,
-        orderCount: orders.filter((o) => countedSale(o.status)).length,
-        cancelledOrders: orders.filter((o) => o.status === 'Cancelled').length,
+        orderCount: rangeOrders.filter((o) => countedSale(o.status)).length,
+        cancelledOrders: rangeOrders.filter((o) => o.status === 'Cancelled').length,
         userCount: users.length,
         activeSellers: users.filter((u) => u.roles.includes('seller') && u.is_active !== false).length,
         activeListings: products.filter((p) => p.isActive !== false && !p.isUnlisted).length,
         lowStock: products.filter((p) => p.stock > 0 && p.stock <= 10).length,
       },
-      ...buildCharts(orders, products, role, userId),
+      ...buildCharts(rangeOrders, products, role, userId),
     };
   }
 
   if (role === 'seller') {
-    const sellerOrders = orders.filter((o) =>
+    const sellerOrders = rangeOrders.filter((o) =>
       o.items.some((item) => item.sellerUserId === userId || item.sellerId === `seller-${userId}`)
     );
     const delivered = sellerOrders.filter((o) => completed(o.status));
@@ -107,6 +123,7 @@ export function computeRoleAnalytics(input: {
     const ownProducts = products.filter((p) => p.sellerUserId === userId);
     return {
       role,
+      range,
       metrics: {
         sales,
         orderCount: sellerOrders.filter((o) => countedSale(o.status)).length,
@@ -123,6 +140,7 @@ export function computeRoleAnalytics(input: {
     const assigned = deliveries.filter((d) => d.driverId === userId);
     return {
       role,
+      range,
       metrics: {
         assignedDeliveries: assigned.length,
         completedDeliveries: assigned.filter((d) => d.status === 'Delivered').length,
@@ -133,9 +151,10 @@ export function computeRoleAnalytics(input: {
     };
   }
 
-  const mine = orders.filter((o) => o.userId === userId);
+  const mine = rangeOrders.filter((o) => o.userId === userId);
   return {
     role: 'buyer',
+    range,
     metrics: {
       orderCount: mine.length,
       spent: mine.filter((o) => completed(o.status)).reduce((sum, o) => sum + o.total, 0),

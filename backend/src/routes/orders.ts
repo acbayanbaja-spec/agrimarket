@@ -340,7 +340,7 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
 // @access  Private (Buyer / Seller / Driver / Admin)
 router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { status, driverId, cancellationReason, rejectedReason } = req.body;
+    const { status, driverId, cancellationReason, rejectedReason, packingNotes } = req.body;
     if (!status) {
       return res.status(400).json(errorResponse('Status is required', null, 'MISSING_STATUS', 400));
     }
@@ -398,6 +398,14 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
       if (!isAdmin && !isSeller) {
         return res.status(403).json(errorResponse('Only the assigned seller or admin can confirm this order', null, 'FORBIDDEN', 403));
       }
+    } else if (status === 'Preparing') {
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json(errorResponse('Only the assigned seller or admin can update order to Preparing', null, 'FORBIDDEN', 403));
+      }
+    } else if (status === 'Ready for Pickup') {
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json(errorResponse('Only the assigned seller or admin can update order to Ready for Pickup', null, 'FORBIDDEN', 403));
+      }
     } else if (status === 'Shipped') {
       if (!isAdmin && !isSeller && !isDriver) {
         return res.status(403).json(errorResponse('Unauthorized to mark order shipped', null, 'FORBIDDEN', 403));
@@ -414,6 +422,15 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
 
     const extra: Partial<OrderEntity> = {};
     if (status === 'Confirmed') extra.sellerConfirmedAt = new Date().toISOString();
+    if (status === 'Preparing') {
+      extra.prepStatus = 'packing';
+      if (packingNotes) extra.packingNotes = packingNotes;
+    }
+    if (status === 'Ready for Pickup') {
+      extra.prepStatus = 'packed';
+      extra.packedAt = new Date().toISOString();
+      if (packingNotes) extra.packingNotes = packingNotes;
+    }
     if (status === 'Shipped') extra.shippedAt = new Date().toISOString();
     if (status === 'Delivered') {
       (extra as any).deliveredAt = new Date().toISOString();
