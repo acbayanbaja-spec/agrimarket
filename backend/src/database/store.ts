@@ -982,10 +982,14 @@ class DatabaseStore {
       const schemaPath = path.join(__dirname, 'schema.sql');
       if (fs.existsSync(schemaPath)) {
         const schema = fs.readFileSync(schemaPath, 'utf8');
-        const statements = schema
+        const cleanSchema = schema
+          .split('\n')
+          .filter((line) => !line.trim().startsWith('--'))
+          .join('\n');
+        const statements = cleanSchema
           .split(';')
           .map((s) => s.trim())
-          .filter((s) => s.length > 0 && !s.startsWith('--'));
+          .filter((s) => s.length > 0);
         for (const statement of statements) {
           try {
             await pool.query(statement);
@@ -1534,8 +1538,22 @@ class DatabaseStore {
       this.saveData();
 
       this.executeMySql(
-        'UPDATE products SET price = COALESCE(?, price), stock = COALESCE(?, stock), is_active = COALESCE(?, is_active), is_unlisted = COALESCE(?, is_unlisted) WHERE id = ?',
-        [updates.price !== undefined ? updates.price : null, updates.stock !== undefined ? updates.stock : null, updates.isActive !== undefined ? (updates.isActive ? 1 : 0) : null, updates.isUnlisted !== undefined ? (updates.isUnlisted ? 1 : 0) : null, id]
+        'UPDATE products SET name = COALESCE(?, name), description = COALESCE(?, description), category = COALESCE(?, category), price = COALESCE(?, price), stock = COALESCE(?, stock), unit = COALESCE(?, unit), image = COALESCE(?, image), location = COALESCE(?, location), rating = COALESCE(?, rating), reviews_count = COALESCE(?, reviews_count), is_active = COALESCE(?, is_active), is_unlisted = COALESCE(?, is_unlisted) WHERE id = ?',
+        [
+          updates.name || null,
+          updates.description || null,
+          updates.category || null,
+          updates.price !== undefined ? updates.price : null,
+          updates.stock !== undefined ? updates.stock : null,
+          updates.unit || null,
+          updates.image || null,
+          updates.location || null,
+          updates.rating !== undefined ? updates.rating : null,
+          updates.reviews !== undefined ? updates.reviews : null,
+          updates.isActive !== undefined ? (updates.isActive ? 1 : 0) : null,
+          updates.isUnlisted !== undefined ? (updates.isUnlisted ? 1 : 0) : null,
+          id,
+        ]
       );
 
       return this.data.products[idx];

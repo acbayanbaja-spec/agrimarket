@@ -82,12 +82,13 @@ function buildSslConfig(sslEnabled: boolean) {
     return {
       ca: ca.includes('\\n') ? ca.replace(/\\n/g, '\n') : ca,
       rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+      minVersion: 'TLSv1.2',
     };
   }
-  // Aiven requires TLS. Without a CA bundle, verification must be relaxed or
-  // connections fail. Prefer supplying DB_CA_CERT in production.
+  // Cloud providers like TiDB and Aiven require TLS.
   return {
     rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true',
+    minVersion: 'TLSv1.2',
   };
 }
 

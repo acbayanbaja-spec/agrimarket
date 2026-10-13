@@ -8,8 +8,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "ts-node src/database/migrate.ts",
+    "migrate:data": "ts-node src/database/migrateExistingData.ts",
     "seed": "ts-node src/database/seed.ts",
     "test": "ts-node src/tests/unit_search_and_orders.ts",
+    "test:tidb": "ts-node src/tests/tidb_database_operations.test.ts",
     "test:verify": "ts-node src/tests/integration_verification.ts"
   },
   "keywords": ["agriculture", "marketplace", "api"],

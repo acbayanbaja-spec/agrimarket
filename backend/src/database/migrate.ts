@@ -10,11 +10,16 @@ async function migrate() {
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
-    // Split by semicolon and execute each statement
-    const statements = schema
+    // Remove comment lines and split by semicolon
+    const cleanSchema = schema
+      .split('\n')
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
+    const statements = cleanSchema
       .split(';')
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+      .filter(stmt => stmt.length > 0);
 
     console.log(`Found ${statements.length} SQL statements to execute`);
 

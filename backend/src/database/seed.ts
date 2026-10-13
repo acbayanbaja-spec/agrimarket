@@ -46,40 +46,27 @@ async function seed() {
     // Insert categories
     console.log('Seeding categories...');
     await connection.query(`
-      INSERT INTO categories (name, description, is_active, sort_order) VALUES
-      ('Vegetables', 'Fresh vegetables from local farms', true, 1),
-      ('Fruits', 'Fresh and seasonal fruits', true, 2),
-      ('Rice', 'Various rice varieties', true, 3),
-      ('Corn', 'Corn and corn products', true, 4),
-      ('Grains', 'Various grains and cereals', true, 5),
-      ('Livestock', 'Farm animals for meat and dairy', true, 6),
-      ('Poultry', 'Chicken, duck, and other poultry', true, 7),
-      ('Fish', 'Fresh and processed fish products', true, 8),
-      ('Seafood', 'Crabs, shrimp, and other seafood', true, 9),
-      ('Seeds', 'Agricultural seeds for planting', true, 10),
-      ('Fertilizers', 'Plant fertilizers and soil enhancers', true, 11),
-      ('Farm Supplies', 'Tools and supplies for farming', true, 12),
-      ('Farm Equipment', 'Machinery and equipment for agriculture', true, 13),
-      ('Organic Products', 'Certified organic agricultural products', true, 14),
-      ('Processed Agricultural Products', 'Processed goods from agricultural produce', true, 15),
-      ('Other', 'Other agricultural products not categorized', true, 16)
-      ON DUPLICATE KEY UPDATE name = name
+      INSERT INTO categories (id, name, description, icon, image_url, is_active, sort_order) VALUES
+      ('cat-veg', 'Vegetables', 'Fresh local leafy greens, roots and daily harvests', 'Leaf', '/images/kangkong.jpg', true, 1),
+      ('cat-fruits', 'Fruits', 'Tree-ripened sweet Carabao mangoes, bananas & tropical harvests', 'Apple', '/images/mango.jpg', true, 2),
+      ('cat-rice', 'Rice', 'Mindanao milled Dinorado, Sinandomeng, brown and black rice', 'Wheat', '/images/rice.jpg', true, 3),
+      ('cat-grains', 'Grains', 'Mindanao sweet yellow corn, white flint, sorghum and grain feeds', 'Wheat', '/images/corn.jpg', true, 4),
+      ('cat-supplies', 'Farm Supplies', 'Organic fertilizers, compost, planting seeds and farm tools', 'Sprout', '/images/compost.jpg', true, 5),
+      ('cat-poultry', 'Livestock & Poultry', 'Farm-fresh pasture brown eggs, dairy and poultry', 'Egg', '/images/eggs.jpg', true, 6),
+      ('cat-fish', 'Fisheries & Aquaculture', 'Lake Sebu spring tilapia and General Santos fresh catch', 'Fish', '/images/tilapia.jpg', true, 7)
+      ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)
     `);
 
     // Insert sample coupons
     console.log('Seeding coupons...');
-    const now = new Date();
-    const validFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Yesterday
-    const validUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-
     await connection.query(`
-      INSERT INTO coupons (code, description, discount_type, discount_value, discount_scope, minimum_order_amount, usage_limit, per_user_limit, valid_from, valid_until, is_active) VALUES
-      ('FREESHIP', 'Free shipping on all orders', 'fixed', 0, 'shipping', 0, 1000, 1, ?, ?, true),
-      ('SAVE50', '₱50 shipping discount', 'fixed', 50, 'shipping', 200, 500, 2, ?, ?, true),
-      ('SAVE100', '₱100 shipping discount', 'fixed', 100, 'shipping', 500, 300, 2, ?, ?, true),
-      ('WELCOME10', '10% off for new users', 'percentage', 10, 'order', 300, 1000, 1, ?, ?, true)
-      ON DUPLICATE KEY UPDATE code = code
-    `, [validFrom, validUntil, validFrom, validUntil, validFrom, validUntil, validFrom, validUntil]);
+      INSERT INTO coupons (code, discount, type, min_spend, description, is_active) VALUES
+      ('FREESHIP', 50.00, 'shipping', 300.00, 'Free shipping on orders ₱300+', true),
+      ('NEWBUYER50', 50.00, 'fixed', 250.00, '₱50 off for first-time buyers', true),
+      ('HARVEST100', 100.00, 'fixed', 800.00, '₱100 off on bulk orders ₱800+', true),
+      ('SOCCSKSARGEN20', 20.00, 'fixed', 150.00, '₱20 discount on local deliveries', true)
+      ON DUPLICATE KEY UPDATE discount = VALUES(discount), description = VALUES(description)
+    `);
 
     connection.release();
     console.log('Database seeding completed successfully!');

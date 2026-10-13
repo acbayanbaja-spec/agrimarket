@@ -11,11 +11,11 @@ services:
       - key: PORT
         value: 10000
       - key: DB_HOST
-        value: mysql-3436c73a-angelmargaretteestores-969b.g.aivencloud.com
+        value: gateway01.ap-southeast-1.prod.aws.tidbcloud.com
       - key: DB_PORT
-        value: 22689
+        value: 4000
       - key: DB_NAME
-        value: defaultdb
+        value: agrimarket
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
