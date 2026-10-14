@@ -90,10 +90,11 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
     ('admin', 'System administrator with full access'),
     ('buyer', 'Regular buyer who can purchase products'),
     ('seller', 'Approved seller who can list products'),
+    ('delivery', 'Delivery rider'),
     ('delivery_man', 'Delivery personnel who handle order deliveries')
     ON DUPLICATE KEY UPDATE description=VALUES(description)
   `);
-  summary.roles += 4;
+  summary.roles += 5;
 
   // 2. Users
   if (Array.isArray(data.users)) {
@@ -128,10 +129,11 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         // User Roles
         const roles = Array.isArray(u.roles) ? u.roles : ['buyer'];
         for (const roleName of roles) {
+          const canonicalRole = roleName === 'delivery_man' || roleName === 'driver' || roleName === 'rider' ? 'delivery' : roleName;
           await queryWithRetry(
             `INSERT IGNORE INTO user_roles (user_id, role_id)
              SELECT ?, id FROM roles WHERE name = ?`,
-            [u.id, roleName === 'delivery' ? 'delivery_man' : roleName]
+            [u.id, canonicalRole]
           );
           summary.userRoles++;
         }

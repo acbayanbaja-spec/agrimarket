@@ -5,6 +5,7 @@ import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { db, CategoryEntity, CouponEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
+import { normalizeRoles } from '../utils/roles';
 
 const router = Router();
 
@@ -213,7 +214,8 @@ router.put('/users/:id/roles', (req: AuthRequest, res: Response) => {
       return res.status(404).json(errorResponse('User not found', null, 'NOT_FOUND', 404));
     }
 
-    const updated = db.setUserRoles(userId, roles);
+    const normalized = normalizeRoles(roles);
+    const updated = db.setUserRoles(userId, normalized);
 
     // Audit log
     recordAuditLog(
@@ -221,11 +223,11 @@ router.put('/users/:id/roles', (req: AuthRequest, res: Response) => {
       'USER_ROLES_UPDATED',
       'user',
       String(userId),
-      `Updated access roles for ${targetUser.email} to: [${roles.join(', ')}] (Previous: [${targetUser.roles.join(', ')}]).`
+      `Updated access roles for ${targetUser.email} to: [${normalized.join(', ')}] (Previous: [${targetUser.roles.join(', ')}]).`
     );
 
     if (io) {
-      io.emit('user_roles_updated', { userId, roles });
+      io.emit('user_roles_updated', { userId, roles: normalized });
       io.emit('user_updated', updated);
     }
 
@@ -280,10 +282,12 @@ router.post('/riders', async (req: AuthRequest, res: Response) => {
             'INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)',
             [cleanEmail, passwordHash, firstName.trim(), lastName.trim(), phone.trim()]
           );
-          const userId = (result as any).insertId;
-          const [roles] = await conn.query('SELECT id FROM roles WHERE name = ?', ['delivery']);
-          const roleId = (roles as any)[0]?.id || 4;
-          await conn.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [userId, roleId]);
+          const insertedUserId = (result as any)?.insertId || newRider.id;
+          const [roles] = await conn.query("SELECT id FROM roles WHERE name IN ('delivery', 'delivery_man') ORDER BY CASE WHEN name = 'delivery' THEN 1 ELSE 2 END LIMIT 1");
+          const roleId = (roles as any)[0]?.id;
+          if (roleId) {
+            await conn.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [insertedUserId, roleId]);
+          }
         } finally {
           conn.release();
         }

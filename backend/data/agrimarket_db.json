@@ -3,7 +3,7 @@
     {
       "id": 1,
       "email": "admin@agrimarket.com",
-      "password_hash": "$2a$08$SRK3OF5CTaD2p7Ib0fBozOo36vtjiQLTQ/aBDrH/ba627X/.87xFi",
+      "password_hash": "$2a$12$25xtlkd5olXQOYIfFx2ZvurWH7YslGN7wi6iGHWZB2lrCkISMvBty",
       "first_name": "Admin",
       "last_name": "Superuser",
       "phone": "+639123456789",
@@ -12,36 +12,7 @@
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-08T14:12:14.466Z"
-    },
-    {
-      "id": 2,
-      "email": "seller@agrimarket.com",
-      "password_hash": "$2a$08$QUtB50j2jweh2ssOANSVjuAu40dxBvo9JghSKljKgdxxaIc0M4NJq",
-      "first_name": "Maria",
-      "last_name": "Santos",
-      "phone": "+639171112233",
-      "roles": [
-        "seller",
-        "buyer"
-      ],
-      "is_verified": true,
-      "is_active": true,
-      "created_at": "2026-10-08T14:12:14.467Z"
-    },
-    {
-      "id": 3,
-      "email": "buyer@agrimarket.com",
-      "password_hash": "$2a$08$GW4Eh8yHdbWmw1ksoCm1YuWC3wqPiEPT3jX9FxemQ1bLRnt0IIDKi",
-      "first_name": "Juan",
-      "last_name": "Cruz",
-      "phone": "+639189998877",
-      "roles": [
-        "buyer"
-      ],
-      "is_verified": true,
-      "is_active": true,
-      "created_at": "2026-10-08T14:12:14.467Z"
+      "created_at": "2026-10-12T16:52:54.000Z"
     },
     {
       "id": 4,
@@ -55,22 +26,7 @@
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-08T14:12:14.467Z"
-    },
-    {
-      "id": 12,
-      "email": "seller.koronadal@agrimarket.com",
-      "password_hash": "$2a$08$tvnhfrj.DMcf.3McebjdweJRXpfj6P2dXtXwXAHNNtm2d7gx6h11S",
-      "first_name": "Juanita",
-      "last_name": "Reyes",
-      "phone": "+639172223344",
-      "roles": [
-        "seller",
-        "buyer"
-      ],
-      "is_verified": true,
-      "is_active": true,
-      "created_at": "2026-10-12T04:17:11.092Z"
+      "created_at": "2026-10-08T14:12:14.000Z"
     },
     {
       "id": 13,
@@ -85,37 +41,7 @@
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-12T04:17:11.092Z"
-    },
-    {
-      "id": 14,
-      "email": "seller.gensan@agrimarket.com",
-      "password_hash": "$2a$08$tvnhfrj.DMcf.3McebjdweJRXpfj6P2dXtXwXAHNNtm2d7gx6h11S",
-      "first_name": "Roberto",
-      "last_name": "Tan",
-      "phone": "+639174445566",
-      "roles": [
-        "seller",
-        "buyer"
-      ],
-      "is_verified": true,
-      "is_active": true,
-      "created_at": "2026-10-12T04:17:11.092Z"
-    },
-    {
-      "id": 15,
-      "email": "seller.tacurong@agrimarket.com",
-      "password_hash": "$2a$08$tvnhfrj.DMcf.3McebjdweJRXpfj6P2dXtXwXAHNNtm2d7gx6h11S",
-      "first_name": "Lilia",
-      "last_name": "Mendoza",
-      "phone": "+639175556677",
-      "roles": [
-        "seller",
-        "buyer"
-      ],
-      "is_verified": true,
-      "is_active": true,
-      "created_at": "2026-10-12T04:17:11.092Z"
+      "created_at": "2026-10-12T04:17:11.000Z"
     },
     {
       "id": 16,
@@ -130,7 +56,35 @@
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-12T04:17:11.092Z"
+      "created_at": "2026-10-12T04:17:11.000Z"
+    },
+    {
+      "id": 18,
+      "email": "suspended.test@agrimarket.com",
+      "password_hash": "mockhash",
+      "first_name": "Suspended",
+      "last_name": "Farmer",
+      "roles": [
+        "seller"
+      ],
+      "is_verified": true,
+      "is_active": false,
+      "created_at": "2026-10-12T04:22:01.000Z"
+    },
+    {
+      "id": 19,
+      "email": "opsadmin@agrimarket.com",
+      "password_hash": "$2a$12$D5HLFhDZ/zMZSS3hU2Vjlu2Spa60e23D7xzXgAZYpC4/gjnZI4P9W",
+      "first_name": "System",
+      "last_name": "Administrator",
+      "phone": "+639120000000",
+      "roles": [
+        "buyer",
+        "admin"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-12T04:22:01.000Z"
     },
     {
       "id": 17,
@@ -145,35 +99,81 @@
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-12T04:17:11.092Z"
+      "created_at": "2026-10-12T04:17:11.000Z"
     },
     {
-      "email": "suspended.test@agrimarket.com",
-      "password_hash": "mockhash",
-      "first_name": "Suspended",
-      "last_name": "Farmer",
+      "id": 14,
+      "email": "seller.gensan@agrimarket.com",
+      "password_hash": "$2a$08$tvnhfrj.DMcf.3McebjdweJRXpfj6P2dXtXwXAHNNtm2d7gx6h11S",
+      "first_name": "Roberto",
+      "last_name": "Tan",
+      "phone": "+639174445566",
       "roles": [
-        "seller"
-      ],
-      "is_active": false,
-      "is_verified": true,
-      "created_at": "2026-10-12T04:22:00.699Z",
-      "id": 18
-    },
-    {
-      "email": "opsadmin@agrimarket.com",
-      "password_hash": "$2a$12$lR4/E1c.3k6wvMPoKmKkq.J1FcqxmJvkfOBzFmoJhbU0PNICIe9HO",
-      "first_name": "System",
-      "last_name": "Administrator",
-      "phone": "+639120000000",
-      "roles": [
-        "admin",
+        "seller",
         "buyer"
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-12T04:22:01.171Z",
-      "id": 19
+      "created_at": "2026-10-12T04:17:11.000Z"
+    },
+    {
+      "id": 3,
+      "email": "buyer@agrimarket.com",
+      "password_hash": "$2a$08$GW4Eh8yHdbWmw1ksoCm1YuWC3wqPiEPT3jX9FxemQ1bLRnt0IIDKi",
+      "first_name": "Juan",
+      "last_name": "Cruz",
+      "phone": "+639189998877",
+      "roles": [
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-08T14:12:14.000Z"
+    },
+    {
+      "id": 2,
+      "email": "seller@agrimarket.com",
+      "password_hash": "$2a$08$QUtB50j2jweh2ssOANSVjuAu40dxBvo9JghSKljKgdxxaIc0M4NJq",
+      "first_name": "Maria",
+      "last_name": "Santos",
+      "phone": "+639171112233",
+      "roles": [
+        "seller",
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-08T14:12:14.000Z"
+    },
+    {
+      "id": 12,
+      "email": "seller.koronadal@agrimarket.com",
+      "password_hash": "$2a$08$tvnhfrj.DMcf.3McebjdweJRXpfj6P2dXtXwXAHNNtm2d7gx6h11S",
+      "first_name": "Juanita",
+      "last_name": "Reyes",
+      "phone": "+639172223344",
+      "roles": [
+        "seller",
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-12T04:17:11.000Z"
+    },
+    {
+      "id": 15,
+      "email": "seller.tacurong@agrimarket.com",
+      "password_hash": "$2a$08$tvnhfrj.DMcf.3McebjdweJRXpfj6P2dXtXwXAHNNtm2d7gx6h11S",
+      "first_name": "Lilia",
+      "last_name": "Mendoza",
+      "phone": "+639175556677",
+      "roles": [
+        "seller",
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-12T04:17:11.000Z"
     },
     {
       "email": "suspended.test@agrimarket.com",
@@ -185,165 +185,38 @@
       ],
       "is_active": false,
       "is_verified": true,
-      "created_at": "2026-10-12T04:46:27.414Z",
+      "created_at": "2026-10-14T02:29:37.901Z",
       "id": 20
     }
   ],
   "products": [
     {
-      "id": "prod-1791732814162-2f8d",
-      "name": "Highland Red Bell Peppers",
+      "id": "p-ampalaya",
+      "name": "Organic Ampalaya (Bitter Gourd)",
       "category": "Vegetables",
-      "price": 140,
-      "unit": "kg",
-      "stock": 65,
-      "rating": 5,
-      "reviews": 0,
-      "seller": "SOCCSKSARGEN Farm Partner",
-      "sellerId": "seller-1",
-      "sellerUserId": 1,
-      "location": "Tupi, South Cotabato",
-      "image": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Sweet, crisp bell peppers harvested fresh in Tupi foothills.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "priceHistory": [
-        {
-          "date": "2026-10-11",
-          "price": 140
-        }
-      ],
-      "created_at": "2026-10-11T15:33:34.163Z",
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-tomato",
-      "name": "Salad Tomatoes",
-      "category": "Vegetables",
-      "price": 85,
-      "unit": "kg",
-      "stock": 118,
-      "rating": 5,
-      "reviews": 9,
-      "seller": "Green Valley Farm",
-      "sellerId": "seller-1",
-      "sellerUserId": 2,
-      "location": "Polomolok, South Cotabato",
-      "image": "/images/tomato.jpg",
-      "photos": [
-        "/images/tomato.jpg",
-        "/images/farm.jpg"
-      ],
-      "description": "Firm, sweet salad tomatoes harvested at dawn in Polomolok. Ideal for sinigang, salsa, and everyday cooking.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.2214,
-      "lng": 125.0647,
-      "priceHistory": [
-        {
-          "date": "2026-09-01",
-          "price": 92
-        },
-        {
-          "date": "2026-09-15",
-          "price": 88
-        },
-        {
-          "date": "2026-10-01",
-          "price": 85
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-kangkong",
-      "name": "Fresh Kangkong",
-      "category": "Vegetables",
-      "price": 35,
-      "unit": "bundle",
-      "stock": 45,
-      "rating": 4.6,
-      "reviews": 28,
-      "seller": "Koronadal Harvest",
-      "sellerId": "seller-2",
-      "sellerUserId": 12,
-      "location": "Koronadal City, South Cotabato",
-      "image": "/images/kangkong.jpg",
-      "photos": [
-        "/images/kangkong.jpg"
-      ],
-      "description": "Crisp water spinach bunches from Koronadal paddies, washed and bundled the same morning.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 35
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-mango",
-      "name": "Carabao Mangoes",
-      "category": "Fruits",
-      "price": 180,
+      "price": 75,
       "unit": "kg",
       "stock": 60,
-      "rating": 4.9,
-      "reviews": 82,
-      "seller": "Midsayap Gold Orchard",
-      "sellerId": "seller-3",
-      "sellerUserId": 13,
-      "location": "Midsayap, Cotabato",
-      "image": "/images/mango.jpg",
+      "rating": 4.8,
+      "reviews": 47,
+      "seller": "seller-2",
+      "sellerId": "seller-2",
+      "sellerUserId": 12,
+      "location": "Surallah, South Cotabato",
+      "image": "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=600&auto=format&fit=crop&q=80",
       "photos": [
-        "/images/mango.jpg",
-        "/images/farm.jpg"
+        "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=600&auto=format&fit=crop&q=80"
       ],
-      "description": "Export-grade sweet Carabao mangoes from Midsayap. Tree-ripened, golden yellow, and fragrant.",
+      "description": "Crisp green bitter melons cultivated without chemical sprays. Excellent for blood sugar management and ginisang ampalaya.",
       "organic": true,
-      "tradeable": true,
-      "lat": 7.1906,
-      "lng": 124.5381,
-      "priceHistory": [
-        {
-          "date": "2026-09-01",
-          "price": 210
-        },
-        {
-          "date": "2026-09-20",
-          "price": 195
-        },
-        {
-          "date": "2026-10-01",
-          "price": 180
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:36.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
       "id": "p-banana",
@@ -354,7 +227,7 @@
       "stock": 50,
       "rating": 4.7,
       "reviews": 41,
-      "seller": "Gensan Fruit Co-op",
+      "seller": "seller-4",
       "sellerId": "seller-4",
       "sellerUserId": 14,
       "location": "General Santos City",
@@ -364,190 +237,70 @@
       ],
       "description": "Sweet, golden Lakatan bananas freshly harvested from orchards near General Santos City.",
       "organic": false,
-      "tradeable": true,
-      "lat": 6.1164,
-      "lng": 125.1716,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 75
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:23.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
-      "id": "p-rice",
-      "name": "Dinorado Rice",
-      "category": "Rice & Grains",
-      "price": 58,
-      "unit": "kg",
-      "stock": 300,
-      "rating": 4.9,
-      "reviews": 110,
-      "seller": "Green Valley Farm",
-      "sellerId": "seller-1",
-      "sellerUserId": 2,
-      "location": "M'lang, Cotabato",
-      "image": "/images/rice.jpg",
-      "photos": [
-        "/images/rice.jpg"
-      ],
-      "description": "Aromatic whole-grain Dinorado rice from the plains of M'lang. Soft, fluffy texture when cooked.",
-      "organic": false,
-      "tradeable": true,
-      "lat": 6.9467,
-      "lng": 124.8803,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 58
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-corn",
-      "name": "Sweet Yellow Corn",
-      "category": "Rice & Grains",
-      "price": 45,
-      "unit": "kg",
-      "stock": 80,
-      "rating": 4.7,
-      "reviews": 35,
-      "seller": "Koronadal Harvest",
-      "sellerId": "seller-2",
-      "sellerUserId": 12,
-      "location": "Koronadal City, South Cotabato",
-      "image": "/images/corn.jpg",
-      "photos": [
-        "/images/corn.jpg"
-      ],
-      "description": "Juicy, golden sweet corn cobs from South Cotabato farms. Great for boiling or grilling.",
-      "organic": false,
-      "tradeable": true,
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 45
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-eggs",
-      "name": "Free-Range Brown Eggs",
-      "category": "Poultry",
-      "price": 220,
-      "unit": "tray",
-      "stock": 71,
-      "rating": 4.8,
-      "reviews": 53,
-      "seller": "Koronadal Sunrise Poultry",
-      "sellerId": "seller-6",
-      "sellerUserId": 16,
-      "location": "Koronadal City, South Cotabato",
-      "image": "/images/eggs.jpg",
-      "photos": [
-        "/images/eggs.jpg"
-      ],
-      "description": "Fresh pastured eggs from cage-free hens in Koronadal. Thick shells, rich orange yolks.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 220
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-tilapia",
-      "name": "Lake Sebu Fresh Tilapia",
+      "id": "p-bangus",
+      "name": "Fresh Boneless Bangus",
       "category": "Fish",
-      "price": 160,
+      "price": 175,
       "unit": "kg",
-      "stock": 90,
-      "rating": 4.9,
-      "reviews": 67,
-      "seller": "Sebu Lake Aquatics",
+      "stock": 85,
+      "rating": 4.8,
+      "reviews": 83,
+      "seller": "seller-7",
       "sellerId": "seller-7",
       "sellerUserId": 17,
-      "location": "Lake Sebu, South Cotabato",
-      "image": "/images/tilapia.jpg",
+      "location": "Glan, Sarangani",
+      "image": "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&auto=format&fit=crop&q=80",
       "photos": [
-        "/images/tilapia.jpg"
+        "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&auto=format&fit=crop&q=80"
       ],
-      "description": "Cold-water spring tilapia freshly harvested from Lake Sebu pens. Clean taste with no mud flavor.",
-      "organic": true,
+      "description": "Plump Sarangani Bay milkfish, deboned and packed immediately on flake ice. Tender, rich belly fat.",
+      "organic": false,
       "tradeable": false,
-      "lat": 6.2255,
-      "lng": 124.7088,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 160
-        }
-      ],
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:42.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
-      "id": "p-chicken",
-      "name": "Native Whole Chicken",
-      "category": "Poultry",
-      "price": 320,
+      "id": "p-blackrice",
+      "name": "Organic Black Rice (Tapol)",
+      "category": "Rice & Grains",
+      "price": 88,
       "unit": "kg",
-      "stock": 25,
-      "rating": 4.8,
-      "reviews": 39,
-      "seller": "Tupi Native Growers",
-      "sellerId": "seller-6",
-      "sellerUserId": 16,
-      "location": "Tupi, South Cotabato",
-      "image": "/images/chicken.jpg",
+      "stock": 150,
+      "rating": 4.9,
+      "reviews": 69,
+      "seller": "seller-1",
+      "sellerId": "seller-1",
+      "sellerUserId": 2,
+      "location": "Tulunan, Cotabato",
+      "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80",
       "photos": [
-        "/images/chicken.jpg"
+        "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80"
       ],
-      "description": "Free-range native chicken raised on grass and corn. Superior taste and firmness for authentic tinola.",
+      "description": "Ancestral heirloom black rice rich in anthocyanins. Nutty flavor, low glycemic index, favored by health enthusiasts.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.3347,
-      "lng": 124.9528,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 320
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:41.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
       "id": "p-calamansi",
@@ -558,7 +311,7 @@
       "stock": 85,
       "rating": 4.7,
       "reviews": 44,
-      "seller": "Alabel Citrus Groves",
+      "seller": "seller-2",
       "sellerId": "seller-2",
       "sellerUserId": 12,
       "location": "Alabel, Sarangani",
@@ -568,15 +321,178 @@
       ],
       "description": "High-yield aromatic calamansi from Alabel orchards. Bursting with vitamin C for drinks and marinades.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.1022,
-      "lng": 125.2906,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 70
-        }
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:29.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-chicken",
+      "name": "Native Whole Chicken",
+      "category": "Poultry",
+      "price": 320,
+      "unit": "kg",
+      "stock": 25,
+      "rating": 4.8,
+      "reviews": 39,
+      "seller": "seller-6",
+      "sellerId": "seller-6",
+      "sellerUserId": 16,
+      "location": "Tupi, South Cotabato",
+      "image": "/images/chicken.jpg",
+      "photos": [
+        "/images/chicken.jpg"
       ],
+      "description": "Free-range native chicken raised on grass and corn. Superior taste and firmness for authentic tinola.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:28.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-corn",
+      "name": "Sweet Yellow Corn",
+      "category": "Rice & Grains",
+      "price": 45,
+      "unit": "kg",
+      "stock": 80,
+      "rating": 4.7,
+      "reviews": 35,
+      "seller": "seller-2",
+      "sellerId": "seller-2",
+      "sellerUserId": 12,
+      "location": "Koronadal City, South Cotabato",
+      "image": "/images/corn.jpg",
+      "photos": [
+        "/images/corn.jpg"
+      ],
+      "description": "Juicy, golden sweet corn cobs from South Cotabato farms. Great for boiling or grilling.",
+      "organic": false,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:25.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-dragonfruit",
+      "name": "Red Flesh Dragon Fruit",
+      "category": "Fruits",
+      "price": 150,
+      "unit": "kg",
+      "stock": 55,
+      "rating": 4.9,
+      "reviews": 63,
+      "seller": "seller-4",
+      "sellerId": "seller-4",
+      "sellerUserId": 14,
+      "location": "General Santos City",
+      "image": "https://images.unsplash.com/photo-1527325678964-54921661f888?w=600&auto=format&fit=crop&q=80",
+      "photos": [
+        "https://images.unsplash.com/photo-1527325678964-54921661f888?w=600&auto=format&fit=crop&q=80"
+      ],
+      "description": "Vibrant magenta-fleshed pitahaya harvested at peak ripeness. Juicy, rich in dietary fiber and prebiotics.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:46.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-durian",
+      "name": "Fresh Puyat Durian",
+      "category": "Fruits",
+      "price": 240,
+      "unit": "kg",
+      "stock": 40,
+      "rating": 5,
+      "reviews": 94,
+      "seller": "seller-3",
+      "sellerId": "seller-3",
+      "sellerUserId": 13,
+      "location": "Kidapawan City, Cotabato",
+      "image": "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=600&auto=format&fit=crop&q=80",
+      "photos": [
+        "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=600&auto=format&fit=crop&q=80"
+      ],
+      "description": "King of Fruits! Creamy, bittersweet Puyat durian from Mount Apo volcanic soils in Kidapawan.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:33.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-eggplant",
+      "name": "Long Purple Eggplant (Talong)",
+      "category": "Vegetables",
+      "price": 60,
+      "unit": "kg",
+      "stock": 95,
+      "rating": 4.7,
+      "reviews": 32,
+      "seller": "seller-1",
+      "sellerId": "seller-1",
+      "sellerUserId": 2,
+      "location": "Banga, South Cotabato",
+      "image": "https://images.unsplash.com/photo-1628773822503-930a84e930f7?w=600&auto=format&fit=crop&q=80",
+      "photos": [
+        "https://images.unsplash.com/photo-1628773822503-930a84e930f7?w=600&auto=format&fit=crop&q=80"
+      ],
+      "description": "Glossy, tender long purple eggplants picked fresh every morning. Perfect for tortang talong and pinakbet.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:35.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-eggs",
+      "name": "Free-Range Brown Eggs",
+      "category": "Poultry",
+      "price": 220,
+      "unit": "tray",
+      "stock": 70,
+      "rating": 4.8,
+      "reviews": 53,
+      "seller": "seller-6",
+      "sellerId": "seller-6",
+      "sellerUserId": 16,
+      "location": "Koronadal City, South Cotabato",
+      "image": "/images/eggs.jpg",
+      "photos": [
+        "/images/eggs.jpg"
+      ],
+      "description": "Fresh pastured eggs from cage-free hens in Koronadal. Thick shells, rich orange yolks.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:26.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
@@ -592,7 +508,7 @@
       "stock": 65,
       "rating": 4.9,
       "reviews": 58,
-      "seller": "Isulan Soil House",
+      "seller": "seller-8",
       "sellerId": "seller-8",
       "sellerUserId": 18,
       "location": "Isulan, Sultan Kudarat",
@@ -602,292 +518,14 @@
       ],
       "description": "100% pure worm castings (vermicompost). Highly concentrated microbial inoculant to revitalize garden and farm soil.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.6294,
-      "lng": 124.605,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 250
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:30.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-seeds",
-      "name": "Hybrid Ampalaya Seeds",
-      "category": "Seeds",
-      "price": 65,
-      "unit": "pack",
-      "stock": 140,
-      "rating": 4.6,
-      "reviews": 29,
-      "seller": "Gensan Agri Supply",
-      "sellerId": "seller-8",
-      "sellerUserId": 18,
-      "location": "General Santos City",
-      "image": "/images/seeds.jpg",
-      "photos": [
-        "/images/seeds.jpg"
-      ],
-      "description": "High germination (92%) disease-resistant bitter gourd seeds. Tested for SOCCSKSARGEN highland and lowland plots.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.1164,
-      "lng": 125.1716,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 65
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-milk",
-      "name": "Fresh Carabao Milk",
-      "category": "Livestock",
-      "price": 95,
-      "unit": "liter",
-      "stock": 35,
-      "rating": 4.8,
-      "reviews": 36,
-      "seller": "Surallah Dairy Co-op",
-      "sellerId": "seller-9",
-      "sellerUserId": 19,
-      "location": "Surallah, South Cotabato",
-      "image": "/images/milk.jpg",
-      "photos": [
-        "/images/milk.jpg"
-      ],
-      "description": "Creamy, unpasteurized natural carabao milk collected at 5:00 AM. Ideal for kesong puti and pasture pastillas.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.3753,
-      "lng": 124.7456,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 95
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-durian",
-      "name": "Fresh Puyat Durian",
-      "category": "Fruits",
-      "price": 240,
-      "unit": "kg",
-      "stock": 40,
-      "rating": 5,
-      "reviews": 94,
-      "seller": "Kidapawan Highland Orchards",
-      "sellerId": "seller-3",
-      "sellerUserId": 13,
-      "location": "Kidapawan City, Cotabato",
-      "image": "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "King of Fruits! Creamy, bittersweet Puyat durian from Mount Apo volcanic soils in Kidapawan.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 7.0084,
-      "lng": 125.0894,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 240
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-mangosteen",
-      "name": "Sweet Highland Mangosteen",
-      "category": "Fruits",
-      "price": 160,
-      "unit": "kg",
-      "stock": 50,
-      "rating": 4.9,
-      "reviews": 61,
-      "seller": "Makilala Fruit Collective",
-      "sellerId": "seller-3",
-      "sellerUserId": 13,
-      "location": "Makilala, Cotabato",
-      "image": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Queen of Fruits! Juicy, snow-white arils packed with potent xanthones and natural antioxidants.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.9583,
-      "lng": 125.0886,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 160
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-eggplant",
-      "name": "Long Purple Eggplant (Talong)",
-      "category": "Vegetables",
-      "price": 60,
-      "unit": "kg",
-      "stock": 95,
-      "rating": 4.7,
-      "reviews": 32,
-      "seller": "Banga Green Valley",
-      "sellerId": "seller-1",
-      "sellerUserId": 2,
-      "location": "Banga, South Cotabato",
-      "image": "https://images.unsplash.com/photo-1628773822503-930a84e930f7?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1628773822503-930a84e930f7?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Glossy, tender long purple eggplants picked fresh every morning. Perfect for tortang talong and pinakbet.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.4258,
-      "lng": 124.7744,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 60
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-ampalaya",
-      "name": "Organic Ampalaya (Bitter Gourd)",
-      "category": "Vegetables",
-      "price": 75,
-      "unit": "kg",
-      "stock": 60,
-      "rating": 4.8,
-      "reviews": 47,
-      "seller": "Surallah Vegetable Co-op",
-      "sellerId": "seller-2",
-      "sellerUserId": 12,
-      "location": "Surallah, South Cotabato",
-      "image": "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Crisp green bitter melons cultivated without chemical sprays. Excellent for blood sugar management and ginisang ampalaya.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.3753,
-      "lng": 124.7456,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 75
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-kalabasa",
-      "name": "Supreme Squash (Kalabasa)",
-      "category": "Vegetables",
-      "price": 45,
-      "unit": "kg",
-      "stock": 110,
-      "rating": 4.6,
-      "reviews": 25,
-      "seller": "Norala Valley Farms",
-      "sellerId": "seller-5",
-      "sellerUserId": 15,
-      "location": "Norala, South Cotabato",
-      "image": "https://images.unsplash.com/photo-1570586437263-ab629fccc818?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1570586437263-ab629fccc818?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Thick, creamy yellow flesh squash with high carotene content. Great for ginataang kalabasa and healthy hearty stews.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.5264,
-      "lng": 124.6611,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 45
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-onion",
-      "name": "Red Creole Onions (Sibuyas)",
-      "category": "Vegetables",
-      "price": 130,
-      "unit": "kg",
-      "stock": 180,
-      "rating": 4.8,
-      "reviews": 76,
-      "seller": "Tacurong Onion Producers",
-      "sellerId": "seller-5",
-      "sellerUserId": 15,
-      "location": "Tacurong City, Sultan Kudarat",
-      "image": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Pungent, dry-cured red onions from Sultan Kudarat plains. Excellent keeping quality and savory richness.",
-      "organic": false,
-      "tradeable": true,
-      "lat": 6.6925,
-      "lng": 124.6764,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 130
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
       "id": "p-garlic",
@@ -898,7 +536,7 @@
       "stock": 80,
       "rating": 4.9,
       "reviews": 52,
-      "seller": "Polomolok Spice Traders",
+      "seller": "seller-1",
       "sellerId": "seller-1",
       "sellerUserId": 2,
       "location": "Polomolok, South Cotabato",
@@ -908,20 +546,14 @@
       ],
       "description": "Intensely fragrant native Philippine garlic cloves. Packed with natural allicin, vital for sautéing and home medicine.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.2214,
-      "lng": 125.0647,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 190
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:39.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
       "id": "p-ginger",
@@ -932,7 +564,7 @@
       "stock": 70,
       "rating": 4.7,
       "reviews": 38,
-      "seller": "Lake Sebu Highland Spices",
+      "seller": "seller-7",
       "sellerId": "seller-7",
       "sellerUserId": 17,
       "location": "Lake Sebu, South Cotabato",
@@ -942,88 +574,14 @@
       ],
       "description": "Spicy highland ginger rhizomes. Plump and fiber-rich, essential for tinola, salabat, and seafood marinades.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.2255,
-      "lng": 124.7088,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 110
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:40.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-blackrice",
-      "name": "Organic Black Rice (Tapol)",
-      "category": "Rice & Grains",
-      "price": 88,
-      "unit": "kg",
-      "stock": 150,
-      "rating": 4.9,
-      "reviews": 69,
-      "seller": "Tulunan Organic Collective",
-      "sellerId": "seller-1",
-      "sellerUserId": 2,
-      "location": "Tulunan, Cotabato",
-      "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Ancestral heirloom black rice rich in anthocyanins. Nutty flavor, low glycemic index, favored by health enthusiasts.",
-      "organic": true,
-      "tradeable": true,
-      "lat": 6.8375,
-      "lng": 125.0167,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 88
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
-    },
-    {
-      "id": "p-bangus",
-      "name": "Fresh Boneless Bangus",
-      "category": "Fish",
-      "price": 175,
-      "unit": "kg",
-      "stock": 85,
-      "rating": 4.8,
-      "reviews": 83,
-      "seller": "Glan Coastal Fishery",
-      "sellerId": "seller-7",
-      "sellerUserId": 17,
-      "location": "Glan, Sarangani",
-      "image": "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Plump Sarangani Bay milkfish, deboned and packed immediately on flake ice. Tender, rich belly fat.",
-      "organic": false,
-      "tradeable": true,
-      "lat": 5.8236,
-      "lng": 125.2036,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 175
-        }
-      ],
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     },
     {
       "id": "p-honey",
@@ -1034,7 +592,7 @@
       "stock": 45,
       "rating": 5,
       "reviews": 115,
-      "seller": "Mount Matutum Apiaries",
+      "seller": "seller-8",
       "sellerId": "seller-8",
       "sellerUserId": 18,
       "location": "Tupi, South Cotabato",
@@ -1044,20 +602,70 @@
       ],
       "description": "Raw, unheated multifloral wild bee honey harvested sustainably from the forested slopes of Mount Matutum.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.36,
-      "lng": 125.07,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 320
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:42.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
+    },
+    {
+      "id": "p-kalabasa",
+      "name": "Supreme Squash (Kalabasa)",
+      "category": "Vegetables",
+      "price": 45,
+      "unit": "kg",
+      "stock": 110,
+      "rating": 4.6,
+      "reviews": 25,
+      "seller": "seller-5",
+      "sellerId": "seller-5",
+      "sellerUserId": 15,
+      "location": "Norala, South Cotabato",
+      "image": "https://images.unsplash.com/photo-1570586437263-ab629fccc818?w=600&auto=format&fit=crop&q=80",
+      "photos": [
+        "https://images.unsplash.com/photo-1570586437263-ab629fccc818?w=600&auto=format&fit=crop&q=80"
+      ],
+      "description": "Thick, creamy yellow flesh squash with high carotene content. Great for ginataang kalabasa and healthy hearty stews.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:37.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-kangkong",
+      "name": "Fresh Kangkong",
+      "category": "Vegetables",
+      "price": 35,
+      "unit": "bundle",
+      "stock": 45,
+      "rating": 4.6,
+      "reviews": 28,
+      "seller": "seller-2",
+      "sellerId": "seller-2",
+      "sellerUserId": 12,
+      "location": "Koronadal City, South Cotabato",
+      "image": "/images/kangkong.jpg",
+      "photos": [
+        "/images/kangkong.jpg"
+      ],
+      "description": "Crisp water spinach bunches from Koronadal paddies, washed and bundled the same morning.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:19.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
     },
     {
       "id": "p-lettuce",
@@ -1068,7 +676,7 @@
       "stock": 60,
       "rating": 4.9,
       "reviews": 42,
-      "seller": "Tupi Highlands Hydroponics",
+      "seller": "seller-1",
       "sellerId": "seller-1",
       "sellerUserId": 2,
       "location": "Tupi, South Cotabato",
@@ -1078,20 +686,98 @@
       ],
       "description": "Crisp, sweet butterhead and romaine heads grown in pristine mountain water nutrient film technique (NFT). Zero soil grit.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.3347,
-      "lng": 124.9528,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 120
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:43.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
+    },
+    {
+      "id": "p-mango",
+      "name": "Carabao Mangoes",
+      "category": "Fruits",
+      "price": 180,
+      "unit": "kg",
+      "stock": 60,
+      "rating": 4.9,
+      "reviews": 82,
+      "seller": "seller-3",
+      "sellerId": "seller-3",
+      "sellerUserId": 13,
+      "location": "Midsayap, Cotabato",
+      "image": "/images/mango.jpg",
+      "photos": [
+        "/images/mango.jpg"
+      ],
+      "description": "Export-grade sweet Carabao mangoes from Midsayap. Tree-ripened, golden yellow, and fragrant.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:20.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-mangosteen",
+      "name": "Sweet Highland Mangosteen",
+      "category": "Fruits",
+      "price": 160,
+      "unit": "kg",
+      "stock": 50,
+      "rating": 4.9,
+      "reviews": 61,
+      "seller": "seller-3",
+      "sellerId": "seller-3",
+      "sellerUserId": 13,
+      "location": "Makilala, Cotabato",
+      "image": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80",
+      "photos": [
+        "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80"
+      ],
+      "description": "Queen of Fruits! Juicy, snow-white arils packed with potent xanthones and natural antioxidants.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:34.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-milk",
+      "name": "Fresh Carabao Milk",
+      "category": "Livestock",
+      "price": 95,
+      "unit": "liter",
+      "stock": 35,
+      "rating": 4.8,
+      "reviews": 36,
+      "seller": "seller-9",
+      "sellerId": "seller-9",
+      "sellerUserId": 19,
+      "location": "Surallah, South Cotabato",
+      "image": "/images/milk.jpg",
+      "photos": [
+        "/images/milk.jpg"
+      ],
+      "description": "Creamy, unpasteurized natural carabao milk collected at 5:00 AM. Ideal for kesong puti and pasture pastillas.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:32.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
     },
     {
       "id": "p-mushroom",
@@ -1102,7 +788,7 @@
       "stock": 40,
       "rating": 4.8,
       "reviews": 33,
-      "seller": "Koronadal Mushroom Farm",
+      "seller": "seller-2",
       "sellerId": "seller-2",
       "sellerUserId": 12,
       "location": "Koronadal City, South Cotabato",
@@ -1112,20 +798,42 @@
       ],
       "description": "Succulent oyster mushrooms cultivated on pasteurized sawdust and rice bran substrate. Excellent vegan meat substitute.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 95
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:44.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
+    },
+    {
+      "id": "p-onion",
+      "name": "Red Creole Onions (Sibuyas)",
+      "category": "Vegetables",
+      "price": 130,
+      "unit": "kg",
+      "stock": 180,
+      "rating": 4.8,
+      "reviews": 76,
+      "seller": "seller-5",
+      "sellerId": "seller-5",
+      "sellerUserId": 15,
+      "location": "Tacurong City, Sultan Kudarat",
+      "image": "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600&auto=format&fit=crop&q=80",
+      "photos": [
+        "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=600&auto=format&fit=crop&q=80"
+      ],
+      "description": "Pungent, dry-cured red onions from Sultan Kudarat plains. Excellent keeping quality and savory richness.",
+      "organic": false,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:38.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
     },
     {
       "id": "p-papaya",
@@ -1136,7 +844,7 @@
       "stock": 90,
       "rating": 4.7,
       "reviews": 49,
-      "seller": "Tantangan Tropical Orchards",
+      "seller": "seller-4",
       "sellerId": "seller-4",
       "sellerUserId": 14,
       "location": "Tantangan, South Cotabato",
@@ -1146,15 +854,122 @@
       ],
       "description": "Tree-ripened Red Lady hybrid papayas. Dense orange-red pulp, intensely sweet with very few seeds.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.5772,
-      "lng": 124.8017,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 55
-        }
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:45.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-rice",
+      "name": "Dinorado Rice",
+      "category": "Rice & Grains",
+      "price": 58,
+      "unit": "kg",
+      "stock": 300,
+      "rating": 4.9,
+      "reviews": 110,
+      "seller": "seller-1",
+      "sellerId": "seller-1",
+      "sellerUserId": 2,
+      "location": "M'lang, Cotabato",
+      "image": "/images/rice.jpg",
+      "photos": [
+        "/images/rice.jpg"
       ],
+      "description": "Aromatic whole-grain Dinorado rice from the plains of M'lang. Soft, fluffy texture when cooked.",
+      "organic": false,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:24.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-seeds",
+      "name": "Hybrid Ampalaya Seeds",
+      "category": "Seeds",
+      "price": 65,
+      "unit": "pack",
+      "stock": 140,
+      "rating": 4.6,
+      "reviews": 29,
+      "seller": "seller-8",
+      "sellerId": "seller-8",
+      "sellerUserId": 18,
+      "location": "General Santos City",
+      "image": "/images/seeds.jpg",
+      "photos": [
+        "/images/seeds.jpg"
+      ],
+      "description": "High germination (92%) disease-resistant bitter gourd seeds. Tested for SOCCSKSARGEN highland and lowland plots.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:31.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-tilapia",
+      "name": "Lake Sebu Fresh Tilapia",
+      "category": "Fish",
+      "price": 160,
+      "unit": "kg",
+      "stock": 90,
+      "rating": 4.9,
+      "reviews": 67,
+      "seller": "seller-7",
+      "sellerId": "seller-7",
+      "sellerUserId": 17,
+      "location": "Lake Sebu, South Cotabato",
+      "image": "/images/tilapia.jpg",
+      "photos": [
+        "/images/tilapia.jpg"
+      ],
+      "description": "Cold-water spring tilapia freshly harvested from Lake Sebu pens. Clean taste with no mud flavor.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:27.000Z",
+      "isActive": true,
+      "is_active": true,
+      "isUnlisted": false,
+      "isDeleted": false
+    },
+    {
+      "id": "p-tomato",
+      "name": "Salad Tomatoes",
+      "category": "Vegetables",
+      "price": 85,
+      "unit": "kg",
+      "stock": 118,
+      "rating": 5,
+      "reviews": 1,
+      "seller": "seller-1",
+      "sellerId": "seller-1",
+      "sellerUserId": 2,
+      "location": "Polomolok, South Cotabato",
+      "image": "/images/tomato.jpg",
+      "photos": [
+        "/images/tomato.jpg"
+      ],
+      "description": "Firm, sweet salad tomatoes harvested at dawn in Polomolok. Ideal for sinigang, salsa, and everyday cooking.",
+      "organic": true,
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-12T17:32:18.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
@@ -1162,47 +977,41 @@
       "availabilityStatus": "in_stock"
     },
     {
-      "id": "p-dragonfruit",
-      "name": "Red Flesh Dragon Fruit",
-      "category": "Fruits",
-      "price": 150,
+      "id": "prod-1791732814162-2f8d",
+      "name": "Highland Red Bell Peppers",
+      "category": "Vegetables",
+      "price": 140,
       "unit": "kg",
-      "stock": 55,
-      "rating": 4.9,
-      "reviews": 63,
-      "seller": "General Santos Exotic Fruits",
-      "sellerId": "seller-4",
-      "sellerUserId": 14,
-      "location": "General Santos City",
-      "image": "https://images.unsplash.com/photo-1527325678964-54921661f888?w=600&auto=format&fit=crop&q=80",
+      "stock": 65,
+      "rating": 5,
+      "reviews": 0,
+      "seller": "seller-1",
+      "sellerId": "seller-1",
+      "sellerUserId": 1,
+      "location": "Tupi, South Cotabato",
+      "image": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80",
       "photos": [
-        "https://images.unsplash.com/photo-1527325678964-54921661f888?w=600&auto=format&fit=crop&q=80"
+        "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80"
       ],
-      "description": "Vibrant magenta-fleshed pitahaya harvested at peak ripeness. Juicy, rich in dietary fiber and prebiotics.",
+      "description": "Sweet, crisp bell peppers harvested fresh in Tupi foothills.",
       "organic": true,
-      "tradeable": true,
-      "lat": 6.1164,
-      "lng": 125.1716,
-      "priceHistory": [
-        {
-          "date": "2026-10-01",
-          "price": 150
-        }
-      ],
+      "tradeable": false,
+      "lat": 0,
+      "lng": 0,
+      "created_at": "2026-10-11T15:33:34.000Z",
       "isActive": true,
       "is_active": true,
       "isUnlisted": false,
-      "isDeleted": false,
-      "availabilityStatus": "in_stock"
+      "isDeleted": false
     }
   ],
   "categories": [
     {
-      "id": "cat-veg",
-      "name": "Vegetables",
-      "description": "Fresh local crops and greens",
-      "icon": "Leaf",
-      "imageUrl": "/images/kangkong.jpg"
+      "id": "cat-fish",
+      "name": "Fisheries & Aquaculture",
+      "description": "Lake Sebu and Gensan fresh catch",
+      "icon": "Fish",
+      "imageUrl": "/images/tilapia.jpg"
     },
     {
       "id": "cat-fruits",
@@ -1219,25 +1028,18 @@
       "imageUrl": "/images/rice.jpg"
     },
     {
-      "id": "cat-poultry",
-      "name": "Livestock & Poultry",
-      "description": "Eggs, pasture meats & poultry",
-      "icon": "Egg",
-      "imageUrl": "/images/eggs.jpg"
-    },
-    {
-      "id": "cat-fish",
-      "name": "Fisheries & Aquaculture",
-      "description": "Lake Sebu and Gensan fresh catch",
-      "icon": "Fish",
-      "imageUrl": "/images/tilapia.jpg"
-    },
-    {
       "id": "cat-inputs",
       "name": "Agricultural Supplies",
       "description": "Organic fertilizers, seeds and tools",
       "icon": "Sprout",
       "imageUrl": "/images/compost.jpg"
+    },
+    {
+      "id": "cat-poultry",
+      "name": "Livestock & Poultry",
+      "description": "Eggs, pasture meats & poultry",
+      "icon": "Egg",
+      "imageUrl": "/images/eggs.jpg"
     },
     {
       "id": "cat-rice",
@@ -1252,12 +1054,19 @@
       "description": "Organic fertilizers, compost, planting seeds and farm tools",
       "icon": "Sprout",
       "imageUrl": "/images/compost.jpg"
+    },
+    {
+      "id": "cat-veg",
+      "name": "Vegetables",
+      "description": "Fresh local crops and greens",
+      "icon": "Leaf",
+      "imageUrl": "/images/kangkong.jpg"
     }
   ],
   "orders": [
     {
-      "id": "ORD-80387510",
-      "receiptNo": "RCPT-80387510",
+      "id": "ORD-44977986",
+      "receiptNo": "RCPT-44977986",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1270,7 +1079,7 @@
           "quantity": 1,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1285,18 +1094,34 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:46:27.510Z",
+      "createdAt": "2026-10-14T02:29:37.986Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentRef": "TXN-GCASH-VERIFIED-9988",
       "paymentStatus": "escrow_held",
       "lat": 6.5004,
       "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.986Z",
+          "note": "Order placed by buyer"
+        },
+        {
+          "status": "Pending",
+          "changedByName": "Platform",
+          "changedByRole": "system",
+          "timestamp": "2026-10-14T02:29:38.033Z"
+        }
+      ]
     },
     {
-      "id": "ORD-80387450",
-      "receiptNo": "RCPT-80387450",
+      "id": "ORD-44977926",
+      "receiptNo": "RCPT-44977926",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1309,7 +1134,7 @@
           "quantity": 1,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1324,17 +1149,27 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:46:27.450Z",
+      "createdAt": "2026-10-14T02:29:37.926Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.926Z",
+          "note": "Order placed by buyer"
+        }
+      ]
     },
     {
-      "id": "ORD-80387340",
-      "receiptNo": "RCPT-80387340",
+      "id": "ORD-44977809",
+      "receiptNo": "RCPT-44977809",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1347,7 +1182,7 @@
           "quantity": 4,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1362,17 +1197,27 @@
       "pointsRedeemed": 0,
       "total": 390,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:46:27.340Z",
+      "createdAt": "2026-10-14T02:29:37.809Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.809Z",
+          "note": "Order placed by buyer"
+        }
+      ]
     },
     {
-      "id": "ORD-80387317",
-      "receiptNo": "RCPT-80387317",
+      "id": "ORD-44977794",
+      "receiptNo": "RCPT-44977794",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1385,7 +1230,7 @@
           "quantity": 4,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1400,17 +1245,27 @@
       "pointsRedeemed": 0,
       "total": 390,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:46:27.317Z",
+      "createdAt": "2026-10-14T02:29:37.794Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.794Z",
+          "note": "Order placed by buyer"
+        }
+      ]
     },
     {
-      "id": "ORD-80387247",
-      "receiptNo": "RCPT-80387247",
+      "id": "ORD-44977735",
+      "receiptNo": "RCPT-44977735",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1423,7 +1278,7 @@
           "quantity": 1,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1438,7 +1293,7 @@
           "quantity": 1,
           "unit": "tray",
           "image": "/images/eggs.jpg",
-          "seller": "Koronadal Sunrise Poultry",
+          "seller": "seller-6",
           "sellerId": "seller-6",
           "sellerUserId": 16,
           "pickupLocation": "Koronadal City, South Cotabato",
@@ -1453,17 +1308,27 @@
       "pointsRedeemed": 0,
       "total": 355,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:46:27.247Z",
+      "createdAt": "2026-10-14T02:29:37.735Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.735Z",
+          "note": "Order placed by buyer"
+        }
+      ]
     },
     {
-      "id": "ORD-80387135",
-      "receiptNo": "RCPT-80387135",
+      "id": "ORD-44977628",
+      "receiptNo": "RCPT-44977628",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1476,7 +1341,7 @@
           "quantity": 1,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1491,20 +1356,50 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Shipped",
-      "createdAt": "2026-10-12T04:46:27.135Z",
+      "createdAt": "2026-10-14T02:29:37.628Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
       "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:46:27.162Z",
-      "shippedAt": "2026-10-12T04:46:27.187Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.628Z",
+          "note": "Order placed by buyer"
+        },
+        {
+          "status": "Confirmed",
+          "changedBy": 2,
+          "changedByName": "Maria Santos",
+          "changedByRole": "seller",
+          "timestamp": "2026-10-14T02:29:37.652Z"
+        },
+        {
+          "status": "Shipped",
+          "changedBy": 2,
+          "changedByName": "Maria Santos",
+          "changedByRole": "seller",
+          "timestamp": "2026-10-14T02:29:37.677Z"
+        },
+        {
+          "status": "Shipped",
+          "changedByName": "Platform",
+          "changedByRole": "system",
+          "timestamp": "2026-10-14T02:29:37.693Z"
+        }
+      ],
+      "sellerConfirmedAt": "2026-10-14T02:29:37.652Z",
+      "shippedAt": "2026-10-14T02:29:37.677Z",
       "driverId": 4
     },
     {
-      "id": "ORD-80387045",
-      "receiptNo": "RCPT-80387045",
+      "id": "ORD-44977576",
+      "receiptNo": "RCPT-44977576",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1517,7 +1412,7 @@
           "quantity": 3,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1532,19 +1427,37 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-12T04:46:27.045Z",
+      "createdAt": "2026-10-14T02:29:37.576Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
       "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.576Z",
+          "note": "Order placed by buyer"
+        },
+        {
+          "status": "Cancelled",
+          "changedBy": 3,
+          "changedByName": "Juan Cruz",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.603Z",
+          "note": "Buyer changed mind"
+        }
+      ],
       "stockRestored": true,
       "rejectedReason": "Buyer changed mind"
     },
     {
-      "id": "ORD-80386838",
-      "receiptNo": "RCPT-80386838",
+      "id": "ORD-44977187",
+      "receiptNo": "RCPT-44977187",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1557,7 +1470,7 @@
           "quantity": 1,
           "unit": "kg",
           "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
+          "seller": "seller-1",
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
@@ -1572,18 +1485,189 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:46:26.838Z",
+      "createdAt": "2026-10-14T02:29:37.187Z",
       "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
-      "paymentRef": "TXN-GCASH-386873",
+      "paymentRef": "TXN-GCASH-977215",
       "paymentStatus": "pending",
       "lat": 6.5004,
       "lng": 124.8436,
       "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:46:26.908Z",
-      "shippedAt": "2026-10-12T04:46:26.920Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.187Z",
+          "note": "Order placed by buyer"
+        },
+        {
+          "status": "Pending",
+          "changedByName": "Platform",
+          "changedByRole": "system",
+          "timestamp": "2026-10-14T02:29:37.215Z"
+        },
+        {
+          "status": "Confirmed",
+          "changedBy": 2,
+          "changedByName": "Maria Santos",
+          "changedByRole": "seller",
+          "timestamp": "2026-10-14T02:29:37.264Z"
+        },
+        {
+          "status": "Shipped",
+          "changedBy": 2,
+          "changedByName": "Maria Santos",
+          "changedByRole": "seller",
+          "timestamp": "2026-10-14T02:29:37.280Z"
+        },
+        {
+          "status": "Shipped",
+          "changedByName": "Platform",
+          "changedByRole": "system",
+          "timestamp": "2026-10-14T02:29:37.290Z"
+        },
+        {
+          "status": "Out for delivery",
+          "changedBy": 4,
+          "changedByName": "Rico Driver",
+          "changedByRole": "delivery",
+          "timestamp": "2026-10-14T02:29:37.324Z"
+        },
+        {
+          "status": "Delivered",
+          "changedBy": 4,
+          "changedByName": "Rico Driver",
+          "changedByRole": "delivery",
+          "timestamp": "2026-10-14T02:29:37.342Z"
+        }
+      ],
+      "sellerConfirmedAt": "2026-10-14T02:29:37.264Z",
+      "shippedAt": "2026-10-14T02:29:37.280Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:46:26.969Z"
+      "deliveredAt": "2026-10-14T02:29:37.342Z"
+    },
+    {
+      "id": "ORD-44977015",
+      "receiptNo": "RCPT-44977015",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 2,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "seller-1",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked",
+          "prepNotes": ""
+        }
+      ],
+      "subtotal": 170,
+      "shippingFee": 50,
+      "shippingDiscount": 50,
+      "couponCode": "FREESHIP",
+      "pointsEarned": 17,
+      "pointsRedeemed": 0,
+      "total": 170,
+      "status": "Delivered",
+      "createdAt": "2026-10-14T02:29:37.015Z",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "payment": "GCash",
+      "paymentStatus": "pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "prepStatus": "unpacked",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedBy": 3,
+          "changedByName": "buyer",
+          "changedByRole": "buyer",
+          "timestamp": "2026-10-14T02:29:37.015Z",
+          "note": "Order placed by buyer"
+        },
+        {
+          "status": "Confirmed",
+          "changedBy": 2,
+          "changedByName": "Maria Santos",
+          "changedByRole": "seller",
+          "timestamp": "2026-10-14T02:29:37.068Z"
+        },
+        {
+          "status": "Shipped",
+          "changedBy": 2,
+          "changedByName": "Maria Santos",
+          "changedByRole": "seller",
+          "timestamp": "2026-10-14T02:29:37.098Z"
+        },
+        {
+          "status": "Shipped",
+          "changedByName": "Platform",
+          "changedByRole": "system",
+          "timestamp": "2026-10-14T02:29:37.114Z"
+        },
+        {
+          "status": "Out for delivery",
+          "changedBy": 4,
+          "changedByName": "Rico Driver",
+          "changedByRole": "delivery",
+          "timestamp": "2026-10-14T02:29:37.142Z"
+        },
+        {
+          "status": "Delivered",
+          "changedBy": 4,
+          "changedByName": "Rico Driver",
+          "changedByRole": "delivery",
+          "timestamp": "2026-10-14T02:29:37.155Z"
+        }
+      ],
+      "sellerConfirmedAt": "2026-10-14T02:29:37.068Z",
+      "shippedAt": "2026-10-14T02:29:37.098Z",
+      "driverId": 4,
+      "deliveredAt": "2026-10-14T02:29:37.154Z"
+    },
+    {
+      "id": "ORD-80387510",
+      "receiptNo": "RCPT-80387510",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Pending",
+      "payment": "GCash",
+      "paymentRef": "TXN-GCASH-VERIFIED-9988",
+      "paymentStatus": "escrow_held",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:28.000Z"
     },
     {
       "id": "ORD-80386625",
@@ -1595,7 +1679,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -1604,8 +1687,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -1616,17 +1698,258 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:46:26.625Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:46:26.716Z",
-      "shippedAt": "2026-10-12T04:46:26.752Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:46:26.809Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80387450",
+      "receiptNo": "RCPT-80387450",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80387340",
+      "receiptNo": "RCPT-80387340",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80387317",
+      "receiptNo": "RCPT-80387317",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80387247",
+      "receiptNo": "RCPT-80387247",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        },
+        {
+          "productId": "p-eggs",
+          "name": "Free-Range Brown Eggs",
+          "price": 220,
+          "quantity": 1,
+          "unit": "tray",
+          "image": "/images/eggs.jpg",
+          "seller": "Koronadal Sunrise Poultry",
+          "sellerId": "seller-6",
+          "sellerUserId": 16,
+          "pickupLocation": "Koronadal City, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 305,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 30,
+      "pointsRedeemed": 0,
+      "total": 355,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80387135",
+      "receiptNo": "RCPT-80387135",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Shipped",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80387045",
+      "receiptNo": "RCPT-80387045",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 3,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 255,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 25,
+      "pointsRedeemed": 0,
+      "total": 305,
+      "status": "Cancelled",
+      "payment": "GCash",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
+    },
+    {
+      "id": "ORD-80386838",
+      "receiptNo": "RCPT-80386838",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Delivered",
+      "payment": "GCash",
+      "paymentRef": "TXN-GCASH-386873",
+      "paymentStatus": "pending",
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:46:27.000Z"
     },
     {
       "id": "ORD-78920802",
@@ -1638,7 +1961,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -1647,8 +1969,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -1658,128 +1979,11 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:22:00.802Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentRef": "TXN-GCASH-VERIFIED-9988",
       "paymentStatus": "escrow_held",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-78920738",
-      "receiptNo": "RCPT-78920738",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 85,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 8,
-      "pointsRedeemed": 0,
-      "total": 135,
-      "status": "Pending",
-      "createdAt": "2026-10-12T04:22:00.738Z",
       "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-78920623",
-      "receiptNo": "RCPT-78920623",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 4,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 340,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 34,
-      "pointsRedeemed": 0,
-      "total": 390,
-      "status": "Pending",
-      "createdAt": "2026-10-12T04:22:00.623Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-78920601",
-      "receiptNo": "RCPT-78920601",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 4,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 340,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 34,
-      "pointsRedeemed": 0,
-      "total": 390,
-      "status": "Pending",
-      "createdAt": "2026-10-12T04:22:00.601Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "createdAt": "2026-10-12T04:22:01.000Z"
     },
     {
       "id": "ORD-78920530",
@@ -1791,7 +1995,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -1800,13 +2003,11 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         },
         {
           "productId": "p-eggs",
           "name": "Free-Range Brown Eggs",
-          "title": "Free-Range Brown Eggs",
           "price": 220,
           "quantity": 1,
           "unit": "tray",
@@ -1815,8 +2016,7 @@
           "sellerId": "seller-6",
           "sellerUserId": 16,
           "pickupLocation": "Koronadal City, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 305,
@@ -1826,17 +2026,14 @@
       "pointsRedeemed": 0,
       "total": 355,
       "status": "Pending",
-      "createdAt": "2026-10-12T04:22:00.530Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:01.000Z"
     },
     {
-      "id": "ORD-78920446",
-      "receiptNo": "RCPT-78920446",
+      "id": "ORD-78920738",
+      "receiptNo": "RCPT-78920738",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -1844,7 +2041,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -1853,8 +2049,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -1863,17 +2058,77 @@
       "pointsEarned": 8,
       "pointsRedeemed": 0,
       "total": 135,
-      "status": "Shipped",
-      "createdAt": "2026-10-12T04:22:00.446Z",
-      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:22:00.464Z",
-      "shippedAt": "2026-10-12T04:22:00.481Z",
-      "driverId": 4
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:01.000Z"
+    },
+    {
+      "id": "ORD-78920623",
+      "receiptNo": "RCPT-78920623",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:01.000Z"
+    },
+    {
+      "id": "ORD-78920601",
+      "receiptNo": "RCPT-78920601",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:01.000Z"
     },
     {
       "id": "ORD-78920363",
@@ -1885,7 +2140,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 3,
           "unit": "kg",
@@ -1894,8 +2148,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 255,
@@ -1905,15 +2158,44 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-12T04:22:00.363Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:00.000Z"
+    },
+    {
+      "id": "ORD-78920446",
+      "receiptNo": "RCPT-78920446",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Shipped",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:00.000Z"
     },
     {
       "id": "ORD-78920148",
@@ -1925,7 +2207,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -1934,8 +2215,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -1945,18 +2225,12 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:22:00.148Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentRef": "TXN-GCASH-920183",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:22:00.222Z",
-      "shippedAt": "2026-10-12T04:22:00.246Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:22:00.288Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:22:00.000Z"
     },
     {
       "id": "ORD-78919926",
@@ -1968,7 +2242,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -1977,8 +2250,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -1989,187 +2261,11 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:21:59.926Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:21:59.990Z",
-      "shippedAt": "2026-10-12T04:22:00.031Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:22:00.111Z"
-    },
-    {
-      "id": "ORD-78636875",
-      "receiptNo": "RCPT-78636875",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 4,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 340,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 34,
-      "pointsRedeemed": 0,
-      "total": 390,
-      "status": "Pending",
-      "createdAt": "2026-10-12T04:17:16.875Z",
       "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-78636847",
-      "receiptNo": "RCPT-78636847",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 4,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 340,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 34,
-      "pointsRedeemed": 0,
-      "total": 390,
-      "status": "Pending",
-      "createdAt": "2026-10-12T04:17:16.847Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-78636780",
-      "receiptNo": "RCPT-78636780",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        },
-        {
-          "productId": "p-eggs",
-          "name": "Free-Range Brown Eggs",
-          "title": "Free-Range Brown Eggs",
-          "price": 220,
-          "quantity": 1,
-          "unit": "tray",
-          "image": "/images/eggs.jpg",
-          "seller": "Koronadal Sunrise Poultry",
-          "sellerId": "seller-6",
-          "sellerUserId": 16,
-          "pickupLocation": "Koronadal City, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 305,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 30,
-      "pointsRedeemed": 0,
-      "total": 355,
-      "status": "Pending",
-      "createdAt": "2026-10-12T04:17:16.780Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-78636681",
-      "receiptNo": "RCPT-78636681",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 85,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 8,
-      "pointsRedeemed": 0,
-      "total": 135,
-      "status": "Shipped",
-      "createdAt": "2026-10-12T04:17:16.681Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:17:16.699Z",
-      "shippedAt": "2026-10-12T04:17:16.718Z",
-      "driverId": 4
+      "createdAt": "2026-10-12T04:22:00.000Z"
     },
     {
       "id": "ORD-78636606",
@@ -2181,7 +2277,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 3,
           "unit": "kg",
@@ -2190,8 +2285,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 255,
@@ -2201,19 +2295,14 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-12T04:17:16.606Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:17.000Z"
     },
     {
-      "id": "ORD-78636388",
-      "receiptNo": "RCPT-78636388",
+      "id": "ORD-78636875",
+      "receiptNo": "RCPT-78636875",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -2221,7 +2310,72 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:17.000Z"
+    },
+    {
+      "id": "ORD-78636847",
+      "receiptNo": "RCPT-78636847",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:17.000Z"
+    },
+    {
+      "id": "ORD-78636780",
+      "receiptNo": "RCPT-78636780",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -2230,8 +2384,53 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
+        },
+        {
+          "productId": "p-eggs",
+          "name": "Free-Range Brown Eggs",
+          "price": 220,
+          "quantity": 1,
+          "unit": "tray",
+          "image": "/images/eggs.jpg",
+          "seller": "Koronadal Sunrise Poultry",
+          "sellerId": "seller-6",
+          "sellerUserId": 16,
+          "pickupLocation": "Koronadal City, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 305,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 30,
+      "pointsRedeemed": 0,
+      "total": 355,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:17.000Z"
+    },
+    {
+      "id": "ORD-78636681",
+      "receiptNo": "RCPT-78636681",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -2240,19 +2439,12 @@
       "pointsEarned": 8,
       "pointsRedeemed": 0,
       "total": 135,
-      "status": "Delivered",
-      "createdAt": "2026-10-12T04:17:16.388Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "GCash",
-      "paymentRef": "TXN-GCASH-636422",
+      "status": "Shipped",
+      "payment": "Cash on delivery",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:17:16.470Z",
-      "shippedAt": "2026-10-12T04:17:16.489Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:17:16.529Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:17.000Z"
     },
     {
       "id": "ORD-78636175",
@@ -2264,7 +2456,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -2273,8 +2464,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -2285,17 +2475,46 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:17:16.175Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:17:16.256Z",
-      "shippedAt": "2026-10-12T04:17:16.281Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:17:16.355Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:16.000Z"
+    },
+    {
+      "id": "ORD-78636388",
+      "receiptNo": "RCPT-78636388",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Delivered",
+      "payment": "GCash",
+      "paymentRef": "TXN-GCASH-636422",
+      "paymentStatus": "pending",
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:17:16.000Z"
     },
     {
       "id": "ORD-78409985",
@@ -2307,7 +2526,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -2316,8 +2534,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -2327,16 +2544,11 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Shipped",
-      "createdAt": "2026-10-12T04:13:29.985Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "Cash on delivery",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:13:30.007Z",
-      "shippedAt": "2026-10-12T04:13:30.032Z",
-      "driverId": 4
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:13:30.000Z"
     },
     {
       "id": "ORD-78409897",
@@ -2348,7 +2560,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 3,
           "unit": "kg",
@@ -2357,8 +2568,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 255,
@@ -2368,15 +2578,10 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-12T04:13:29.897Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:13:30.000Z"
     },
     {
       "id": "ORD-78409635",
@@ -2388,7 +2593,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -2397,8 +2601,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -2408,18 +2611,12 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:13:29.635Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentRef": "TXN-GCASH-409674",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:13:29.722Z",
-      "shippedAt": "2026-10-12T04:13:29.738Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:13:29.792Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T04:13:30.000Z"
     },
     {
       "id": "ORD-78409459",
@@ -2431,7 +2628,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -2440,8 +2636,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -2452,187 +2647,11 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-12T04:13:29.459Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T04:13:29.524Z",
-      "shippedAt": "2026-10-12T04:13:29.563Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T04:13:29.602Z"
-    },
-    {
-      "id": "ORD-71861106",
-      "receiptNo": "RCPT-71861106",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 4,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 340,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 34,
-      "pointsRedeemed": 0,
-      "total": 390,
-      "status": "Pending",
-      "createdAt": "2026-10-12T02:24:21.106Z",
       "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-71861089",
-      "receiptNo": "RCPT-71861089",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 4,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 340,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 34,
-      "pointsRedeemed": 0,
-      "total": 390,
-      "status": "Pending",
-      "createdAt": "2026-10-12T02:24:21.089Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-71861020",
-      "receiptNo": "RCPT-71861020",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        },
-        {
-          "productId": "p-eggs",
-          "name": "Free-Range Brown Eggs",
-          "title": "Free-Range Brown Eggs",
-          "price": 220,
-          "quantity": 1,
-          "unit": "tray",
-          "image": "/images/eggs.jpg",
-          "seller": "Koronadal Sunrise Poultry",
-          "sellerId": "seller-6",
-          "sellerUserId": 16,
-          "pickupLocation": "Koronadal City, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 305,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 30,
-      "pointsRedeemed": 0,
-      "total": 355,
-      "status": "Pending",
-      "createdAt": "2026-10-12T02:24:21.020Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
-    },
-    {
-      "id": "ORD-71860898",
-      "receiptNo": "RCPT-71860898",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 85,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 8,
-      "pointsRedeemed": 0,
-      "total": 135,
-      "status": "Shipped",
-      "createdAt": "2026-10-12T02:24:20.898Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "Cash on delivery",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T02:24:20.919Z",
-      "shippedAt": "2026-10-12T02:24:20.941Z",
-      "driverId": 4
+      "createdAt": "2026-10-12T04:13:29.000Z"
     },
     {
       "id": "ORD-71860838",
@@ -2644,7 +2663,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 3,
           "unit": "kg",
@@ -2653,8 +2671,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 255,
@@ -2664,15 +2681,156 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-12T02:24:20.838Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T02:24:21.000Z"
+    },
+    {
+      "id": "ORD-71861089",
+      "receiptNo": "RCPT-71861089",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T02:24:21.000Z"
+    },
+    {
+      "id": "ORD-71861020",
+      "receiptNo": "RCPT-71861020",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        },
+        {
+          "productId": "p-eggs",
+          "name": "Free-Range Brown Eggs",
+          "price": 220,
+          "quantity": 1,
+          "unit": "tray",
+          "image": "/images/eggs.jpg",
+          "seller": "Koronadal Sunrise Poultry",
+          "sellerId": "seller-6",
+          "sellerUserId": 16,
+          "pickupLocation": "Koronadal City, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 305,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 30,
+      "pointsRedeemed": 0,
+      "total": 355,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T02:24:21.000Z"
+    },
+    {
+      "id": "ORD-71860898",
+      "receiptNo": "RCPT-71860898",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Shipped",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T02:24:21.000Z"
+    },
+    {
+      "id": "ORD-71861106",
+      "receiptNo": "RCPT-71861106",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 4,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 340,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 34,
+      "pointsRedeemed": 0,
+      "total": 390,
+      "status": "Pending",
+      "payment": "Cash on delivery",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T02:24:21.000Z"
     },
     {
       "id": "ORD-71860562",
@@ -2684,7 +2842,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -2693,8 +2850,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -2704,18 +2860,12 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Delivered",
-      "createdAt": "2026-10-12T02:24:20.562Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentRef": "TXN-GCASH-860604",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T02:24:20.670Z",
-      "shippedAt": "2026-10-12T02:24:20.696Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T02:24:20.760Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T02:24:21.000Z"
     },
     {
       "id": "ORD-71860364",
@@ -2727,7 +2877,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -2736,8 +2885,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -2748,100 +2896,11 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-12T02:24:20.364Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T02:24:20.435Z",
-      "shippedAt": "2026-10-12T02:24:20.469Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T02:24:20.528Z"
-    },
-    {
-      "id": "ORD-63838891",
-      "receiptNo": "RCPT-63838891",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 3,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 255,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 25,
-      "pointsRedeemed": 0,
-      "total": 305,
-      "status": "Cancelled",
-      "createdAt": "2026-10-12T00:10:38.892Z",
       "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "GCash",
-      "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
-    },
-    {
-      "id": "ORD-63838705",
-      "receiptNo": "RCPT-63838705",
-      "userId": 3,
-      "buyerName": "buyer",
-      "buyerPhone": "+639180000000",
-      "items": [
-        {
-          "productId": "p-tomato",
-          "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
-          "price": 85,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/images/tomato.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
-        }
-      ],
-      "subtotal": 85,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 8,
-      "pointsRedeemed": 0,
-      "total": 135,
-      "status": "Delivered",
-      "createdAt": "2026-10-12T00:10:38.705Z",
-      "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "GCash",
-      "paymentRef": "TXN-GCASH-123456",
-      "paymentStatus": "paid",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T00:10:38.742Z",
-      "shippedAt": "2026-10-12T00:10:38.764Z",
-      "driverId": 4,
-      "deliveredAt": "2026-10-12T00:10:38.812Z"
+      "createdAt": "2026-10-12T02:24:20.000Z"
     },
     {
       "id": "ORD-63838577",
@@ -2853,7 +2912,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -2862,8 +2920,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -2874,21 +2931,15 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-12T00:10:38.577Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "paid",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-12T00:10:38.610Z",
-      "shippedAt": "2026-10-12T00:10:38.633Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-12T00:10:38.671Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T00:10:39.000Z"
     },
     {
-      "id": "ORD-61121053",
-      "receiptNo": "RCPT-61121053",
+      "id": "ORD-63838891",
+      "receiptNo": "RCPT-63838891",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -2896,7 +2947,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 3,
           "unit": "kg",
@@ -2905,8 +2955,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 255,
@@ -2916,19 +2965,14 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-11T23:25:21.053Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T00:10:39.000Z"
     },
     {
-      "id": "ORD-61120878",
-      "receiptNo": "RCPT-61120878",
+      "id": "ORD-63838705",
+      "receiptNo": "RCPT-63838705",
       "userId": 3,
       "buyerName": "buyer",
       "buyerPhone": "+639180000000",
@@ -2936,7 +2980,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -2945,8 +2988,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -2956,18 +2998,12 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Delivered",
-      "createdAt": "2026-10-11T23:25:20.878Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentRef": "TXN-GCASH-123456",
       "paymentStatus": "paid",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-11T23:25:20.915Z",
-      "shippedAt": "2026-10-11T23:25:20.931Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-11T23:25:20.967Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-12T00:10:39.000Z"
     },
     {
       "id": "ORD-61120696",
@@ -2979,7 +3015,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -2988,8 +3023,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -3000,17 +3034,79 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-11T23:25:20.696Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "paid",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-11T23:25:20.780Z",
-      "shippedAt": "2026-10-11T23:25:20.814Z",
       "driverId": 4,
-      "deliveredAt": "2026-10-11T23:25:20.851Z"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-11T23:25:21.000Z"
+    },
+    {
+      "id": "ORD-61121053",
+      "receiptNo": "RCPT-61121053",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 3,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 255,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 25,
+      "pointsRedeemed": 0,
+      "total": 305,
+      "status": "Cancelled",
+      "payment": "GCash",
+      "paymentStatus": "pending",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-11T23:25:21.000Z"
+    },
+    {
+      "id": "ORD-61120878",
+      "receiptNo": "RCPT-61120878",
+      "userId": 3,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "items": [
+        {
+          "productId": "p-tomato",
+          "name": "Salad Tomatoes",
+          "price": 85,
+          "quantity": 1,
+          "unit": "kg",
+          "image": "/images/tomato.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "Polomolok, South Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 85,
+      "shippingFee": 50,
+      "shippingDiscount": 0,
+      "pointsEarned": 8,
+      "pointsRedeemed": 0,
+      "total": 135,
+      "status": "Delivered",
+      "payment": "GCash",
+      "paymentRef": "TXN-GCASH-123456",
+      "paymentStatus": "paid",
+      "driverId": 4,
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-11T23:25:21.000Z"
     },
     {
       "id": "ORD-60757373",
@@ -3022,7 +3118,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 3,
           "unit": "kg",
@@ -3031,8 +3126,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 255,
@@ -3042,15 +3136,10 @@
       "pointsRedeemed": 0,
       "total": 305,
       "status": "Cancelled",
-      "createdAt": "2026-10-11T23:19:17.373Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "stockRestored": true,
-      "rejectedReason": "Buyer changed mind"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-11T23:19:17.000Z"
     },
     {
       "id": "ORD-60757287",
@@ -3062,7 +3151,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 1,
           "unit": "kg",
@@ -3071,8 +3159,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 85,
@@ -3082,13 +3169,10 @@
       "pointsRedeemed": 0,
       "total": 135,
       "status": "Pending",
-      "createdAt": "2026-10-11T23:19:17.287Z",
-      "address": "SOCCSKSARGEN Delivery Address",
       "payment": "GCash",
       "paymentStatus": "pending",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked"
+      "address": "SOCCSKSARGEN Delivery Address",
+      "createdAt": "2026-10-11T23:19:17.000Z"
     },
     {
       "id": "ORD-60757077",
@@ -3100,7 +3184,6 @@
         {
           "productId": "p-tomato",
           "name": "Salad Tomatoes",
-          "title": "Salad Tomatoes",
           "price": 85,
           "quantity": 2,
           "unit": "kg",
@@ -3109,8 +3192,7 @@
           "sellerId": "seller-1",
           "sellerUserId": 2,
           "pickupLocation": "Polomolok, South Cotabato",
-          "prepStatus": "unpacked",
-          "prepNotes": ""
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 170,
@@ -3121,53 +3203,11 @@
       "pointsRedeemed": 0,
       "total": 170,
       "status": "Delivered",
-      "createdAt": "2026-10-11T23:19:17.077Z",
+      "payment": "GCash",
+      "paymentStatus": "paid",
+      "driverId": 4,
       "address": "SOCCSKSARGEN Delivery Address",
-      "payment": "GCash",
-      "paymentStatus": "paid",
-      "lat": 6.5004,
-      "lng": 124.8436,
-      "prepStatus": "unpacked",
-      "sellerConfirmedAt": "2026-10-11T23:19:17.167Z",
-      "shippedAt": "2026-10-11T23:19:17.206Z",
-      "driverId": 4,
-      "deliveredAt": "2026-10-11T23:19:17.249Z"
-    },
-    {
-      "id": "ORD-1001",
-      "receiptNo": "RCPT-1001",
-      "userId": 3,
-      "buyerName": "Juan Cruz",
-      "buyerPhone": "+639189998877",
-      "items": [
-        {
-          "productId": "p-rice",
-          "name": "Dinorado Rice",
-          "price": 58,
-          "quantity": 10,
-          "image": "/images/rice.jpg",
-          "seller": "Green Valley Farm",
-          "sellerId": "seller-1",
-          "sellerUserId": 2,
-          "pickupLocation": "M'lang, Cotabato"
-        }
-      ],
-      "subtotal": 580,
-      "shippingFee": 50,
-      "shippingDiscount": 50,
-      "couponCode": "FREESHIP",
-      "pointsEarned": 58,
-      "pointsRedeemed": 0,
-      "total": 580,
-      "status": "Delivered",
-      "createdAt": "2026-10-06T14:12:14.467Z",
-      "address": "12 Osmeña St, Koronadal City, South Cotabato",
-      "payment": "GCash",
-      "paymentRef": "GC-8821",
-      "paymentStatus": "paid",
-      "driverId": 4,
-      "lat": 6.5004,
-      "lng": 124.8436
+      "createdAt": "2026-10-11T23:19:17.000Z"
     },
     {
       "id": "ORD-1002",
@@ -3181,11 +3221,13 @@
           "name": "Free-Range Brown Eggs",
           "price": 220,
           "quantity": 2,
+          "unit": "kg",
           "image": "/images/eggs.jpg",
           "seller": "Koronadal Sunrise Poultry",
           "sellerId": "seller-6",
           "sellerUserId": 16,
-          "pickupLocation": "Koronadal City, South Cotabato"
+          "pickupLocation": "Koronadal City, South Cotabato",
+          "prepStatus": "unpacked"
         }
       ],
       "subtotal": 440,
@@ -3195,21 +3237,55 @@
       "pointsRedeemed": 0,
       "total": 490,
       "status": "Confirmed",
-      "createdAt": "2026-10-08T14:12:14.467Z",
-      "address": "Purok 3, Calumpang, General Santos City",
       "payment": "GCash",
+      "paymentRef": "TXN-GCASH-255050",
       "paymentStatus": "escrow_held",
       "driverId": 4,
-      "lat": 6.1164,
-      "lng": 125.1716,
-      "paymentRef": "TXN-GCASH-255050"
+      "address": "Purok 3, Calumpang, General Santos City",
+      "createdAt": "2026-10-08T14:12:14.000Z"
+    },
+    {
+      "id": "ORD-1001",
+      "receiptNo": "RCPT-1001",
+      "userId": 3,
+      "buyerName": "Juan Cruz",
+      "buyerPhone": "+639189998877",
+      "items": [
+        {
+          "productId": "p-rice",
+          "name": "Dinorado Rice",
+          "price": 58,
+          "quantity": 10,
+          "unit": "kg",
+          "image": "/images/rice.jpg",
+          "seller": "Green Valley Farm",
+          "sellerId": "seller-1",
+          "sellerUserId": 2,
+          "pickupLocation": "M'lang, Cotabato",
+          "prepStatus": "unpacked"
+        }
+      ],
+      "subtotal": 580,
+      "shippingFee": 50,
+      "shippingDiscount": 50,
+      "couponCode": "FREESHIP",
+      "pointsEarned": 58,
+      "pointsRedeemed": 0,
+      "total": 580,
+      "status": "Delivered",
+      "payment": "GCash",
+      "paymentRef": "GC-8821",
+      "paymentStatus": "paid",
+      "driverId": 4,
+      "address": "12 Osmeña St, Koronadal City, South Cotabato",
+      "createdAt": "2026-10-06T14:12:14.000Z"
     }
   ],
   "cart": [],
   "seller_applications": [],
   "reviews": [
     {
-      "id": "rev-1791780387010",
+      "id": "rev-1791944977555",
       "productId": "p-tomato",
       "userId": 3,
       "userName": "Juan Cruz",
@@ -3217,112 +3293,9 @@
       "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
       "photos": [],
       "status": "published",
-      "createdAt": "2026-10-12T04:46:27.010Z",
+      "createdAt": "2026-10-14T02:29:37.555Z",
       "isVerifiedPurchase": true,
-      "orderId": "ORD-80386838"
-    },
-    {
-      "id": "rev-1791778920335",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-12T04:22:00.335Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-78920148"
-    },
-    {
-      "id": "rev-1791778636569",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-12T04:17:16.569Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-78636388"
-    },
-    {
-      "id": "rev-1791778409862",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-12T04:13:29.862Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-78409635"
-    },
-    {
-      "id": "rev-1791771860819",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-12T02:24:20.819Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-71860562"
-    },
-    {
-      "id": "rev-1791763838865",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-12T00:10:38.865Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-63838705"
-    },
-    {
-      "id": "rev-1791761121020",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-11T23:25:21.020Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-61120878"
-    },
-    {
-      "id": "rev-1791760757345",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Fresh, authentic SOCCSKSARGEN produce delivered safely!",
-      "photos": [],
-      "status": "published",
-      "createdAt": "2026-10-11T23:19:17.345Z",
-      "isVerifiedPurchase": true,
-      "orderId": "ORD-60757077"
-    },
-    {
-      "id": "r1",
-      "productId": "p-tomato",
-      "userId": 3,
-      "userName": "Juan Cruz",
-      "rating": 5,
-      "comment": "Arrived firm and sweet. Perfect for our sari-sari stall and cooking.",
-      "photos": [
-        "/images/tomato.jpg"
-      ],
-      "createdAt": "2026-10-05T14:12:14.467Z"
+      "orderId": "ORD-44977187"
     },
     {
       "id": "r2",
@@ -3340,6 +3313,294 @@
   "posts": [],
   "trades": [],
   "notifications": [
+    {
+      "id": "notice-1791944978036-3",
+      "userId": 3,
+      "title": "Payment Confirmed by Provider",
+      "message": "Your payment of ₱135 for order #ORD-44977986 was verified by the payment gateway and held securely in escrow.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:38.036Z"
+    },
+    {
+      "id": "notice-1791944977992-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977986 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.993Z"
+    },
+    {
+      "id": "notice-1791944977990-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977986 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.990Z"
+    },
+    {
+      "id": "notice-1791944977933-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977926 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.933Z"
+    },
+    {
+      "id": "notice-1791944977930-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977926 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.930Z"
+    },
+    {
+      "id": "notice-1791944977815-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977809 was placed by buyer. Total: ₱390. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.815Z"
+    },
+    {
+      "id": "notice-1791944977812-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977809 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.812Z"
+    },
+    {
+      "id": "notice-1791944977800-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977794 was placed by buyer. Total: ₱390. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.800Z"
+    },
+    {
+      "id": "notice-1791944977797-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977794 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.797Z"
+    },
+    {
+      "id": "notice-1791944977747-16",
+      "userId": 16,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977735 was placed by buyer. Total: ₱355. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.747Z"
+    },
+    {
+      "id": "notice-1791944977744-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977735 was placed by buyer. Total: ₱355. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.744Z"
+    },
+    {
+      "id": "notice-1791944977740-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977735 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.741Z"
+    },
+    {
+      "id": "notice-1791944977707",
+      "userId": 3,
+      "title": "Rider Assigned to Your Order",
+      "message": "Rider Rico Driver (+639175551111) was assigned to deliver ORD-44977628.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.706Z"
+    },
+    {
+      "id": "notice-1791944977702",
+      "userId": 4,
+      "title": "New Delivery Assigned 🛵",
+      "message": "Seller assigned order ORD-44977628 (buyer, SOCCSKSARGEN Delivery Address) to you.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.702Z"
+    },
+    {
+      "id": "notice-1791944977656-3",
+      "userId": 3,
+      "title": "Order Confirmed by Seller! 🚜",
+      "message": "Seller confirmed order #ORD-44977628. Goods are being packed for delivery.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.656Z"
+    },
+    {
+      "id": "notice-1791944977635-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977628 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.635Z"
+    },
+    {
+      "id": "notice-1791944977632-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977628 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.632Z"
+    },
+    {
+      "id": "notice-1791944977607-3",
+      "userId": 3,
+      "title": "Order Cancelled",
+      "message": "Order #ORD-44977576 has been cancelled: Buyer changed mind",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.607Z"
+    },
+    {
+      "id": "notice-1791944977584-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977576 was placed by buyer. Total: ₱305. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.584Z"
+    },
+    {
+      "id": "notice-1791944977580-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977576 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.580Z"
+    },
+    {
+      "id": "notice-1791944977349-3",
+      "userId": 3,
+      "title": "Order Delivered! 📦",
+      "message": "Order #ORD-44977187 has been successfully delivered. Thank you for supporting local farmers!",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.349Z"
+    },
+    {
+      "id": "notice-1791944977303",
+      "userId": 3,
+      "title": "Rider Assigned to Your Order",
+      "message": "Rider Rico Driver (+639175551111) was assigned to deliver ORD-44977187.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.302Z"
+    },
+    {
+      "id": "notice-1791944977298",
+      "userId": 4,
+      "title": "New Delivery Assigned 🛵",
+      "message": "Seller assigned order ORD-44977187 (buyer, SOCCSKSARGEN Delivery Address) to you.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.298Z"
+    },
+    {
+      "id": "notice-1791944977267-3",
+      "userId": 3,
+      "title": "Order Confirmed by Seller! 🚜",
+      "message": "Seller confirmed order #ORD-44977187. Goods are being packed for delivery.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.267Z"
+    },
+    {
+      "id": "notice-1791944977193-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977187 was placed by buyer. Total: ₱135. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.193Z"
+    },
+    {
+      "id": "notice-1791944977190-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977187 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.190Z"
+    },
+    {
+      "id": "notice-1791944977161-3",
+      "userId": 3,
+      "title": "Order Delivered! 📦",
+      "message": "Order #ORD-44977015 has been successfully delivered. Thank you for supporting local farmers!",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.161Z"
+    },
+    {
+      "id": "notice-1791944977126",
+      "userId": 3,
+      "title": "Rider Assigned to Your Order",
+      "message": "Rider Rico Driver (+639175551111) was assigned to deliver ORD-44977015.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.125Z"
+    },
+    {
+      "id": "notice-1791944977122",
+      "userId": 4,
+      "title": "New Delivery Assigned 🛵",
+      "message": "Seller assigned order ORD-44977015 (buyer, SOCCSKSARGEN Delivery Address) to you.",
+      "category": "Delivery",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.122Z"
+    },
+    {
+      "id": "notice-1791944977073-3",
+      "userId": 3,
+      "title": "Order Confirmed by Seller! 🚜",
+      "message": "Seller confirmed order #ORD-44977015. Goods are being packed for delivery.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.073Z"
+    },
+    {
+      "id": "notice-1791944977021-2",
+      "userId": 2,
+      "title": "New Order Received! 🛒",
+      "message": "Order #ORD-44977015 was placed by buyer. Total: ₱170. Please review and confirm.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.041Z"
+    },
+    {
+      "id": "notice-1791944977018-3",
+      "userId": 3,
+      "title": "Order Placed 🎉",
+      "message": "Your order #ORD-44977015 was placed. Waiting for seller confirmation.",
+      "category": "Order",
+      "readBy": [],
+      "createdAt": "2026-10-14T02:29:37.018Z"
+    },
     {
       "id": "notice-1791780387575-3",
       "userId": 3,
@@ -5000,6 +5261,18 @@
   ],
   "messages": [
     {
+      "id": "msg-1791944977969-nreu",
+      "orderId": "ORD-44977926",
+      "fromRole": "buyer",
+      "fromName": "Juan Cruz",
+      "fromUserId": 3,
+      "toUserId": 2,
+      "body": "Hello seller, when will this tomato harvest be packed?",
+      "createdAt": "2026-10-14T02:29:37.969Z",
+      "channel": "in-app",
+      "status": "delivered"
+    },
+    {
       "id": "msg-1791780387487-j1zn",
       "orderId": "ORD-80387450",
       "fromRole": "buyer",
@@ -5025,6 +5298,197 @@
     }
   ],
   "delivery_jobs": [
+    {
+      "id": "DEL-44977986",
+      "orderId": "ORD-44977986",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:38.033Z"
+    },
+    {
+      "id": "DEL-44977926",
+      "orderId": "ORD-44977926",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.926Z"
+    },
+    {
+      "id": "DEL-44977809",
+      "orderId": "ORD-44977809",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.809Z"
+    },
+    {
+      "id": "DEL-44977794",
+      "orderId": "ORD-44977794",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.794Z"
+    },
+    {
+      "id": "DEL-44977735",
+      "orderId": "ORD-44977735",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Pending",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.735Z"
+    },
+    {
+      "id": "DEL-ORD-44977628",
+      "orderId": "ORD-44977628",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Shipped",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.698Z"
+    },
+    {
+      "id": "DEL-44977628",
+      "orderId": "ORD-44977628",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Shipped",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.693Z"
+    },
+    {
+      "id": "DEL-44977576",
+      "orderId": "ORD-44977576",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Cancelled",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.604Z"
+    },
+    {
+      "id": "DEL-ORD-44977187",
+      "orderId": "ORD-44977187",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Delivered",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.345Z"
+    },
+    {
+      "id": "DEL-44977187",
+      "orderId": "ORD-44977187",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Shipped",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.290Z"
+    },
+    {
+      "id": "DEL-ORD-44977015",
+      "orderId": "ORD-44977015",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Delivered",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.158Z"
+    },
+    {
+      "id": "DEL-44977015",
+      "orderId": "ORD-44977015",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "buyerPhone": "+639180000000",
+      "address": "SOCCSKSARGEN Delivery Address",
+      "status": "Shipped",
+      "lat": 6.5004,
+      "lng": 124.8436,
+      "updatedAt": "2026-10-14T02:29:37.115Z"
+    },
+    {
+      "id": "DEL-ORD-TEST-SYNC-1791943680170",
+      "orderId": "ORD-TEST-SYNC-1791943680170",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "address": "General Santos City",
+      "status": "Delivered",
+      "lat": 6.1164,
+      "lng": 125.1716,
+      "updatedAt": "2026-10-14T02:08:00.194Z"
+    },
+    {
+      "id": "DEL-TEST-SYNC-1791943680170",
+      "orderId": "ORD-TEST-SYNC-1791943680170",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "address": "General Santos City",
+      "status": "Confirmed",
+      "updatedAt": "2026-10-14T02:08:00.172Z"
+    },
+    {
+      "id": "DEL-TEST-RIDER2-1791943680153",
+      "orderId": "ORD-TEST-2",
+      "driverId": 999,
+      "buyerName": "Buyer Two",
+      "address": "Tupi, South Cotabato",
+      "status": "Confirmed",
+      "updatedAt": "2026-10-14T02:08:00.162Z"
+    },
+    {
+      "id": "DEL-TEST-RIDER1-1791943680153",
+      "orderId": "ORD-TEST-1",
+      "driverId": 4,
+      "buyerName": "Buyer One",
+      "address": "Koronadal City",
+      "status": "Confirmed",
+      "updatedAt": "2026-10-14T02:08:00.154Z"
+    },
+    {
+      "id": "DEL-TEST-SYNC-1791943374197",
+      "orderId": "ORD-TEST-SYNC-1791943374197",
+      "driverId": 4,
+      "buyerName": "buyer",
+      "address": "General Santos City",
+      "status": "Delivered",
+      "updatedAt": "2026-10-14T02:02:54.205Z"
+    },
     {
       "id": "DEL-80387510",
       "orderId": "ORD-80387510",
@@ -5614,6 +6078,116 @@
   ],
   "audit_logs": [
     {
+      "id": "audit-1791944978302-46f9",
+      "createdAt": "2026-10-14T02:29:38.302Z",
+      "adminId": 19,
+      "adminEmail": "opsadmin@agrimarket.com",
+      "action": "ADMIN_CREDENTIALS_BOOTSTRAPPED",
+      "targetType": "user",
+      "targetId": "19",
+      "details": "Administrator account opsadmin@agrimarket.com updated via secure bootstrap process with 12-round bcrypt hash.",
+      "ipAddress": "127.0.0.1"
+    },
+    {
+      "id": "audit-1791944977545-bbec",
+      "createdAt": "2026-10-14T02:29:37.545Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "r1",
+      "details": "Deleted review ID \"r1\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977531-a426",
+      "createdAt": "2026-10-14T02:29:37.531Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791760757345",
+      "details": "Deleted review ID \"rev-1791760757345\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977507-4904",
+      "createdAt": "2026-10-14T02:29:37.507Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791761121020",
+      "details": "Deleted review ID \"rev-1791761121020\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977493-e407",
+      "createdAt": "2026-10-14T02:29:37.493Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791763838865",
+      "details": "Deleted review ID \"rev-1791763838865\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977481-3d3b",
+      "createdAt": "2026-10-14T02:29:37.481Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791771860819",
+      "details": "Deleted review ID \"rev-1791771860819\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977469-a155",
+      "createdAt": "2026-10-14T02:29:37.469Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791778409862",
+      "details": "Deleted review ID \"rev-1791778409862\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977453-0aaf",
+      "createdAt": "2026-10-14T02:29:37.453Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791778636569",
+      "details": "Deleted review ID \"rev-1791778636569\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977433-d00f",
+      "createdAt": "2026-10-14T02:29:37.433Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791778920335",
+      "details": "Deleted review ID \"rev-1791778920335\"",
+      "ipAddress": "::1"
+    },
+    {
+      "id": "audit-1791944977418-2737",
+      "createdAt": "2026-10-14T02:29:37.418Z",
+      "adminId": 1,
+      "adminEmail": "admin@agrimarket.com",
+      "action": "REVIEW_DELETED",
+      "targetType": "review",
+      "targetId": "rev-1791780387010",
+      "details": "Deleted review ID \"rev-1791780387010\"",
+      "ipAddress": "::1"
+    },
+    {
       "id": "audit-1791780387945-5bad",
       "createdAt": "2026-10-12T04:46:27.945Z",
       "adminId": 19,
@@ -5676,6 +6250,12 @@
       "eventId": "evt-audit-1791780387553",
       "orderId": "ORD-80387510",
       "processedAt": "2026-10-12T04:46:27.567Z"
+    },
+    {
+      "eventId": "evt-audit-1791944978017",
+      "orderId": "ORD-44977986",
+      "processedAt": "2026-10-14T02:29:38.029Z"
     }
-  ]
+  ],
+  "listingReports": []
 }

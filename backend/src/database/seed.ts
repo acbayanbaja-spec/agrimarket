@@ -14,8 +14,9 @@ async function seed() {
       ('admin', 'System administrator with full access'),
       ('buyer', 'Regular buyer who can purchase products'),
       ('seller', 'Approved seller who can list products'),
+      ('delivery', 'Delivery rider'),
       ('delivery_man', 'Delivery personnel who handle order deliveries')
-      ON DUPLICATE KEY UPDATE name = name
+      ON DUPLICATE KEY UPDATE description=VALUES(description)
     `);
 
     // Insert admin user (guard against predictable default password in production)

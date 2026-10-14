@@ -3,6 +3,7 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import pool, { classifyDatabaseError, DatabaseFailureKind } from '../config/database';
 import { databaseUnavailableError, isDatabaseRequired, isEmbeddedFallbackAllowed } from '../config/persistence';
+import { normalizeRoles } from '../utils/roles';
 
 export interface UserEntity {
   id: number;
@@ -1013,7 +1014,7 @@ class DatabaseStore {
       }
 
       await pool.query(
-        "INSERT INTO roles (name, description) VALUES ('buyer', 'Marketplace buyer'), ('seller', 'Farm seller'), ('admin', 'Platform administrator'), ('delivery', 'Delivery rider') ON DUPLICATE KEY UPDATE description=VALUES(description)"
+        "INSERT INTO roles (name, description) VALUES ('buyer', 'Marketplace buyer'), ('seller', 'Farm seller'), ('admin', 'Platform administrator'), ('delivery', 'Delivery rider'), ('delivery_man', 'Delivery personnel who handle order deliveries') ON DUPLICATE KEY UPDATE description=VALUES(description)"
       );
 
       // Check if users table is populated; if empty, safely seed from current in-memory store
@@ -1105,7 +1106,7 @@ class DatabaseStore {
         last_name: row.last_name,
         phone: row.phone || undefined,
         profile_image: row.profile_image || undefined,
-        roles: row.roles ? String(row.roles).split(',').filter(Boolean) : ['buyer'],
+        roles: normalizeRoles(row.roles),
         is_verified: Boolean(row.is_verified),
         is_active: Boolean(row.is_active),
         suspension_reason: row.suspension_reason || undefined,
@@ -1385,7 +1386,7 @@ class DatabaseStore {
 
   public addUser(user: Omit<UserEntity, 'id'> & { id?: number }) {
     const newId = user.id || (this.data.users.length ? Math.max(...this.data.users.map((u) => u.id)) + 1 : 1);
-    const newUser: UserEntity = { ...user, id: newId };
+    const newUser: UserEntity = { ...user, roles: normalizeRoles(user.roles), id: newId };
     this.data.users.push(newUser);
     this.saveData();
 
@@ -1393,6 +1394,13 @@ class DatabaseStore {
       'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email)',
       [newUser.id, newUser.email, newUser.password_hash, newUser.first_name, newUser.last_name, newUser.phone || null, newUser.is_verified ? 1 : 0, newUser.is_active ? 1 : 0]
     );
+
+    for (const r of newUser.roles) {
+      this.executeMySql(
+        'INSERT IGNORE INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ?',
+        [newUser.id, r]
+      ).catch(() => {});
+    }
 
     return newUser;
   }
@@ -1431,10 +1439,23 @@ class DatabaseStore {
   }
 
   public setUserRoles(userId: number, roles: string[]) {
+    const normalized = normalizeRoles(roles);
     const user = this.data.users.find((u) => u.id === userId);
     if (user) {
-      user.roles = Array.from(new Set(roles));
+      user.roles = normalized;
       this.saveData();
+
+      this.executeMySql('DELETE FROM user_roles WHERE user_id = ?', [userId])
+        .then(async () => {
+          for (const r of normalized) {
+            await this.executeMySql(
+              'INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ? ON DUPLICATE KEY UPDATE user_id=user_id',
+              [userId, r]
+            );
+          }
+        })
+        .catch((e) => console.warn('User roles MySQL sync notice:', e.message));
+
       return user;
     }
     return null;
@@ -2342,17 +2363,73 @@ class DatabaseStore {
     return this.data.delivery_jobs;
   }
 
+  public addDelivery(delivery: DeliveryJobEntity) {
+    const existingIdx = this.data.delivery_jobs.findIndex((d) => d.id === delivery.id || d.orderId === delivery.orderId);
+    if (existingIdx !== -1) {
+      this.data.delivery_jobs[existingIdx] = { ...this.data.delivery_jobs[existingIdx], ...delivery, updatedAt: new Date().toISOString() };
+      return this.data.delivery_jobs[existingIdx];
+    }
+    this.data.delivery_jobs.unshift(delivery);
+    this.saveData();
+    this.executeMySql(
+      'INSERT INTO delivery_jobs (id, order_id, driver_id, buyer_name, buyer_phone, address, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status), lat=VALUES(lat), lng=VALUES(lng), driver_id=VALUES(driver_id)',
+      [
+        delivery.id,
+        delivery.orderId,
+        delivery.driverId,
+        delivery.buyerName,
+        delivery.buyerPhone || null,
+        delivery.address,
+        delivery.status,
+        delivery.lat !== undefined ? delivery.lat : null,
+        delivery.lng !== undefined ? delivery.lng : null,
+      ]
+    ).catch((e) => console.warn('Delivery job MySQL sync notice:', e.message));
+    return delivery;
+  }
+
   public updateDelivery(id: string, updates: Partial<DeliveryJobEntity>) {
-    const job = this.data.delivery_jobs.find((d) => d.id === id || d.orderId === id);
+    let job = this.data.delivery_jobs.find((d) => d.id === id || d.orderId === id);
+    if (!job && updates.orderId) {
+      job = {
+        id: updates.id || id,
+        orderId: updates.orderId,
+        driverId: updates.driverId || 4,
+        buyerName: updates.buyerName || '',
+        buyerPhone: updates.buyerPhone,
+        address: updates.address || '',
+        status: updates.status || 'Pending',
+        lat: updates.lat,
+        lng: updates.lng,
+        updatedAt: new Date().toISOString(),
+      };
+      this.data.delivery_jobs.unshift(job);
+    }
     if (job) {
       Object.assign(job, updates, { updatedAt: new Date().toISOString() });
       if (updates.status) {
-        const order = this.data.orders.find((o) => o.id === job.orderId);
+        const order = this.data.orders.find((o) => o.id === job!.orderId);
         if (order) {
           order.status = updates.status as OrderEntity['status'];
         }
       }
       this.saveData();
+
+      this.executeMySql(
+        'INSERT INTO delivery_jobs (id, order_id, driver_id, buyer_name, buyer_phone, address, status, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status), lat=VALUES(lat), lng=VALUES(lng), driver_id=VALUES(driver_id)',
+        [
+          job.id,
+          job.orderId,
+          job.driverId,
+          job.buyerName,
+          job.buyerPhone || null,
+          job.address,
+          job.status,
+          job.lat !== undefined ? job.lat : null,
+          job.lng !== undefined ? job.lng : null,
+        ]
+      ).catch((e) => console.warn('Delivery job MySQL sync notice:', e.message));
+
       return job;
     }
     return null;

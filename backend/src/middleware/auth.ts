@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { db } from '../database/store';
 import { authService } from '../services/authService';
+import { normalizeRole, normalizeRoles } from '../utils/roles';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -77,7 +78,7 @@ export const authenticate = async (
     req.user = {
       id: liveUser.id,
       email: liveUser.email,
-      roles: liveUser.roles || decoded.roles || ['buyer'],
+      roles: normalizeRoles(liveUser.roles || decoded.roles),
     };
 
     return next();
@@ -121,7 +122,7 @@ export const optionalAuth = async (
       req.user = {
         id: liveUser.id,
         email: liveUser.email,
-        roles: liveUser.roles || decoded.roles || ['buyer'],
+        roles: normalizeRoles(liveUser.roles || decoded.roles),
       };
     }
 
@@ -133,24 +134,26 @@ export const optionalAuth = async (
 };
 
 export const authorize = (...roles: string[]) => {
+  const allowedCanonical = roles.map(normalizeRole);
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
         data: null,
-        errorCode: 'AUTH_REQUIRED'
+        errorCode: 'AUTH_REQUIRED',
       });
     }
 
-    const hasRole = roles.some(role => req.user!.roles.includes(role));
+    const userRoles = normalizeRoles(req.user.roles);
+    const hasRole = allowedCanonical.some((role) => userRoles.includes(role));
 
     if (!hasRole) {
       return res.status(403).json({
         success: false,
         message: 'Insufficient permissions',
         data: null,
-        errorCode: 'AUTH_INSUFFICIENT_PERMISSIONS'
+        errorCode: 'AUTH_INSUFFICIENT_PERMISSIONS',
       });
     }
 

@@ -4,6 +4,7 @@ import pool from '../config/database';
 import { config } from '../config';
 import { db } from '../database/store';
 import { databaseUnavailableError, isEmbeddedFallbackAllowed } from '../config/persistence';
+import { normalizeRoles } from '../utils/roles';
 
 const jwtSignOptions: SignOptions = {
   expiresIn: (config.jwt.expiresIn || '7d') as SignOptions['expiresIn'],
@@ -27,8 +28,9 @@ function normalizeEmail(email: string) {
 }
 
 function signUserToken(user: { id: number; email: string; roles: string[] }) {
+  const roles = normalizeRoles(user.roles);
   return jwt.sign(
-    { id: user.id, email: user.email, roles: user.roles },
+    { id: user.id, email: user.email, roles },
     config.jwt.secret,
     jwtSignOptions
   );
@@ -112,7 +114,7 @@ export const authService = {
         );
 
         const user = (users as any)[0];
-        user.roles = user.roles ? user.roles.split(',') : ['buyer'];
+        user.roles = normalizeRoles(user.roles);
 
         db.addUser({
           id: user.id,
@@ -179,7 +181,7 @@ export const authService = {
           throw credentialsError();
         }
 
-        user.roles = user.roles ? user.roles.split(',') : ['buyer'];
+        user.roles = normalizeRoles(user.roles);
         const token = signUserToken(user);
         delete user.password_hash;
         return { user, token };
@@ -210,6 +212,7 @@ export const authService = {
       throw credentialsError();
     }
 
+    user.roles = normalizeRoles(user.roles);
     const token = signUserToken(user);
     const { password_hash, ...safeUser } = user;
     return { user: safeUser, token };
@@ -234,7 +237,7 @@ export const authService = {
 
           const user = (users as any)[0];
           if (user) {
-            user.roles = user.roles ? user.roles.split(',') : [];
+            user.roles = normalizeRoles(user.roles);
             delete user.password_hash;
           }
           return user || null;
