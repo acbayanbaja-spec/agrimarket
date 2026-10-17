@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Coins, MapPin, Package, Receipt, ArrowRight } from 'lucide-react'
+import { CheckCircle2, Coins, MapPin, Package, Receipt, ArrowRight, MessageSquare, AlertTriangle, Truck } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
-import { pointsFromSpend } from '../lib/commerce'
+import { pointsFromSpend, getEstimatedDeliveryDate } from '../lib/commerce'
 import { shippingCoupons } from '../data/catalog'
 import { soccsksargenPlaces } from '../data/locations'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 import OrderTimeline from '../components/OrderTimeline'
+import CancelOrderModal from '../components/CancelOrderModal'
+import ContactSellerModal from '../components/ContactSellerModal'
 
 const CheckoutPage = () => {
   const { items, removeItems } = useCart()
@@ -26,6 +28,8 @@ const CheckoutPage = () => {
   const [shippingDiscount, setShippingDiscount] = useState(0)
   const [couponCode, setCouponCode] = useState<string | undefined>()
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null)
+  const [contactModalOpen, setContactModalOpen] = useState(false)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -152,13 +156,40 @@ const CheckoutPage = () => {
             The seller must confirm before a SOCCSKSARGEN rider is notified to collect and deliver your crates.
           </p>
 
-          <div className="flex flex-wrap gap-3 justify-center mt-6">
-            <Link to={`/orders/${placedOrder.id}/receipt`} className="btn-primary inline-flex items-center gap-2">
-              <Receipt className="h-4 w-4" /> View official receipt
+          {/* Estimated Delivery Date Bar */}
+          {placedOrder.status !== 'Cancelled' && (
+            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 rounded-2xl py-2 px-4 max-w-md mx-auto mt-4">
+              <Truck className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>Est. Delivery: <strong>{getEstimatedDeliveryDate(placedOrder.createdAt).dateRange}</strong></span>
+              <span className="text-emerald-400">·</span>
+              <span className="text-emerald-700 text-xs">{getEstimatedDeliveryDate(placedOrder.createdAt).etaText}</span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2.5 justify-center mt-6">
+            <button
+              type="button"
+              onClick={() => setContactModalOpen(true)}
+              className="btn-primary inline-flex items-center gap-1.5 py-2.5 px-4 font-semibold text-sm shadow-xs"
+            >
+              <MessageSquare className="h-4 w-4" /> Contact Seller
+            </button>
+            <Link to={`/orders/${placedOrder.id}/receipt`} className="btn-outline inline-flex items-center gap-1.5 py-2.5 px-4 text-sm font-semibold">
+              <Receipt className="h-4 w-4" /> View receipt
             </Link>
-            <Link to="/orders" className="btn-outline inline-flex items-center gap-2">
+            <Link to="/orders" className="btn-outline inline-flex items-center gap-1.5 py-2.5 px-4 text-sm font-semibold">
               <Package className="h-4 w-4" /> Track in My Purchases
             </Link>
+            {placedOrder.status === 'Pending' && (
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(true)}
+                className="text-xs sm:text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 font-semibold transition-colors inline-flex items-center gap-1"
+                title="Cancel order before farm confirms"
+              >
+                <AlertTriangle className="h-3.5 w-3.5" /> Cancel Order
+              </button>
+            )}
           </div>
         </div>
 
@@ -221,6 +252,21 @@ const CheckoutPage = () => {
             </Link>
           </div>
         </div>
+
+        {/* Cancel Order Modal */}
+        <CancelOrderModal
+          isOpen={cancelModalOpen}
+          order={placedOrder}
+          onClose={() => setCancelModalOpen(false)}
+          onSuccess={() => setPlacedOrder((prev) => (prev ? { ...prev, status: 'Cancelled' } : null))}
+        />
+
+        {/* Contact Seller Modal */}
+        <ContactSellerModal
+          isOpen={contactModalOpen}
+          order={placedOrder}
+          onClose={() => setContactModalOpen(false)}
+        />
       </div>
     )
   }

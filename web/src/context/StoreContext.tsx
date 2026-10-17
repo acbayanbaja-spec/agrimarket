@@ -234,6 +234,7 @@ type StoreContextType = {
   myApplication: SellerApplication | undefined
   reviewApplication: (id: string, status: 'Approved' | 'Rejected' | 'Needs Revision', reviewNotes?: string) => void
   updateOrderStatus: (id: string, status: Order['status']) => void
+  cancelOrder: (id: string, reason?: string) => Promise<boolean>
   updateOrderItemPrep: (orderId: string, productId: string, prepStatus: 'unpacked' | 'packing' | 'packed', notes?: string) => void
   packOrder: (orderId: string, packingNotes?: string) => void
   confirmOrder: (id: string, driverId?: number) => void
@@ -1439,6 +1440,55 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     )
   }
 
+  const cancelOrder: StoreContextType['cancelOrder'] = async (id, reason = 'Cancelled by buyer') => {
+    try {
+      await api.put(`/orders/${id}/status`, {
+        status: 'Cancelled',
+        cancellationReason: reason,
+        rejectedReason: reason,
+      })
+    } catch {
+      // fallback
+    }
+    void publishSyncEvent('ORDER_STATUS_UPDATED', { orderId: id, status: 'Cancelled' })
+    setOrders((current) => {
+      const updated = current.map((order) => {
+        if (order.id !== id) return order
+        const historyItem = {
+          status: 'Cancelled' as const,
+          timestamp: new Date().toISOString(),
+          changedByName: user ? `${user.firstName} ${user.lastName}` : 'Buyer',
+          changedByRole: 'buyer' as const,
+          note: reason,
+        }
+        const statusHistory = Array.isArray(order.statusHistory)
+          ? [...order.statusHistory, historyItem]
+          : [historyItem]
+        // Restore stock in local state if product exists
+        order.items.forEach((item) => {
+          const product = products.find((entry) => entry.id === item.productId)
+          if (product) updateProductStock(product.id, product.stock + item.quantity)
+        })
+        notify({
+          userId: order.userId,
+          title: 'Order Cancelled',
+          message: `Order #${order.id} has been cancelled.`,
+          href: '/orders',
+        })
+        return {
+          ...order,
+          status: 'Cancelled' as const,
+          statusHistory,
+        }
+      })
+      try {
+        localStorage.setItem('agrimarket.orders', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
+    return true
+  }
+
   const refreshRiders = async () => {
     try {
       const res = await api.get<{ success?: boolean; data?: AdminUser[] }>('/delivery/riders').catch(() =>
@@ -1961,6 +2011,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       myApplication: [...applications].reverse().find((item) => user && (item.userId === user.id || String(item.userId) === String(user.id))),
       reviewApplication,
       updateOrderStatus,
+      cancelOrder,
       updateOrderItemPrep,
       packOrder,
       confirmOrder,

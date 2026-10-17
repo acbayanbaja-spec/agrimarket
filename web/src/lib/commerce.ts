@@ -59,6 +59,22 @@ export function matchProduct(product: Product, query: string) {
   return haystack.includes(query.toLowerCase())
 }
 
+export function getEstimatedDeliveryDate(createdAt?: string | number | Date) {
+  const base = createdAt ? new Date(createdAt) : new Date()
+  const validBase = isNaN(base.getTime()) ? new Date() : base
+  const start = new Date(validBase)
+  start.setDate(start.getDate() + 1)
+  const end = new Date(validBase)
+  end.setDate(end.getDate() + 2)
+
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', weekday: 'short' }
+  return {
+    dateRange: `${start.toLocaleDateString('en-PH', opts)} – ${end.toLocaleDateString('en-PH', opts)}`,
+    etaText: '1–2 Days (SOCCSKSARGEN Express)',
+  }
+}
+
+
 export function filterByBudget<T extends { price: number; stock: number }>(products: T[], budget: number) {
   return products.filter((product) => product.stock > 0 && product.price <= budget).sort((a, b) => b.price - a.price)
 }

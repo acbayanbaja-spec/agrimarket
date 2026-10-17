@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import Seo from '../components/Seo'
@@ -6,7 +7,14 @@ import Seo from '../components/Seo'
 const MessagesPage = () => {
   const { messages, orders, sendSms, myListings } = useStore()
   const { user, hasRole } = useAuth()
-  const [body, setBody] = useState('Your harvest order is confirmed and being prepared fresh.')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const queryOrderId = searchParams.get('orderId')
+
+  const [body, setBody] = useState(
+    hasRole('seller')
+      ? 'Your harvest order is confirmed and being prepared fresh.'
+      : ''
+  )
   const [notice, setNotice] = useState('')
 
   const relevantOrders = useMemo(() => {
@@ -24,7 +32,14 @@ const MessagesPage = () => {
     return orders.filter((order) => order.userId === user.id || order.driverId === user.id)
   }, [orders, user, hasRole, myListings])
 
-  const [orderId, setOrderId] = useState(relevantOrders.find((order) => order.status !== 'Delivered')?.id || relevantOrders[0]?.id || '')
+  const initialOrderId = useMemo(() => {
+    if (queryOrderId && relevantOrders.some((o) => o.id === queryOrderId)) {
+      return queryOrderId
+    }
+    return relevantOrders.find((order) => order.status !== 'Delivered')?.id || relevantOrders[0]?.id || ''
+  }, [queryOrderId, relevantOrders])
+
+  const [orderId, setOrderId] = useState(initialOrderId)
   const activeOrder = relevantOrders.find((order) => order.id === orderId) || relevantOrders[0]
 
   const mine = useMemo(
@@ -45,19 +60,22 @@ const MessagesPage = () => {
     const fromRole = isSeller ? 'seller' : isDelivery ? 'delivery' : 'buyer'
     const toBuyer = isDelivery || isSeller
     const phone = toBuyer ? activeOrder.buyerPhone : user.phone
+    const sellerUserId = Number(activeOrder.items?.[0]?.sellerUserId) || 2
+    const targetUserId = toBuyer ? activeOrder.userId : sellerUserId
+
     const sent = sendSms({
       orderId: activeOrder.id,
       fromRole,
       fromName: `${user.firstName} ${user.lastName}`,
       fromUserId: user.id,
-      toUserId: toBuyer ? activeOrder.userId : (activeOrder.driverId || 4),
+      toUserId: targetUserId,
       phone,
       body: body.trim(),
     })
     setNotice(
       phone
-        ? `SMS ${sent.status} to ${phone}. It also appears in notifications.`
-        : 'Saved in-app. Add a mobile number to send a true SMS copy.'
+        ? `Message sent to ${toBuyer ? 'buyer' : 'farm seller'}.`
+        : 'Message delivered in-app.'
     )
     setBody('')
   }
