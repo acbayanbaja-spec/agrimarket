@@ -97,13 +97,13 @@ const OrdersPage = () => {
               <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
                   <h2 className="font-semibold text-lg">{order.id}</h2>
-                  <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()} · {order.receiptNo}</p>
+                  <p className="text-sm text-gray-500">{new Date(order.createdAt || Date.now()).toLocaleString()} · {order.receiptNo}</p>
                 </div>
                 <span className="rounded-full bg-primary-50 text-primary-800 px-3 py-1 text-sm font-semibold">{order.status}</span>
               </div>
               <ul className="text-sm text-gray-700 space-y-2 mb-4">
-                {order.items.map((item) => (
-                  <li key={item.productId} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-gray-50/70 border border-gray-100">
+                {(order.items || []).map((item) => (
+                  <li key={item.productId || Math.random()} className="flex items-center justify-between gap-3 p-2 rounded-xl bg-gray-50/70 border border-gray-100">
                     <div className="flex items-center gap-3">
                       <ProductImage src={item.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
                       <div>
@@ -120,9 +120,9 @@ const OrdersPage = () => {
                 ))}
               </ul>
               <p className="text-sm text-gray-500">{order.address} · {order.payment}{order.couponCode ? ` · ${order.couponCode}` : ''}</p>
-              <p className="text-sm text-amber-800 mt-2">+{order.pointsEarned} pts earned{order.pointsRedeemed ? ` · ${order.pointsRedeemed} pts used on shipping` : ''}</p>
+              <p className="text-sm text-amber-800 mt-2">+{Number(order.pointsEarned) || 0} pts earned{order.pointsRedeemed ? ` · ${order.pointsRedeemed} pts used on shipping` : ''}</p>
               <div className="mt-4"><OrderTimeline status={order.status} statusHistory={order.statusHistory} /></div>
-              <p className="font-bold mt-3">{formatPeso(order.total)}</p>
+              <p className="font-bold mt-3">{formatPeso(Number(order.total) || 0)}</p>
               <div className="flex gap-3 mt-4">
                 <Link to={`/orders/${order.id}/receipt`} className="btn-primary py-2">Receipt</Link>
                 <Link to="/messages" className="btn-outline py-2">Rider SMS</Link>

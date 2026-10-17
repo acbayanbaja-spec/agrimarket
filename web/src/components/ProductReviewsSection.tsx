@@ -55,7 +55,9 @@ export const ProductReviewsSection = ({ productId, rating, reviewCount }: Props)
   })
 
   // Review breakdown stats
-  const totalReviews = Math.max(reviews.length, reviewCount, 1)
+  const safeRating = typeof rating === 'number' && !isNaN(rating) ? rating : 5.0
+  const safeReviewCount = typeof reviewCount === 'number' && !isNaN(reviewCount) ? reviewCount : 0
+  const totalReviews = Math.max(reviews.length, safeReviewCount, 1)
   const fiveStars = reviews.filter((r) => r.rating === 5).length
   const fourStars = reviews.filter((r) => r.rating === 4).length
   const threeStars = reviews.filter((r) => r.rating === 3).length
@@ -92,14 +94,14 @@ export const ProductReviewsSection = ({ productId, rating, reviewCount }: Props)
         {/* Left score summary */}
         <div className="text-center md:border-r md:border-amber-200/60 md:pr-6 shrink-0">
           <div className="text-5xl font-black text-amber-700 font-display tracking-tight">
-            {rating.toFixed(1)}
+            {safeRating.toFixed(1)}
           </div>
           <div className="flex items-center justify-center gap-1 my-1.5">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 className={`h-5 w-5 ${
-                  star <= Math.round(rating)
+                  star <= Math.round(safeRating)
                     ? 'fill-amber-400 text-amber-400'
                     : 'text-gray-300'
                 }`}

@@ -620,10 +620,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // 1. When a product is created anywhere, immediately show on all devices
     socket.on('product_created', (newProd: Product) => {
-      setCentralProducts((current) => [newProd, ...current.filter((p) => p.id !== newProd.id)])
+      setCentralProducts((current) => {
+        const updated = [newProd, ...current.filter((p) => p.id !== newProd.id)]
+        try {
+          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+        } catch {}
+        return updated
+      })
     })
     socket.on('new_product', (newProd: Product) => {
-      setCentralProducts((current) => [newProd, ...current.filter((p) => p.id !== newProd.id)])
+      setCentralProducts((current) => {
+        const updated = [newProd, ...current.filter((p) => p.id !== newProd.id)]
+        try {
+          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+        } catch {}
+        return updated
+      })
     })
 
     // 2. When a product is updated, immediately update across all devices
@@ -1133,9 +1145,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const placeOrder: StoreContextType['placeOrder'] = (order) => {
-    if (user?.roles?.includes('admin')) {
-      throw new Error('Administrators cannot place orders. The admin role is for platform management only.')
-    }
     const stamp = Date.now().toString().slice(-8)
     const redeemed = user ? Math.max(0, Math.min(order.pointsRedeemed || 0, loyaltyPoints)) : 0
     const earned = user ? pointsFromSpend(order.subtotal) : 0
@@ -1152,7 +1161,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString(),
       driverId: undefined,
     }
-    setOrders((current) => [next, ...current])
+    setOrders((current) => {
+      const updated = [next, ...current.filter((o) => o.id !== next.id)]
+      try {
+        localStorage.setItem('agrimarket.orders', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
     void publishSyncEvent('ORDER_CREATED', { order: next })
     void api.post('/orders', next).catch(() => undefined)
     if (user) setLoyaltyPoints((current) => Math.max(0, current - redeemed + earned))
@@ -1657,7 +1672,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sellerName: user ? `${user.firstName} ${user.lastName}` : 'Farm stall',
       createdAt: new Date().toISOString(),
     }
-    setPosts((current) => [next, ...current])
+    setPosts((current) => {
+      const updated = [next, ...current]
+      try {
+        localStorage.setItem('agrimarket.posts', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
     void publishSyncEvent('POST_CREATED', { post: next })
     notify({
       userId: 'all',
@@ -1927,9 +1948,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unlistProduct,
       refreshCatalog,
       placeOrder,
-      myOrders: orders.filter((order) => user && order.userId === user.id),
+      myOrders: orders.filter((order) => {
+        if (!user) return false
+        if (user.roles?.includes('admin')) return true
+        return (
+          order.userId === user.id ||
+          String(order.userId) === String(user.id) ||
+          Boolean(user.phone && order.buyerPhone === user.phone)
+        )
+      }),
       submitApplication,
-      myApplication: [...applications].reverse().find((item) => user && item.userId === user.id),
+      myApplication: [...applications].reverse().find((item) => user && (item.userId === user.id || String(item.userId) === String(user.id))),
       reviewApplication,
       updateOrderStatus,
       updateOrderItemPrep,

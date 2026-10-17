@@ -40,14 +40,16 @@ export function pointsFromSpend(subtotal: number) {
 }
 
 export function harvestMeta(product: Product) {
+  const price = typeof product?.price === 'number' && !isNaN(product.price) ? product.price : (Number(product?.price) || 0)
+  const reviews = typeof product?.reviews === 'number' && !isNaN(product.reviews) ? product.reviews : (Number(product?.reviews) || 0)
   return {
-    sold: Math.max(product.reviews * 7, 18),
-    originalPrice: Math.round(product.price * 1.18),
-    points: Math.max(1, Math.floor(product.price / 10)),
+    sold: Math.max(reviews * 7, 18),
+    originalPrice: Math.round(price * 1.18),
+    points: Math.max(1, Math.floor(price / 10)),
     eta: 'Same-day to next-day inside SOCCSKSARGEN',
-    freshness: product.organic ? 'Dawn-picked and cold-packed' : 'Packed the same morning',
+    freshness: product?.organic ? 'Dawn-picked and cold-packed' : 'Packed the same morning',
     guarantee: 'Freshness guaranteed or harvest points back',
-    origin: `${product.seller} · ${product.location}`,
+    origin: `${product?.seller || 'Farm Stall'} · ${product?.location || 'SOCCSKSARGEN'}`,
   }
 }
 

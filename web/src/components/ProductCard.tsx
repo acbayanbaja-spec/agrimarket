@@ -120,9 +120,9 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
             <span className="text-sm font-medium text-gray-500"> / {product.unit}</span>
             <span className="block text-xs font-medium text-gray-400 line-through">{formatPeso(meta.originalPrice)}</span>
           </p>
-          {hasRole('admin') ? (
-            <span className="text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1.5 rounded-xl cursor-default" title="Admins cannot order products (management only account)">
-              Manage only
+          {hasRole('delivery') ? (
+            <span className="text-xs font-semibold text-primary-800 bg-primary-50 border border-primary-200 px-2.5 py-1.5 rounded-xl cursor-default">
+              Rider Desk
             </span>
           ) : (
             <button

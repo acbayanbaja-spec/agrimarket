@@ -4,15 +4,23 @@ import type { Product } from '../data/catalog'
 export type CartItem = {
   product: Product
   quantity: number
+  selected?: boolean
 }
 
 type CartContextType = {
   items: CartItem[]
   count: number
+  selectedCount: number
   subtotal: number
+  selectedSubtotal: number
+  selectedItems: CartItem[]
   addItem: (product: Product, quantity?: number) => void
   updateQuantity: (productId: string, quantity: number) => void
   removeItem: (productId: string) => void
+  removeItems: (productIds: string[]) => void
+  removeSelectedItems: () => void
+  toggleSelect: (productId: string) => void
+  selectAll: (selected: boolean) => void
   clear: () => void
 }
 
@@ -21,10 +29,12 @@ const STORAGE_KEY = 'agrimarket.cart'
 
 function normalizeCartItem(raw: any): CartItem | null {
   if (!raw || typeof raw !== 'object') return null
+  const selected = raw.selected !== undefined ? Boolean(raw.selected) : true
   if (raw.product && typeof raw.product === 'object' && raw.product.id) {
     return {
       product: raw.product,
       quantity: Math.max(1, Number(raw.quantity) || 1),
+      selected,
     }
   }
   const id = raw.id || raw.productId
@@ -53,6 +63,7 @@ function normalizeCartItem(raw: any): CartItem | null {
         priceHistory: Array.isArray(raw.priceHistory) ? raw.priceHistory : [],
       },
       quantity: Math.max(1, Number(raw.quantity) || 1),
+      selected,
     }
   }
   return null
@@ -92,11 +103,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) {
         return valid.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock || 99) }
+            ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock || 99), selected: true }
             : item
         )
       }
-      return [...valid, { product, quantity: Math.max(1, quantity) }]
+      return [...valid, { product, quantity: Math.max(1, quantity), selected: true }]
     })
   }
 
@@ -117,13 +128,65 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     )
   }
 
+  const removeItems = (productIds: string[]) => {
+    const idSet = new Set(productIds)
+    setItems((current) =>
+      current
+        .filter((item): item is CartItem => Boolean(item && item.product && item.product.id))
+        .filter((item) => !idSet.has(item.product.id))
+    )
+  }
+
+  const removeSelectedItems = () => {
+    setItems((current) =>
+      current
+        .filter((item): item is CartItem => Boolean(item && item.product && item.product.id))
+        .filter((item) => item.selected === false)
+    )
+  }
+
+  const toggleSelect = (productId: string) => {
+    setItems((current) =>
+      current.map((item) =>
+        item.product.id === productId ? { ...item, selected: !(item.selected !== false) } : item
+      )
+    )
+  }
+
+  const selectAll = (selected: boolean) => {
+    setItems((current) => current.map((item) => ({ ...item, selected })))
+  }
+
   const clear = () => setItems([])
 
   const value = useMemo(() => {
     const valid = items.filter((item): item is CartItem => Boolean(item && item.product && item.product.id))
     const subtotal = valid.reduce((sum, item) => sum + (Number(item.product.price) || 0) * (Number(item.quantity) || 1), 0)
     const count = valid.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
-    return { items: valid, count, subtotal, addItem, updateQuantity, removeItem, clear }
+
+    const selectedItems = valid.filter((item) => item.selected !== false)
+    const selectedCount = selectedItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+    const selectedSubtotal = selectedItems.reduce(
+      (sum, item) => sum + (Number(item.product.price) || 0) * (Number(item.quantity) || 1),
+      0
+    )
+
+    return {
+      items: valid,
+      count,
+      selectedCount,
+      subtotal,
+      selectedSubtotal,
+      selectedItems,
+      addItem,
+      updateQuantity,
+      removeItem,
+      removeItems,
+      removeSelectedItems,
+      toggleSelect,
+      selectAll,
+      clear,
+    }
   }, [items])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

@@ -27,12 +27,12 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const openSheet = (next: Product) => {
     if (next.stock <= 0) return
-    if (hasRole('admin')) {
-      toast('Admins cannot place orders. The admin role is for management only.')
+    if (hasRole('delivery')) {
+      toast('Delivery riders do not place orders. Manage parcels in your Delivery Desk.')
       return
     }
-    const allowed = isAuthenticated && (hasRole('buyer') || hasRole('seller'))
-    if (!allowed) {
+    if (!isAuthenticated) {
+      toast('Please log in or sign up to order harvests', '/login')
       navigate('/login', { state: { from: `/products/${next.id}` } })
       return
     }
@@ -41,12 +41,12 @@ export const CartSheetProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }
 
   const meta = product ? harvestMeta(product) : null
-  const total = product ? product.price * quantity : 0
+  const total = product ? (Number(product.price) || 0) * quantity : 0
 
   const confirm = () => {
     if (!product) return
-    if (hasRole('admin')) {
-      toast('Admins cannot place orders. The admin role is for management only.')
+    if (hasRole('delivery')) {
+      toast('Delivery riders do not place orders. Manage parcels in your Delivery Desk.')
       setProduct(null)
       return
     }

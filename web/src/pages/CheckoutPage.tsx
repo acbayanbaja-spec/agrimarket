@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Coins, MapPin } from 'lucide-react'
+import { CheckCircle2, Coins, MapPin, Package, Receipt, ArrowRight } from 'lucide-react'
 import { useCart } from '../context/CartContext'
-import { useStore } from '../context/StoreContext'
+import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
 import { pointsFromSpend } from '../lib/commerce'
@@ -10,9 +10,10 @@ import { shippingCoupons } from '../data/catalog'
 import { soccsksargenPlaces } from '../data/locations'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
+import OrderTimeline from '../components/OrderTimeline'
 
 const CheckoutPage = () => {
-  const { items, subtotal, clear } = useCart()
+  const { items, removeItems } = useCart()
   const { placeOrder, applyCoupon, loyaltyPoints } = useStore()
   const { user, hasRole } = useAuth()
   const [usePoints, setUsePoints] = useState(true)
@@ -24,17 +25,26 @@ const CheckoutPage = () => {
   const [couponMsg, setCouponMsg] = useState('')
   const [shippingDiscount, setShippingDiscount] = useState(0)
   const [couponCode, setCouponCode] = useState<string | undefined>()
-  const [placed, setPlaced] = useState<string | null>(null)
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
   const place = soccsksargenPlaces.find((item) => item.label === city) || soccsksargenPlaces[0]
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: place.lat, lng: place.lng })
   const [gpsNote, setGpsNote] = useState('Using the selected SOCCSKSARGEN city pin until you share GPS.')
 
   const validItems = useMemo(() => {
-    return (items || []).filter((item): item is any => Boolean(item && item.product && item.product.id))
+    return (items || []).filter(
+      (item): item is any =>
+        Boolean(item && item.product && item.product.id && item.selected !== false)
+    )
   }, [items])
 
   const safeSubtotal = useMemo(() => {
-    return validItems.reduce((sum, item) => sum + (Number(item.product?.price) || 0) * (Number(item.quantity) || 1), 0)
+    return validItems.reduce(
+      (sum, item) => sum + (Number(item.product?.price) || 0) * (Number(item.quantity) || 1),
+      0
+    )
   }, [validItems])
 
   const shippingFee = safeSubtotal >= 500 ? 0 : 50
@@ -45,14 +55,14 @@ const CheckoutPage = () => {
   const total = safeSubtotal + payableShipping
   const willEarn = pointsFromSpend(safeSubtotal)
 
+  const couponHints = useMemo(() => shippingCoupons.map((item) => item.code).join(', '), [])
+
   const tryCoupon = () => {
     const result = applyCoupon(couponInput, shippingFee, safeSubtotal)
     setCouponMsg(result.message)
     setShippingDiscount(result.ok ? result.discount : 0)
     setCouponCode(result.ok ? result.code : undefined)
   }
-
-  const couponHints = useMemo(() => shippingCoupons.map((item) => item.code).join(', '), [])
 
   const pinGps = () => {
     if (!navigator.geolocation) {
@@ -68,67 +78,8 @@ const CheckoutPage = () => {
     )
   }
 
-  if (hasRole('admin')) {
-    return (
-      <div className="page-shell max-w-2xl text-center">
-        <div className="card p-8 animate-fade-up">
-          <h1 className="text-3xl font-bold mb-3">Ordering Restricted</h1>
-          <p className="text-gray-600 mb-6">
-            Administrators cannot place orders because the admin role is reserved for platform management and moderation only.
-          </p>
-          <Link to="/admin-dashboard" className="btn-primary">Go to Admin Control Center</Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (hasRole('delivery')) {
-    return (
-      <div className="page-shell max-w-2xl text-center">
-        <div className="card p-8 animate-fade-up">
-          <h1 className="text-3xl font-bold mb-3">Delivery Rider Desk</h1>
-          <p className="text-gray-600 mb-6">
-            Delivery riders do not place orders. Manage assigned deliveries in your Delivery Command Desk.
-          </p>
-          <Link to="/delivery" className="btn-primary">Open Delivery Command Desk</Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (validItems.length === 0 && !placed) {
-    return (
-      <div className="page-shell text-center">
-        <h1 className="text-3xl font-bold mb-3">Nothing to check out</h1>
-        <p className="text-gray-600 mb-6">Your basket is currently empty. Browse farm produce from the marketplace.</p>
-        <Link to="/marketplace" className="btn-primary">Shop first</Link>
-      </div>
-    )
-  }
-
-  if (placed) {
-    return (
-      <div className="page-shell max-w-lg text-center">
-        <div className="card animate-fade-up">
-          <h1 className="text-3xl font-bold mb-2">Waiting for seller confirmation</h1>
-          <p className="text-gray-600">
-            {placed} is with the farm stall. The seller must confirm before a rider is notified. You will get a ping when it is packed, shipped, and out for delivery inside SOCCSKSARGEN.
-          </p>
-          <div className="flex gap-3 justify-center mt-6">
-            <Link to={`/orders/${placed}/receipt`} className="btn-primary">View receipt</Link>
-            <Link to="/orders" className="btn-outline">Track order</Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (hasRole('admin')) return
     if (payment === 'GCash' && gcashRef.trim().length < 4) return
     setErrorMessage(null)
     setIsSubmitting(true)
@@ -160,13 +111,133 @@ const CheckoutPage = () => {
         lng: coords.lng || selected.lng,
         pointsRedeemed,
       })
-      clear()
-      setPlaced(order.id)
+      const checkedOutIds = validItems.map((item) => item.product.id)
+      removeItems(checkedOutIds)
+      setPlacedOrder(order)
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to place order. Please check item stock and try again.')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (hasRole('delivery')) {
+    return (
+      <div className="page-shell max-w-2xl text-center">
+        <div className="card p-8 animate-fade-up">
+          <h1 className="text-3xl font-bold mb-3">Delivery Rider Desk</h1>
+          <p className="text-gray-600 mb-6">
+            Delivery riders do not place orders. Manage assigned deliveries in your Delivery Command Desk.
+          </p>
+          <Link to="/delivery" className="btn-primary">Open Delivery Command Desk</Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (placedOrder) {
+    return (
+      <div className="page-shell max-w-3xl space-y-6">
+        <Seo title={`Order Placed #${placedOrder.id}`} description="Your harvest order is placed." path="/checkout" />
+        <div className="card p-6 sm:p-8 text-center animate-fade-up">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4 ring-8 ring-emerald-50">
+            <CheckCircle2 className="h-10 w-10" />
+          </div>
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-100 text-primary-800 uppercase tracking-wider">
+            Order Confirmed · Waiting for Seller
+          </span>
+          <h1 className="text-3xl font-extrabold mt-3 text-gray-900">Harvest Reserved!</h1>
+          <p className="text-gray-600 max-w-lg mx-auto mt-2 text-sm sm:text-base">
+            Order <strong className="text-gray-900">#{placedOrder.id}</strong> ({placedOrder.receiptNo}) has been transmitted to the farm stalls.
+            The seller must confirm before a SOCCSKSARGEN rider is notified to collect and deliver your crates.
+          </p>
+
+          <div className="flex flex-wrap gap-3 justify-center mt-6">
+            <Link to={`/orders/${placedOrder.id}/receipt`} className="btn-primary inline-flex items-center gap-2">
+              <Receipt className="h-4 w-4" /> View official receipt
+            </Link>
+            <Link to="/orders" className="btn-outline inline-flex items-center gap-2">
+              <Package className="h-4 w-4" /> Track in My Purchases
+            </Link>
+          </div>
+        </div>
+
+        {/* Real-time Order Timeline */}
+        <div className="card p-4 sm:p-6 animate-fade-up">
+          <h2 className="font-bold text-gray-900 mb-3 text-sm sm:text-base flex items-center justify-between">
+            <span>Status Timeline</span>
+            <span className="text-xs font-normal text-gray-500">{new Date(placedOrder.createdAt || Date.now()).toLocaleString()}</span>
+          </h2>
+          <OrderTimeline status={placedOrder.status} statusHistory={placedOrder.statusHistory} />
+        </div>
+
+        {/* Order Details & Items Card */}
+        <div className="card p-5 sm:p-6 space-y-5 animate-fade-up">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h2 className="font-bold text-lg text-gray-900">Order Items</h2>
+              <p className="text-xs text-gray-500">Shipped direct from regional growers</p>
+            </div>
+            <span className="text-xs font-semibold text-primary-700 bg-primary-50 px-2.5 py-1 rounded-lg">
+              {placedOrder.items.length} {placedOrder.items.length === 1 ? 'variety' : 'varieties'}
+            </span>
+          </div>
+
+          <ul className="divide-y divide-gray-100">
+            {placedOrder.items.map((item) => (
+              <li key={item.productId} className="py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <ProductImage src={item.image} alt={item.name} className="h-12 w-12 rounded-xl object-cover" />
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm sm:text-base">{item.name}</p>
+                    <p className="text-xs text-gray-500">
+                      Seller: <span className="font-medium text-primary-800">{item.seller}</span> · Qty: <strong>{item.quantity}</strong>
+                    </p>
+                  </div>
+                </div>
+                <p className="font-bold text-sm sm:text-base text-gray-900">{formatPeso((Number(item.price) || 0) * (Number(item.quantity) || 1))}</p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-gray-100 text-sm">
+            <div className="bg-gray-50 rounded-xl p-3.5 space-y-1">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Delivery Destination</p>
+              <p className="font-semibold text-gray-900">{placedOrder.buyerName}</p>
+              <p className="text-gray-600 text-xs sm:text-sm">{placedOrder.address}</p>
+              <p className="text-gray-500 text-xs">{placedOrder.buyerPhone || user?.phone || 'Mobile provided'}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3.5 space-y-1">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment & Total</p>
+              <p className="font-semibold text-gray-900">{placedOrder.payment} {placedOrder.paymentRef ? `· ${placedOrder.paymentRef}` : ''}</p>
+              <p className="text-gray-600 text-xs sm:text-sm">Subtotal: {formatPeso(placedOrder.subtotal)} + Delivery: {formatPeso(placedOrder.shippingFee)}</p>
+              <p className="text-primary-800 font-bold text-base pt-1">Total: {formatPeso(placedOrder.total)}</p>
+            </div>
+          </div>
+
+          <div className="pt-2 text-center">
+            <Link to="/marketplace" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-800">
+              Continue shopping fresh produce <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (validItems.length === 0) {
+    return (
+      <div className="page-shell text-center max-w-lg mx-auto">
+        <div className="card p-8 animate-fade-up">
+          <h1 className="text-3xl font-bold mb-3">Nothing to check out</h1>
+          <p className="text-gray-600 mb-6">Your basket is currently empty or no produce was checked for checkout.</p>
+          <div className="flex gap-3 justify-center">
+            <Link to="/cart" className="btn-primary">Go to Cart</Link>
+            <Link to="/marketplace" className="btn-outline">Browse marketplace</Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -215,43 +286,47 @@ const CheckoutPage = () => {
           <div className="grid sm:grid-cols-2 gap-3">
             {(['Cash on delivery', 'GCash'] as const).map((method) => (
               <button
-                key={method}
                 type="button"
+                key={method}
+                className={`p-4 rounded-2xl border text-left transition-all ${
+                  payment === method ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-200' : 'border-gray-200 hover:border-gray-300'
+                }`}
                 onClick={() => setPayment(method)}
-                className={`rounded-2xl border-2 p-4 text-left min-h-[72px] ${payment === method ? 'border-primary-600 bg-primary-50' : 'border-gray-200'}`}
               >
                 <p className="font-semibold">{method}</p>
-                <p className="text-sm text-gray-600">{method === 'GCash' ? 'Send to AgriMarket Treasury and paste the reference.' : 'Pay the rider on arrival.'}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {method === 'GCash' ? 'Enter reference after sending to the stall QR' : 'Pay rider upon drop-off inside SOCCSKSARGEN'}
+                </p>
               </button>
             ))}
           </div>
         </div>
         {payment === 'GCash' && (
-          <div className="rounded-2xl bg-sky-50 border border-sky-100 p-4 space-y-2">
-            <p className="font-semibold text-sky-950">GCash Digital Settlement</p>
-            <p className="text-sm text-gray-700">
-              Send {formatPeso(total)} to <strong>0917 000 2468</strong> (AgriMarket Treasury).
-            </p>
+          <div className="rounded-2xl border border-primary-200 bg-primary-50/60 p-4 space-y-3">
+            <p className="font-semibold text-sm">GCash payment reference</p>
+            <p className="text-xs text-gray-600">Scan stall QR or send to 0917-000-FARM. Input reference number below.</p>
             <input
               required
-              className="input-field"
-              placeholder="GCash reference number (e.g. 9012 3456 7890)"
+              className="input-field bg-white"
+              placeholder="e.g. 1002 9384 1120"
               value={gcashRef}
               onChange={(event) => setGcashRef(event.target.value)}
             />
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-[11px] text-amber-900 leading-snug">
-              <strong>Treasury Notice:</strong> Digital payment status remains <em>Pending Verification</em> until reconciliation. AgriMarket never claims funds are held in escrow or settled without genuine payment provider confirmation.
-            </div>
           </div>
         )}
-        <div>
-          <label className="label">Shipping coupon</label>
+        <div className="rounded-2xl border border-gray-200 p-4 space-y-3">
+          <p className="font-semibold text-sm">Shipping discount voucher</p>
           <div className="flex gap-2">
-            <input className="input-field" placeholder="SHIP50 / FREESHIP" value={couponInput} onChange={(event) => setCouponInput(event.target.value)} />
-            <button type="button" className="btn-outline" onClick={tryCoupon}>Apply</button>
+            <input
+              className="input-field uppercase"
+              placeholder="Voucher code"
+              value={couponInput}
+              onChange={(event) => setCouponInput(event.target.value)}
+            />
+            <button type="button" className="btn-outline whitespace-nowrap" onClick={tryCoupon}>Apply</button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Coupons discount shipping only. Try {couponHints}.</p>
-          {couponMsg && <p className="text-sm mt-2 text-primary-800">{couponMsg}</p>}
+          {couponMsg && <p className="text-xs text-primary-700 font-medium">{couponMsg}</p>}
+          <p className="text-xs text-gray-400">Available demo vouchers: {couponHints}</p>
         </div>
         <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 cursor-pointer">
           <input type="checkbox" className="mt-1" checked={usePoints} onChange={(event) => setUsePoints(event.target.checked)} />
@@ -274,7 +349,7 @@ const CheckoutPage = () => {
         </button>
       </form>
       <aside className="card h-fit">
-        <h2 className="font-semibold mb-4">Your basket</h2>
+        <h2 className="font-semibold mb-4">Checked Harvests</h2>
         <ul className="space-y-3 text-sm">
           {validItems.map((item) => {
             const prod = item.product || {}

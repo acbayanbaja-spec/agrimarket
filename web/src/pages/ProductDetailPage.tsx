@@ -66,20 +66,42 @@ const ProductDetailPage = () => {
   const [remoteProduct, setRemoteProduct] = useState<Product | null>(null)
   const [productLoading, setProductLoading] = useState(false)
 
+  const cleanId = String(id || '').trim().toLowerCase()
   const localSavedProduct: Product | undefined = (() => {
     try {
       const raw = localStorage.getItem('agrimarket.products')
       const list: Product[] = raw ? JSON.parse(raw) : []
-      return list.find((item) => item.id === id || String(item.id).toLowerCase() === String(id || '').toLowerCase())
+      return list.find((item) => {
+        const itemId = String(item.id || '').trim().toLowerCase()
+        return itemId === cleanId || itemId.includes(cleanId) || cleanId.includes(itemId)
+      })
     } catch {
       return undefined
     }
   })()
 
+  // Match from store, local storage, or post reference
   const catalogProduct =
-    products.find((item) => item.id === id || String(item.id).toLowerCase() === String(id || '').toLowerCase()) ||
-    allProducts.find((item) => item.id === id || String(item.id).toLowerCase() === String(id || '').toLowerCase()) ||
-    localSavedProduct
+    products.find((item) => {
+      const itemId = String(item.id || '').trim().toLowerCase()
+      return itemId === cleanId || itemId.includes(cleanId) || cleanId.includes(itemId)
+    }) ||
+    allProducts.find((item) => {
+      const itemId = String(item.id || '').trim().toLowerCase()
+      return itemId === cleanId || itemId.includes(cleanId) || cleanId.includes(itemId)
+    }) ||
+    localSavedProduct ||
+    (() => {
+      const postMatch = posts.find((p) => String(p.productId || '').trim().toLowerCase() === cleanId)
+      if (postMatch) {
+        return (
+          products.find((p) => p.name.toLowerCase() === (postMatch.productName || '').toLowerCase()) ||
+          allProducts.find((p) => p.name.toLowerCase() === (postMatch.productName || '').toLowerCase())
+        )
+      }
+      return undefined
+    })()
+
   const product = catalogProduct || remoteProduct
   const feedback = product ? reviewsFor(product.id) : []
 
@@ -102,10 +124,21 @@ const ProductDetailPage = () => {
     api
       .get<{ data?: { product?: Product } }>(`/products/${id}`)
       .then((res) => {
-        if (!cancelled) setRemoteProduct(res.data?.data?.product || null)
+        if (!cancelled && res.data?.data?.product) {
+          setRemoteProduct(res.data.data.product)
+        }
       })
       .catch(() => {
-        if (!cancelled) setRemoteProduct(null)
+        // Fallback search by query parameter if direct ID was not found
+        api
+          .get<{ data?: { products?: Product[] } }>(`/products?search=${encodeURIComponent(id)}`)
+          .then((searchRes) => {
+            const found = searchRes.data?.data?.products?.[0]
+            if (!cancelled) setRemoteProduct(found || null)
+          })
+          .catch(() => {
+            if (!cancelled) setRemoteProduct(null)
+          })
       })
       .finally(() => {
         if (!cancelled) setProductLoading(false)
@@ -144,8 +177,12 @@ const ProductDetailPage = () => {
     relatedRemote.length > 0
       ? relatedRemote
       : recommended.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4)
-  const gallery = product.photos?.length ? product.photos : [product.image]
-  const out = product.stock <= 0
+  const gallery = (product.photos && product.photos.length > 0)
+    ? product.photos.filter((p): p is string => Boolean(p && typeof p === 'string'))
+    : [product.image || '/images/farm.jpg']
+  const productPrice = typeof product.price === 'number' && !isNaN(product.price) ? product.price : (Number(product.price) || 0)
+  const productStock = typeof product.stock === 'number' && !isNaN(product.stock) ? product.stock : (Number(product.stock) || 0)
+  const out = productStock <= 0
   const meta = harvestMeta(product)
   const sellerFeed = posts.filter((post) => post.productId === product.id || (post.sellerName === product.seller && post.category === product.category)).slice(0, 4)
 
@@ -153,13 +190,13 @@ const ProductDetailPage = () => {
     (product as any).variations && (product as any).variations.length > 0
       ? (product as any).variations
       : [
-          { id: 'var-1', name: `Single ${product.unit || 'kg'} Pack`, multiplier: 1, price: product.price, unit: product.unit || 'kg', inStock: product.stock > 0 },
-          { id: 'var-2', name: `5× ${product.unit || 'kg'} Value Bundle`, multiplier: 5, price: Math.round(product.price * 5 * 0.95), unit: product.unit || 'kg', inStock: product.stock >= 5 },
-          { id: 'var-3', name: `25× ${product.unit || 'kg'} Wholesale Crate`, multiplier: 25, price: Math.round(product.price * 25 * 0.90), unit: product.unit || 'kg', inStock: product.stock >= 25 },
+          { id: 'var-1', name: `Single ${product.unit || 'kg'} Pack`, multiplier: 1, price: productPrice, unit: product.unit || 'kg', inStock: productStock > 0 },
+          { id: 'var-2', name: `5× ${product.unit || 'kg'} Value Bundle`, multiplier: 5, price: Math.round(productPrice * 5 * 0.95), unit: product.unit || 'kg', inStock: productStock >= 5 },
+          { id: 'var-3', name: `25× ${product.unit || 'kg'} Wholesale Crate`, multiplier: 25, price: Math.round(productPrice * 25 * 0.90), unit: product.unit || 'kg', inStock: productStock >= 25 },
         ]
 
   const activeVariation = variations.find((v) => v.id === selectedVariationId) || variations[0]
-  const currentPrice = activeVariation ? activeVariation.price : product.price
+  const currentPrice = activeVariation ? activeVariation.price : productPrice
 
   const recentlyViewedProducts = recentlyViewedIds
     .map((viewedId) => products.find((p) => p.id === viewedId))
@@ -174,10 +211,6 @@ const ProductDetailPage = () => {
   }
 
   const addToCart = () => {
-    if (hasRole('admin')) {
-      toast('Admins cannot place orders. The admin role is for management only.')
-      return
-    }
     if (hasRole('delivery')) {
       toast('Delivery riders do not place orders. Manage parcels in your Delivery Desk.')
       return
@@ -327,12 +360,7 @@ const ProductDetailPage = () => {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-4 mt-8">
-            {hasRole('admin') ? (
-              <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl text-sm font-semibold">
-                <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
-                <span>Admin View (Management Only): Administrators cannot order harvests.</span>
-              </div>
-            ) : hasRole('delivery') ? (
+            {hasRole('delivery') ? (
               <div className="flex items-center gap-3 bg-primary-50 border border-primary-200 text-primary-900 px-4 py-3 rounded-2xl text-sm font-semibold w-full">
                 <Truck className="h-5 w-5 text-primary-600 shrink-0" />
                 <span>Rider View: Deliveries are managed through the Delivery Command Desk.</span>
@@ -340,7 +368,7 @@ const ProductDetailPage = () => {
               </div>
             ) : (
               <>
-                <QuantityStepper value={quantity} max={Math.max(product.stock, 1)} onChange={setQuantity} disabled={out} />
+                <QuantityStepper value={quantity} max={Math.max(productStock, 1)} onChange={setQuantity} disabled={out} />
                 <button type="button" className="btn-primary" disabled={out} onClick={addToCart}>
                   {out ? 'Out of stock' : `Confirm add · ${formatPeso(currentPrice * quantity)}`}
                 </button>
@@ -361,8 +389,8 @@ const ProductDetailPage = () => {
                 <Heart className={`h-5 w-5 ${isWishlisted(product.id) ? 'fill-rose-500' : ''}`} />
               </button>
             )}
-            {/* Offer a trade is hidden from admin and delivery roles */}
-            {product.tradeable && !hasRole('admin') && !hasRole('delivery') && (
+            {/* Offer a trade is hidden from delivery roles */}
+            {product.tradeable && !hasRole('delivery') && (
               <Link to={`/trades?want=${product.id}`} className="btn-outline">
                 Offer a trade
               </Link>
@@ -381,7 +409,7 @@ const ProductDetailPage = () => {
             {sellerFeed.map((post) => (
               <article key={post.id} className="border-b border-gray-100 pb-4 last:border-0">
                 <p className="font-semibold">{post.sellerName}</p>
-                <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleString()} · {post.category}</p>
+                <p className="text-xs text-gray-500">{new Date(post.createdAt || Date.now()).toLocaleString()} · {post.category}</p>
                 <p className="text-gray-800 mt-2">{post.body}</p>
               </article>
             ))}
@@ -394,8 +422,8 @@ const ProductDetailPage = () => {
       <div className="mt-12">
         <ProductReviewsSection
           productId={product.id}
-          rating={product.rating}
-          reviewCount={product.reviews}
+          rating={typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 5}
+          reviewCount={typeof product.reviews === 'number' && !isNaN(product.reviews) ? product.reviews : 0}
         />
       </div>
 
@@ -403,7 +431,13 @@ const ProductDetailPage = () => {
         <h2 className="text-xl font-semibold mb-4">Price monitoring (Historical Regional Pricing)</h2>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={product.priceHistory}>
+            <LineChart
+              data={
+                Array.isArray(product.priceHistory) && product.priceHistory.length > 0
+                  ? product.priceHistory
+                  : [{ date: 'Today', price: productPrice }]
+              }
+            >
               <XAxis dataKey="date" />
               <YAxis tickFormatter={(v) => `₱${v}`} />
               <Tooltip formatter={(value) => formatPeso(Number(value))} />

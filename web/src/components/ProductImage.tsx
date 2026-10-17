@@ -9,6 +9,7 @@ type Props = {
 const FALLBACK = '/images/fallback.svg'
 
 function backupFor(src: string) {
+  if (!src || typeof src !== 'string') return FALLBACK
   if (src.endsWith('.jpg') || src.endsWith('.jpeg') || src.endsWith('.png') || src.endsWith('.webp')) {
     return src.replace(/\.(jpg|jpeg|png|webp)$/i, '.svg')
   }
