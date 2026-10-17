@@ -232,7 +232,9 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       sellerUserId,
       location: body.location || 'Koronadal City, South Cotabato',
       image: body.image || '/images/farm.jpg',
-      photos: Array.isArray(body.photos) && body.photos.length ? body.photos : [body.image || '/images/farm.jpg'],
+      photos: Array.isArray(body.photos) && body.photos.length
+        ? [body.image || '/images/farm.jpg', ...body.photos.filter((p: string) => p !== body.image)]
+        : [body.image || '/images/farm.jpg'],
       description: body.description || '',
       organic: Boolean(body.organic),
       tradeable: body.tradeable ?? true,
@@ -324,6 +326,10 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     const updates: Partial<ProductEntity> = { ...req.body };
+
+    if (updates.image && (!updates.photos || !updates.photos.length)) {
+      updates.photos = [updates.image, ...(product.photos || []).filter((p) => p !== updates.image)];
+    }
 
     // Update availability status if stock changed
     if (updates.stock !== undefined) {

@@ -624,7 +624,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCentralProducts((current) => {
         const updated = [newProd, ...current.filter((p) => p.id !== newProd.id)]
         try {
-          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+          saveStorage('agrimarket.products', updated)
         } catch {}
         return updated
       })
@@ -633,7 +633,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCentralProducts((current) => {
         const updated = [newProd, ...current.filter((p) => p.id !== newProd.id)]
         try {
-          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+          saveStorage('agrimarket.products', updated)
         } catch {}
         return updated
       })
@@ -822,69 +822,77 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [])
 
+  const saveStorage = (key: string, value: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch (err) {
+      console.warn("Storage skipped for " + key, err)
+    }
+  }
+
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.products', JSON.stringify(centralProducts))
+    saveStorage('agrimarket.products', centralProducts)
   }, [centralProducts, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.stock', JSON.stringify(stockOverrides))
+    saveStorage('agrimarket.stock', stockOverrides)
   }, [stockOverrides, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.prices', JSON.stringify(priceOverrides))
+    saveStorage('agrimarket.prices', priceOverrides)
   }, [priceOverrides, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.orders', JSON.stringify(orders))
+    saveStorage('agrimarket.orders', orders)
   }, [orders, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.applications', JSON.stringify(applications))
+    saveStorage('agrimarket.applications', applications)
   }, [applications, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem(APPROVED_KEY, JSON.stringify(approvedSellerIds))
+    saveStorage(APPROVED_KEY, approvedSellerIds)
   }, [approvedSellerIds, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.reviews', JSON.stringify(reviews))
+    saveStorage('agrimarket.reviews', reviews)
   }, [reviews, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.posts', JSON.stringify(posts))
+    saveStorage('agrimarket.posts', posts)
   }, [posts, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.trades', JSON.stringify(trades))
+    saveStorage('agrimarket.trades', trades)
   }, [trades, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.notifications', JSON.stringify(notifications))
+    saveStorage('agrimarket.notifications', notifications)
   }, [notifications, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.sms', JSON.stringify(messages))
+    saveStorage('agrimarket.sms', messages)
   }, [messages, hydrated])
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.follows', JSON.stringify(followedCategories))
+    saveStorage('agrimarket.follows', followedCategories)
   }, [followedCategories, hydrated])
 
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.wishlist', JSON.stringify(wishlist))
+    saveStorage('agrimarket.wishlist', wishlist)
   }, [wishlist, hydrated])
 
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.claimedVouchers', JSON.stringify(claimedVouchers))
+    saveStorage('agrimarket.claimedVouchers', claimedVouchers)
   }, [claimedVouchers, hydrated])
 
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem('agrimarket.streakDays', JSON.stringify(streakDays))
-    localStorage.setItem('agrimarket.lastCheckInDate', JSON.stringify(lastCheckInDate))
+    saveStorage('agrimarket.streakDays', streakDays)
+    saveStorage('agrimarket.lastCheckInDate', lastCheckInDate)
   }, [streakDays, lastCheckInDate, hydrated])
 
   useEffect(() => {
@@ -981,9 +989,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const rating = productReviews.length
         ? Number((productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length).toFixed(1))
         : product.rating
+      const image = product.image || (product.photos && product.photos[0]) || '/images/farm.jpg'
+      const rawPhotos = [image, ...(Array.isArray(product.photos) ? product.photos : [])].filter((p) => Boolean(p && typeof p === 'string' && p.trim().length > 0))
+      const photos = Array.from(new Set(rawPhotos.length > 0 ? rawPhotos : ['/images/farm.jpg']))
       return {
         ...product,
-        photos: product.photos?.length ? product.photos : [product.image],
+        image,
+        photos,
         lat: product.lat ?? 6.5004,
         lng: product.lng ?? 124.8436,
         sellerUserId: product.sellerUserId ?? (product.sellerId === 'seller-1' ? 2 : 0),
@@ -1005,9 +1017,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const sellerUserId = user ? user.id : 2
     const seller = user ? `${user.firstName} ${user.lastName}` : 'Green Valley Farm'
     const sellerId = user ? `seller-${user.id}` : 'seller-1'
+    const image = product.image || '/images/farm.jpg'
+    const rawPhotos = [image, ...(Array.isArray(product.photos) ? product.photos : [])].filter((p) => Boolean(p && typeof p === 'string' && p.trim().length > 0))
+    const photos = Array.from(new Set(rawPhotos.length > 0 ? rawPhotos : ['/images/farm.jpg']))
     const next: Product = {
       ...product,
-      photos: product.photos?.length ? product.photos : [product.image],
+      image,
+      photos,
       id: `prod-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
       seller,
       sellerId,
@@ -1058,9 +1074,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ? [...(product.priceHistory || []), { date: new Date().toISOString().slice(0, 10), price: nextPrice }]
           : product.priceHistory
         const nextStock = updates.stock !== undefined ? Math.max(0, updates.stock) : product.stock
+        const nextImage = updates.image !== undefined ? updates.image : product.image
+        const nextPhotos = updates.photos !== undefined
+          ? updates.photos
+          : (updates.image !== undefined ? [nextImage, ...(product.photos || []).filter((p) => p !== nextImage)] : product.photos)
         return {
           ...product,
           ...updates,
+          image: nextImage,
+          photos: nextPhotos,
           price: nextPrice,
           priceHistory,
           stock: nextStock,

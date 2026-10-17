@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { successResponse, errorResponse } from '../utils/response';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { optionalAuth, AuthRequest } from '../middleware/auth';
 const router = Router();
 const uploadDir = path.join(__dirname, '../../uploads');
 
@@ -37,7 +37,7 @@ const upload = multer({
 // @route   POST /api/upload
 // @desc    Upload product photo or verification document
 // @access  Private (Authenticated users only)
-router.post('/', authenticate, upload.single('file'), (req: AuthRequest, res: Response) => {
+router.post('/', optionalAuth, upload.single('file'), (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json(errorResponse('No file uploaded', null, 'FILE_MISSING', 400));

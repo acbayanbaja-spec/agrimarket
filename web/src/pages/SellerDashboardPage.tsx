@@ -31,8 +31,9 @@ import {
   ShoppingBag,
   Check,
   Boxes,
+  Upload,
 } from 'lucide-react'
-import { fileToDataUrl, formatPeso } from '../lib/utils'
+import { fileToDataUrl, formatPeso, uploadProductImage } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 import OrderTimeline from '../components/OrderTimeline'
@@ -107,6 +108,8 @@ const SellerDashboardPage = () => {
   })
   const [showAddForm, setShowAddForm] = useState(false)
   const [listedNotice, setListedNotice] = useState(false)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [isUploadingEditPhoto, setIsUploadingEditPhoto] = useState(false)
 
   // Edit Product Modal State
   const [editModal, setEditModal] = useState<{
@@ -295,6 +298,32 @@ const SellerDashboardPage = () => {
   // ---------------------------------------------------------------------------
   // HANDLERS: PRODUCTS & AVAILABILITY
   // ---------------------------------------------------------------------------
+  const handlePhotoUpload = async (file?: File) => {
+    if (!file) return
+    setIsUploadingPhoto(true)
+    try {
+      const url = await uploadProductImage(file)
+      setForm((prev) => ({ ...prev, image: url }))
+    } catch (err) {
+      console.error('Failed to process image:', err)
+    } finally {
+      setIsUploadingPhoto(false)
+    }
+  }
+
+  const handleEditPhotoUpload = async (file?: File) => {
+    if (!file) return
+    setIsUploadingEditPhoto(true)
+    try {
+      const url = await uploadProductImage(file)
+      setEditModal((prev) => ({ ...prev, image: url }))
+    } catch (err) {
+      console.error('Failed to process edit image:', err)
+    } finally {
+      setIsUploadingEditPhoto(false)
+    }
+  }
+
   const handleCreateProduct = (event: React.FormEvent) => {
     event.preventDefault()
     const place = findPlace(form.location)
@@ -329,7 +358,7 @@ const SellerDashboardPage = () => {
 
     setListedNotice(true)
     setShowAddForm(false)
-    setForm((current) => ({ ...current, name: '', description: '' }))
+    setForm((current) => ({ ...current, name: '', description: '', image: '/images/farm.jpg' }))
     window.setTimeout(() => setListedNotice(false), 3000)
   }
 
@@ -370,6 +399,7 @@ const SellerDashboardPage = () => {
       stock: Number(editModal.stock),
       location: editModal.location,
       image: editModal.image,
+      photos: [editModal.image],
       description: editModal.description.trim(),
       organic: editModal.organic,
       tradeable: editModal.tradeable,
@@ -700,26 +730,82 @@ const SellerDashboardPage = () => {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Photo Upload / Photo URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="input-field text-xs py-1.5"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (file) setForm({ ...form, image: await fileToDataUrl(file) })
-                        }}
-                      />
-                      <input
-                        type="text"
-                        className="input-field text-xs"
-                        placeholder="Or image URL"
-                        value={form.image}
-                        onChange={(e) => setForm({ ...form, image: e.target.value })}
-                      />
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-gray-700">Produce Photo (Upload or Link)</label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gray-50/80 rounded-2xl border border-gray-200">
+                      <div className="relative shrink-0">
+                        <ProductImage
+                          src={form.image || '/images/farm.jpg'}
+                          alt="Produce preview"
+                          className="h-20 w-20 rounded-xl object-cover border border-gray-200 bg-white shadow-xs"
+                        />
+                        {isUploadingPhoto && (
+                          <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-[10px] font-bold">
+                            Uploading...
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2 w-full">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="btn-secondary text-xs py-1.5 px-3 cursor-pointer flex items-center gap-1.5 font-bold">
+                            <Upload className="h-3.5 w-3.5" />
+                            <span>{isUploadingPhoto ? 'Processing...' : 'Upload Farm Photo'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={isUploadingPhoto}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) void handlePhotoUpload(file)
+                              }}
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            className="input-field text-xs py-1.5 flex-1 min-w-[200px]"
+                            placeholder="Or paste image URL (e.g. https://...)"
+                            value={form.image.startsWith('data:') ? '(Uploaded Image File)' : form.image}
+                            onChange={(e) => setForm({ ...form, image: e.target.value })}
+                          />
+                          {form.image && form.image !== '/images/farm.jpg' && (
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, image: '/images/farm.jpg' })}
+                              className="text-xs text-gray-500 hover:text-rose-600 px-2 py-1 transition"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500">
+                          <span className="font-semibold text-gray-600">Quick presets:</span>
+                          {[
+                            { label: 'Mango', url: '/images/mango.jpg' },
+                            { label: 'Tomato', url: '/images/tomato.jpg' },
+                            { label: 'Banana', url: '/images/banana.jpg' },
+                            { label: 'Corn', url: '/images/corn.jpg' },
+                            { label: 'Rice', url: '/images/rice.jpg' },
+                            { label: 'Kangkong', url: '/images/kangkong.jpg' },
+                            { label: 'Eggs', url: '/images/eggs.jpg' },
+                            { label: 'Tilapia', url: '/images/tilapia.jpg' },
+                          ].map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setForm({ ...form, image: preset.url })}
+                              className={`px-2 py-0.5 rounded-md border text-[11px] transition ${
+                                form.image === preset.url
+                                  ? 'bg-primary-600 text-white border-primary-600 font-bold'
+                                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1778,28 +1864,46 @@ const SellerDashboardPage = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Photo URL / Upload</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    className="input-field text-xs"
-                    value={editModal.image}
-                    onChange={(e) => setEditModal((prev) => ({ ...prev, image: e.target.value }))}
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="input-field text-xs py-1.5 w-40"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (file) setEditModal((prev) => ({ ...prev, image: '' }))
-                      if (file) {
-                        const url = await fileToDataUrl(file)
-                        setEditModal((prev) => ({ ...prev, image: url }))
-                      }
-                    }}
-                  />
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700">Photo URL / Upload</label>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="relative shrink-0">
+                    <ProductImage
+                      src={editModal.image || '/images/farm.jpg'}
+                      alt="Produce preview"
+                      className="h-16 w-16 rounded-xl object-cover border border-gray-200 bg-white shadow-xs"
+                    />
+                    {isUploadingEditPhoto && (
+                      <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center text-white text-[10px] font-bold">
+                        ...
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="btn-secondary text-xs py-1.5 px-3 cursor-pointer flex items-center gap-1.5 font-bold">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>{isUploadingEditPhoto ? 'Uploading...' : 'Upload New Photo'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploadingEditPhoto}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) void handleEditPhotoUpload(file)
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field text-xs py-1.5 flex-1 min-w-[180px]"
+                        placeholder="Or enter image URL"
+                        value={editModal.image.startsWith('data:') ? '(Uploaded Image File)' : editModal.image}
+                        onChange={(e) => setEditModal((prev) => ({ ...prev, image: e.target.value }))}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

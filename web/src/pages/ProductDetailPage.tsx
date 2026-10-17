@@ -177,9 +177,11 @@ const ProductDetailPage = () => {
     relatedRemote.length > 0
       ? relatedRemote
       : recommended.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 4)
-  const gallery = (product.photos && product.photos.length > 0)
-    ? product.photos.filter((p): p is string => Boolean(p && typeof p === 'string'))
-    : [product.image || '/images/farm.jpg']
+  const rawGallery = [
+    product.image,
+    ...(Array.isArray(product.photos) ? product.photos : [])
+  ].filter((p): p is string => Boolean(p && typeof p === 'string' && p.trim().length > 0))
+  const gallery = Array.from(new Set(rawGallery.length > 0 ? rawGallery : ['/images/farm.jpg']))
   const productPrice = typeof product.price === 'number' && !isNaN(product.price) ? product.price : (Number(product.price) || 0)
   const productStock = typeof product.stock === 'number' && !isNaN(product.stock) ? product.stock : (Number(product.stock) || 0)
   const out = productStock <= 0
