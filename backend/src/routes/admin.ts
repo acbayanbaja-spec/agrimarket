@@ -273,26 +273,26 @@ router.post('/riders', async (req: AuthRequest, res: Response) => {
       created_at: new Date().toISOString(),
     });
 
-    // Also attempt MySQL insert if connected
+    // Also attempt database insert if connected
     if (db.getIsMySqlConnected()) {
       try {
         const conn = await pool.getConnection();
         try {
           const [result] = await conn.query(
-            'INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?) RETURNING id',
             [cleanEmail, passwordHash, firstName.trim(), lastName.trim(), phone.trim()]
           );
-          const insertedUserId = (result as any)?.insertId || newRider.id;
+          const insertedUserId = (result as any)?.insertId || (result as any)[0]?.id || newRider.id;
           const [roles] = await conn.query("SELECT id FROM roles WHERE name IN ('delivery', 'delivery_man') ORDER BY CASE WHEN name = 'delivery' THEN 1 ELSE 2 END LIMIT 1");
           const roleId = (roles as any)[0]?.id;
           if (roleId) {
-            await conn.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [insertedUserId, roleId]);
+            await conn.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?) ON CONFLICT (user_id, role_id) DO NOTHING', [insertedUserId, roleId]);
           }
         } finally {
           conn.release();
         }
       } catch (mysqlErr) {
-        console.warn('MySQL rider sync notice:', mysqlErr);
+        console.warn('Database rider sync notice:', mysqlErr);
       }
     }
 

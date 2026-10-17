@@ -62,7 +62,7 @@ async function loadMysqlUserByEmail(email: string) {
   try {
     const [users] = await connection.query(
       `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.is_verified, u.is_active,
-       GROUP_CONCAT(r.name) as roles
+       STRING_AGG(r.name, ',') as roles
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
@@ -91,20 +91,20 @@ export const authService = {
 
         const passwordHash = await bcrypt.hash(data.password, 10);
         const [result] = await connection.query(
-          'INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?) RETURNING id',
           [email, passwordHash, data.firstName, data.lastName, data.phone || null]
         );
 
-        const userId = (result as any).insertId;
+        const userId = (result as any).insertId || (result as any)[0]?.id;
         const [roles] = await connection.query('SELECT id FROM roles WHERE name = ?', ['buyer']);
         const roleId = (roles as any)[0]?.id;
         if (roleId) {
-          await connection.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)', [userId, roleId]);
+          await connection.query('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?) ON CONFLICT (user_id, role_id) DO NOTHING', [userId, roleId]);
         }
 
         const [users] = await connection.query(
           `SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.is_verified, u.is_active,
-           GROUP_CONCAT(r.name) as roles
+           STRING_AGG(r.name, ',') as roles
            FROM users u
            LEFT JOIN user_roles ur ON u.id = ur.user_id
            LEFT JOIN roles r ON ur.role_id = r.id
@@ -226,7 +226,7 @@ export const authService = {
         try {
           const [users] = await connection.query(
             `SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.profile_image, u.is_verified, u.is_active,
-             GROUP_CONCAT(r.name) as roles
+             STRING_AGG(r.name, ',') as roles
              FROM users u
              LEFT JOIN user_roles ur ON u.id = ur.user_id
              LEFT JOIN roles r ON ur.role_id = r.id

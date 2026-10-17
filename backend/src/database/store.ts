@@ -906,7 +906,7 @@ class DatabaseStore {
         this.lastFailureKind = null;
         this.lastFailureMessage = null;
         conn.release();
-        console.log('✅ Connected to authoritative MySQL database instance.');
+        console.log('✅ Connected to authoritative database instance (Supabase PostgreSQL).');
         await this.initMySqlSchemaAndData();
         return;
       } catch (e: any) {
@@ -917,7 +917,7 @@ class DatabaseStore {
         this.lastFailureMessage = classified.message;
         const delay = Math.min(8000, 400 * 2 ** (attempt - 1));
         console.warn(
-          `⚠️ MySQL connection attempt ${attempt}/${maxAttempts} failed [${classified.kind}]: ${classified.message}`
+          `⚠️ Database connection attempt ${attempt}/${maxAttempts} failed [${classified.kind}]: ${classified.message}`
         );
         if (attempt < maxAttempts) {
           await this.sleep(delay);
@@ -927,14 +927,14 @@ class DatabaseStore {
 
     if (isDatabaseRequired()) {
       console.error(
-        `❌ Authoritative MySQL is required and unavailable [${this.lastFailureKind}]. API will stay live but not ready.`
+        `❌ Authoritative database is required and unavailable [${this.lastFailureKind}]. API will stay live but not ready.`
       );
     } else if (isEmbeddedFallbackAllowed()) {
       console.warn(
-        '⚠️ MySQL is unreachable. Development embedded JSON store is enabled. This mode is forbidden in production.'
+        '⚠️ Database is unreachable. Development embedded JSON store is enabled. This mode is forbidden in production.'
       );
     } else {
-      console.error('❌ MySQL is unreachable and the embedded store is disabled.');
+      console.error('❌ Database is unreachable and the embedded store is disabled.');
     }
 
     this.startReconnectLoop();
@@ -964,7 +964,7 @@ class DatabaseStore {
       this.lastFailureKind = null;
       this.lastFailureMessage = null;
       conn.release();
-      console.log('✅ Reconnected to authoritative MySQL database instance.');
+      console.log('✅ Reconnected to authoritative database instance (Supabase PostgreSQL).');
       if (this.reconnectTimer) {
         clearInterval(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -1014,12 +1014,12 @@ class DatabaseStore {
       }
 
       await pool.query(
-        "INSERT INTO roles (name, description) VALUES ('buyer', 'Marketplace buyer'), ('seller', 'Farm seller'), ('admin', 'Platform administrator'), ('delivery', 'Delivery rider'), ('delivery_man', 'Delivery personnel who handle order deliveries') ON DUPLICATE KEY UPDATE description=VALUES(description)"
+        "INSERT INTO roles (name, description) VALUES ('buyer', 'Marketplace buyer'), ('seller', 'Farm seller'), ('admin', 'Platform administrator'), ('delivery', 'Delivery rider'), ('delivery_man', 'Delivery personnel who handle order deliveries') ON CONFLICT (name) DO UPDATE SET description=EXCLUDED.description"
       );
 
       // Check if users table is populated; if empty, safely seed from current in-memory store
       const [rows]: any = await pool.query('SELECT COUNT(*) as count FROM users');
-      const count = rows[0]?.count || 0;
+      const count = Number(rows[0]?.count || 0);
       if (count > 0) {
         await this.hydrateFromMySql();
         return;
@@ -1032,40 +1032,40 @@ class DatabaseStore {
       const seedCoupons = this.data.coupons.length > 0 ? this.data.coupons : initialCoupons;
 
       if (count === 0 && seedUsers.length > 0) {
-        console.log('🔄 Seeding empty MySQL catalog from canonical marketplace records...');
+        console.log('🔄 Seeding empty database catalog from canonical marketplace records...');
         for (const u of seedUsers) {
           await pool.query(
-            'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email)',
-            [u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone || null, u.is_verified ? 1 : 0, u.is_active ? 1 : 0]
+            'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET email=EXCLUDED.email',
+            [u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone || null, Boolean(u.is_verified), u.is_active !== false]
           );
           for (const roleName of u.roles || ['buyer']) {
             await pool.query(
-              'INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ? ON DUPLICATE KEY UPDATE user_id=user_id',
+              'INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ? ON CONFLICT (user_id, role_id) DO NOTHING',
               [u.id, roleName]
             );
           }
         }
         for (const c of seedCategories) {
           await pool.query(
-            'INSERT INTO categories (id, name, description, icon, image_url, is_active) VALUES (?, ?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE name=VALUES(name)',
+            'INSERT INTO categories (id, name, description, icon, image_url, is_active) VALUES (?, ?, ?, ?, ?, true) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name',
             [c.id, c.name, c.description, c.icon, c.imageUrl]
           );
         }
         for (const p of seedProducts) {
           await pool.query(
-            'INSERT INTO products (id, seller_user_id, seller_id, category, name, description, price, unit, stock, rating, reviews_count, image, location, is_organic, is_active, is_unlisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stock=VALUES(stock)',
-            [p.id, p.sellerUserId, p.sellerId, p.category, p.name, p.description, p.price, p.unit, p.stock, p.rating, p.reviews, p.image, p.location, p.organic ? 1 : 0, p.isActive !== false ? 1 : 0, p.isUnlisted ? 1 : 0]
+            'INSERT INTO products (id, seller_user_id, seller_id, category, name, description, price, unit, stock, rating, reviews_count, image, location, is_organic, is_active, is_unlisted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET stock=EXCLUDED.stock',
+            [p.id, p.sellerUserId, p.sellerId, p.category, p.name, p.description, p.price, p.unit, p.stock, p.rating, p.reviews, p.image, p.location, Boolean(p.organic), p.isActive !== false, Boolean(p.isUnlisted)]
           );
         }
         for (const c of seedCoupons) {
           await pool.query(
-            'INSERT INTO coupons (code, discount, type, min_spend, description, is_active) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE discount=VALUES(discount)',
-            [c.code, c.discount, c.type, c.minSpend, c.description, c.isActive ? 1 : 0]
+            'INSERT INTO coupons (code, discount, type, min_spend, description, is_active) VALUES (?, ?, ?, ?, ?, true) ON CONFLICT (code) DO UPDATE SET discount=EXCLUDED.discount',
+            [c.code, c.discount, c.type, c.minSpend, c.description]
           );
         }
         for (const o of this.data.orders) {
           await pool.query(
-            'INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status=VALUES(status)',
+            'INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status',
             [o.id, o.receiptNo, o.userId, o.buyerName, o.buyerPhone || null, o.address, o.subtotal, o.shippingFee, o.shippingDiscount, o.couponCode || null, o.pointsEarned, o.pointsRedeemed, o.total, o.status, o.payment, o.paymentRef || null, o.paymentStatus || 'pending', o.driverId || null]
           );
           if (o.items && Array.isArray(o.items)) {
@@ -1077,13 +1077,13 @@ class DatabaseStore {
             }
           }
         }
-        console.log('✅ Safely migrated catalog, user, and order records into MySQL.');
+        console.log('✅ Safely migrated catalog, user, and order records into database.');
         await this.hydrateFromMySql();
       } else if (count === 0) {
-        console.warn('⚠️ MySQL users table is empty. Not seeding demo accounts into production automatically.');
+        console.warn('⚠️ Database users table is empty. Not seeding demo accounts into production automatically.');
       }
     } catch (err: any) {
-      console.warn('⚠️ Notice during MySQL schema init / migration:', err.message);
+      console.warn('⚠️ Notice during database schema init / migration:', err.message);
     }
   }
 
@@ -1092,7 +1092,7 @@ class DatabaseStore {
       const [userRows]: any = await pool.query(
         `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.profile_image,
                 u.is_verified, u.is_active, u.suspension_reason, u.created_at,
-                GROUP_CONCAT(r.name) as roles
+                STRING_AGG(r.name, ',') as roles
          FROM users u
          LEFT JOIN user_roles ur ON u.id = ur.user_id
          LEFT JOIN roles r ON ur.role_id = r.id
@@ -1115,7 +1115,7 @@ class DatabaseStore {
 
       try {
         const [categoryRows]: any = await pool.query(
-          'SELECT id, name, description, icon, image_url FROM categories WHERE is_active = 1 OR is_active IS NULL'
+          'SELECT id, name, description, icon, image_url FROM categories WHERE is_active = true OR is_active IS NULL'
         );
         if (categoryRows?.length) {
           this.data.categories = categoryRows.map((row: any) => ({
@@ -1132,7 +1132,7 @@ class DatabaseStore {
 
       try {
         const [productRows]: any = await pool.query(
-          'SELECT * FROM products WHERE COALESCE(is_deleted, 0) = 0'
+          'SELECT * FROM products WHERE is_deleted IS NOT TRUE'
         );
         if (productRows?.length) {
           this.data.products = productRows.map((row: any) => ({

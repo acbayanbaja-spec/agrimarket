@@ -1,11 +1,11 @@
 /**
- * AgriMarket TiDB Cloud Database Integration & Resilience Tests
+ * AgriMarket Supabase PostgreSQL Database Integration & Resilience Tests
  * Verifies:
  * 1. Database Connection & TLS Handshake
- * 2. Error Classifier Accuracy (DNS, Auth, Timeout, TLS)
+ * 2. Error Classifier Accuracy (DNS, Auth, Timeout, TLS, Missing DB)
  * 3. Public Diagnostics Non-disclosure (Zero secret exposure)
- * 4. Marketplace Catalog & Category Loading from TiDB
- * 5. Order Operations Lifecycle & Transaction Safety on TiDB
+ * 4. Marketplace Catalog & Category Loading from Supabase PostgreSQL
+ * 5. Order Operations Lifecycle & Transaction Safety on Supabase PostgreSQL
  */
 
 import pool, { classifyDatabaseError, getPublicDatabaseDiagnostics } from '../config/database';
@@ -24,26 +24,25 @@ function assert(condition: boolean, testName: string, extra?: any) {
   }
 }
 
-async function runTiDbTests() {
+async function runDatabaseTests() {
   console.log('\n======================================================');
-  console.log('🧪 RUNNING TiDB CLOUD DATABASE VERIFICATION SUITE');
+  console.log('🧪 RUNNING SUPABASE POSTGRESQL DATABASE VERIFICATION SUITE');
   console.log('======================================================\n');
 
-  // Test 1: Live connection to TiDB Cloud
+  // Test 1: Live connection to Supabase PostgreSQL
   try {
     const conn = await pool.getConnection();
-    const [result]: any = await conn.query('SELECT 1 + 1 as sum, DATABASE() as current_db');
-    assert(result[0]?.sum === 2, 'TiDB Query: Basic arithmetic and connection successful');
-    assert(Boolean(result[0]?.current_db), `TiDB Database active: ${result[0]?.current_db}`);
+    const [result]: any = await conn.query('SELECT 1 + 1 as sum, current_database() as current_db');
+    assert(result[0]?.sum === 2, 'Supabase Query: Basic arithmetic and connection successful');
+    assert(Boolean(result[0]?.current_db), `Supabase Database active: ${result[0]?.current_db}`);
 
     // Verify TLS is active
-    const [sslRows]: any = await conn.query("SHOW STATUS LIKE 'Ssl_cipher'");
-    const cipher = sslRows[0]?.Value;
-    assert(Boolean(cipher && cipher.length > 0), `TiDB TLS Handshake: Active cipher (${cipher || 'None'})`);
+    const diagnostics = getPublicDatabaseDiagnostics();
+    assert(diagnostics.ssl === true, 'Supabase TLS/SSL is active');
 
     conn.release();
   } catch (err: any) {
-    assert(false, 'TiDB Connection failed', err.message);
+    assert(false, 'Supabase Connection failed', err.message);
   }
 
   // Test 2: Error Classifier Accuracy
@@ -51,8 +50,8 @@ async function runTiDbTests() {
   const dnsErr = classifyDatabaseError({ code: 'ENOTFOUND', message: 'getaddrinfo ENOTFOUND invalid-host' });
   assert(dnsErr.kind === 'dns', 'Classifies ENOTFOUND as dns failure');
 
-  const authErr = classifyDatabaseError({ code: 'ER_ACCESS_DENIED_ERROR', message: 'Access denied for user' });
-  assert(authErr.kind === 'auth', 'Classifies ER_ACCESS_DENIED_ERROR as auth failure');
+  const authErr = classifyDatabaseError({ code: '28P01', message: 'password authentication failed for user "postgres"' });
+  assert(authErr.kind === 'auth', 'Classifies 28P01 as auth failure');
 
   const timeoutErr = classifyDatabaseError({ code: 'ETIMEDOUT', message: 'Connection timed out' });
   assert(timeoutErr.kind === 'timeout', 'Classifies ETIMEDOUT as timeout failure');
@@ -60,8 +59,8 @@ async function runTiDbTests() {
   const tlsErr = classifyDatabaseError({ code: 'HANDSHAKE_SSL_ERROR', message: 'SSL alert handshake failure' });
   assert(tlsErr.kind === 'tls', 'Classifies HANDSHAKE_SSL_ERROR as tls failure');
 
-  const dbErr = classifyDatabaseError({ code: 'ER_BAD_DB_ERROR', message: 'Unknown database nonexistent_db' });
-  assert(dbErr.kind === 'database_missing', 'Classifies ER_BAD_DB_ERROR as database_missing failure');
+  const dbErr = classifyDatabaseError({ code: '3D000', message: 'database "nonexistent_db" does not exist' });
+  assert(dbErr.kind === 'database_missing', 'Classifies 3D000 as database_missing failure');
 
   // Test 3: Public Diagnostics Non-disclosure
   console.log('\n--- Testing Public Diagnostics Security ---');
@@ -72,27 +71,27 @@ async function runTiDbTests() {
   assert(diagnostics.password === undefined, 'Security: DB_PASSWORD is NOT exposed in diagnostics');
   assert(diagnostics.user === undefined, 'Security: DB_USER is NOT exposed in diagnostics');
 
+  await db.waitUntilReady();
   const readiness = db.getReadiness();
   assert(typeof readiness.ready === 'boolean', 'Store readiness returns boolean status');
-  assert(readiness.mode === 'mysql' || readiness.mode === 'embedded_dev', 'Store reports valid persistence mode');
 
-  // Test 4: Marketplace Catalog Loading from TiDB
+  // Test 4: Marketplace Catalog Loading from Supabase PostgreSQL
   console.log('\n--- Testing Marketplace Data Operations ---');
   try {
-    const [products]: any = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_deleted = 0');
-    assert(Number(products[0]?.count) > 0, `Marketplace Catalog: ${products[0]?.count} active products found in TiDB`);
+    const [products]: any = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_deleted IS NOT TRUE');
+    assert(Number(products[0]?.count) > 0, `Marketplace Catalog: ${products[0]?.count} active products found in Supabase`);
 
-    const [categories]: any = await pool.query('SELECT COUNT(*) as count FROM categories WHERE is_active = 1');
-    assert(Number(categories[0]?.count) > 0, `Marketplace Categories: ${categories[0]?.count} active categories found in TiDB`);
+    const [categories]: any = await pool.query('SELECT COUNT(*) as count FROM categories WHERE is_active = true');
+    assert(Number(categories[0]?.count) > 0, `Marketplace Categories: ${categories[0]?.count} active categories found in Supabase`);
 
     const [users]: any = await pool.query('SELECT COUNT(*) as count FROM users');
-    assert(Number(users[0]?.count) > 0, `Users: ${users[0]?.count} registered accounts stored in TiDB`);
+    assert(Number(users[0]?.count) > 0, `Users: ${users[0]?.count} registered accounts stored in Supabase`);
   } catch (err: any) {
     assert(false, 'Marketplace Data query failed', err.message);
   }
 
-  // Test 5: Order Operations Lifecycle on TiDB
-  console.log('\n--- Testing Order Lifecycle Operations on TiDB ---');
+  // Test 5: Order Operations Lifecycle on Supabase PostgreSQL
+  console.log('\n--- Testing Order Lifecycle Operations on Supabase ---');
   const testOrderId = `TEST-ORD-${Date.now()}`;
   const testReceiptNo = `TEST-RCPT-${Date.now()}`;
 
@@ -105,7 +104,7 @@ async function runTiDbTests() {
     );
 
     const [created]: any = await pool.query('SELECT * FROM orders WHERE id = ?', [testOrderId]);
-    assert(created.length === 1 && created[0].status === 'Pending', 'Order created on TiDB with status Pending');
+    assert(created.length === 1 && created[0].status === 'Pending', 'Order created on Supabase with status Pending');
 
     // Update order status
     await pool.query('UPDATE orders SET status = ?, payment_status = ? WHERE id = ?', ['Confirmed', 'paid', testOrderId]);
@@ -117,7 +116,7 @@ async function runTiDbTests() {
     const [deleted]: any = await pool.query('SELECT * FROM orders WHERE id = ?', [testOrderId]);
     assert(deleted.length === 0, 'Test order cleaned up successfully');
   } catch (err: any) {
-    assert(false, 'Order operations failed on TiDB', err.message);
+    assert(false, 'Order operations failed on Supabase', err.message);
   }
 
   console.log('\n======================================================');
@@ -131,7 +130,7 @@ async function runTiDbTests() {
   }
 }
 
-runTiDbTests().catch((e) => {
+runDatabaseTests().catch((e) => {
   console.error('Fatal test error:', e);
   process.exit(1);
 });

@@ -11,16 +11,17 @@ export async function normalizeRolesInDb() {
       ('seller', 'Approved seller who can list products'),
       ('delivery', 'Delivery rider'),
       ('delivery_man', 'Legacy delivery rider alias')
-      ON DUPLICATE KEY UPDATE description=VALUES(description)
+      ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description
     `);
 
     // 2. Assign canonical 'delivery' role to any user currently assigned 'delivery_man'
     await conn.query(`
-      INSERT IGNORE INTO user_roles (user_id, role_id)
+      INSERT INTO user_roles (user_id, role_id)
       SELECT ur.user_id, r_canonical.id
       FROM user_roles ur
       JOIN roles r_legacy ON ur.role_id = r_legacy.id AND r_legacy.name = 'delivery_man'
       JOIN roles r_canonical ON r_canonical.name = 'delivery'
+      ON CONFLICT (user_id, role_id) DO NOTHING
     `);
 
     const [driverRoles]: any = await conn.query(`

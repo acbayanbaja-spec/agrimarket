@@ -16,7 +16,7 @@ async function seed() {
       ('seller', 'Approved seller who can list products'),
       ('delivery', 'Delivery rider'),
       ('delivery_man', 'Delivery personnel who handle order deliveries')
-      ON DUPLICATE KEY UPDATE description=VALUES(description)
+      ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description
     `);
 
     // Insert admin user (guard against predictable default password in production)
@@ -29,7 +29,7 @@ async function seed() {
       await connection.query(`
         INSERT INTO users (email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES
         (?, ?, 'Admin', 'User', '+639123456789', true, true)
-        ON DUPLICATE KEY UPDATE email = email
+        ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
       `, [process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@agrimarket.com', adminPassword]);
     }
 
@@ -41,7 +41,7 @@ async function seed() {
     await connection.query(`
       INSERT INTO user_roles (user_id, role_id) 
       SELECT ?, id FROM roles WHERE name = 'admin'
-      ON DUPLICATE KEY UPDATE user_id = user_id
+      ON CONFLICT (user_id, role_id) DO NOTHING
     `, [adminId]);
 
     // Insert categories
@@ -55,7 +55,7 @@ async function seed() {
       ('cat-supplies', 'Farm Supplies', 'Organic fertilizers, compost, planting seeds and farm tools', 'Sprout', '/images/compost.jpg', true, 5),
       ('cat-poultry', 'Livestock & Poultry', 'Farm-fresh pasture brown eggs, dairy and poultry', 'Egg', '/images/eggs.jpg', true, 6),
       ('cat-fish', 'Fisheries & Aquaculture', 'Lake Sebu spring tilapia and General Santos fresh catch', 'Fish', '/images/tilapia.jpg', true, 7)
-      ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description
     `);
 
     // Insert sample coupons
@@ -66,7 +66,7 @@ async function seed() {
       ('NEWBUYER50', 50.00, 'fixed', 250.00, '₱50 off for first-time buyers', true),
       ('HARVEST100', 100.00, 'fixed', 800.00, '₱100 off on bulk orders ₱800+', true),
       ('SOCCSKSARGEN20', 20.00, 'fixed', 150.00, '₱20 discount on local deliveries', true)
-      ON DUPLICATE KEY UPDATE discount = VALUES(discount), description = VALUES(description)
+      ON CONFLICT (code) DO UPDATE SET discount = EXCLUDED.discount, description = EXCLUDED.description
     `);
 
     connection.release();

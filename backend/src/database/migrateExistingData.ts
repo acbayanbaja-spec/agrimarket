@@ -82,19 +82,24 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
     throw err;
   }
 
-  console.log('[Data Migration] Starting safe migration to centralized TiDB database...');
+  console.log('[Data Migration] Starting safe migration to Supabase PostgreSQL database...');
 
   // 1. Roles
-  await queryWithRetry(`
-    INSERT INTO roles (name, description) VALUES
-    ('admin', 'System administrator with full access'),
-    ('buyer', 'Regular buyer who can purchase products'),
-    ('seller', 'Approved seller who can list products'),
-    ('delivery', 'Delivery rider'),
-    ('delivery_man', 'Delivery personnel who handle order deliveries')
-    ON DUPLICATE KEY UPDATE description=VALUES(description)
-  `);
-  summary.roles += 5;
+  const roles = [
+    ['admin', 'System administrator with full access'],
+    ['buyer', 'Regular buyer who can purchase products'],
+    ['seller', 'Approved seller who can list products'],
+    ['delivery', 'Delivery rider'],
+    ['delivery_man', 'Delivery personnel who handle order deliveries'],
+  ];
+  for (const [name, desc] of roles) {
+    await queryWithRetry(
+      `INSERT INTO roles (name, description) VALUES ($1, $2)
+       ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description`,
+      [name, desc]
+    );
+    summary.roles++;
+  }
 
   // 2. Users
   if (Array.isArray(data.users)) {
@@ -102,14 +107,14 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
       try {
         await queryWithRetry(
           `INSERT INTO users (id, email, password_hash, first_name, last_name, phone, profile_image, is_verified, is_active, suspension_reason, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             first_name = COALESCE(VALUES(first_name), first_name),
-             last_name = COALESCE(VALUES(last_name), last_name),
-             phone = COALESCE(VALUES(phone), phone),
-             profile_image = COALESCE(VALUES(profile_image), profile_image),
-             is_verified = COALESCE(VALUES(is_verified), is_verified),
-             is_active = COALESCE(VALUES(is_active), is_active)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             first_name = COALESCE(EXCLUDED.first_name, users.first_name),
+             last_name = COALESCE(EXCLUDED.last_name, users.last_name),
+             phone = COALESCE(EXCLUDED.phone, users.phone),
+             profile_image = COALESCE(EXCLUDED.profile_image, users.profile_image),
+             is_verified = EXCLUDED.is_verified,
+             is_active = EXCLUDED.is_active`,
           [
             u.id,
             u.email,
@@ -118,8 +123,8 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
             u.last_name || u.lastName || '',
             u.phone || null,
             u.profile_image || u.profileImage || null,
-            u.is_verified ? 1 : 0,
-            u.is_active !== false ? 1 : 0,
+            Boolean(u.is_verified),
+            u.is_active !== false,
             u.suspension_reason || null,
             u.created_at ? new Date(u.created_at) : null,
           ]
@@ -127,12 +132,13 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         summary.users++;
 
         // User Roles
-        const roles = Array.isArray(u.roles) ? u.roles : ['buyer'];
-        for (const roleName of roles) {
+        const userRoles = Array.isArray(u.roles) ? u.roles : ['buyer'];
+        for (const roleName of userRoles) {
           const canonicalRole = roleName === 'delivery_man' || roleName === 'driver' || roleName === 'rider' ? 'delivery' : roleName;
           await queryWithRetry(
-            `INSERT IGNORE INTO user_roles (user_id, role_id)
-             SELECT ?, id FROM roles WHERE name = ?`,
+            `INSERT INTO user_roles (user_id, role_id)
+             SELECT $1, id FROM roles WHERE name = $2
+             ON CONFLICT (user_id, role_id) DO NOTHING`,
             [u.id, canonicalRole]
           );
           summary.userRoles++;
@@ -144,25 +150,31 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
     }
   }
 
+  // Update sequences
+  try {
+    await queryWithRetry("SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users");
+    await queryWithRetry("SELECT setval(pg_get_serial_sequence('user_roles', 'id'), COALESCE(MAX(id), 1)) FROM user_roles");
+  } catch {}
+
   // 3. Categories
   if (Array.isArray(data.categories)) {
     for (const c of data.categories) {
       try {
         await queryWithRetry(
           `INSERT INTO categories (id, name, description, icon, image_url, is_active, sort_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-             name = VALUES(name),
-             description = VALUES(description),
-             icon = VALUES(icon),
-             image_url = VALUES(image_url)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (id) DO UPDATE SET
+             name = EXCLUDED.name,
+             description = EXCLUDED.description,
+             icon = EXCLUDED.icon,
+             image_url = EXCLUDED.image_url`,
           [
             c.id,
             c.name,
             c.description || null,
             c.icon || null,
             c.imageUrl || c.image_url || null,
-            c.isActive !== false ? 1 : 0,
+            c.isActive !== false,
             c.sortOrder || c.sort_order || 0,
           ]
         );
@@ -181,20 +193,21 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         const sellerUserId = Number(p.sellerUserId || 1);
         await queryWithRetry(
           `INSERT INTO products (id, seller_user_id, seller_id, category, name, description, price, unit, stock, rating, reviews_count, image, location, farm_origin, badge, is_organic, is_active, is_deleted, is_unlisted, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             name = VALUES(name),
-             description = VALUES(description),
-             price = VALUES(price),
-             unit = VALUES(unit),
-             stock = VALUES(stock),
-             rating = VALUES(rating),
-             reviews_count = VALUES(reviews_count),
-             image = VALUES(image),
-             location = VALUES(location),
-             is_organic = VALUES(is_organic),
-             is_active = VALUES(is_active),
-             is_unlisted = VALUES(is_unlisted)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, COALESCE($20, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             name = EXCLUDED.name,
+             description = EXCLUDED.description,
+             price = EXCLUDED.price,
+             unit = EXCLUDED.unit,
+             stock = EXCLUDED.stock,
+             rating = EXCLUDED.rating,
+             reviews_count = EXCLUDED.reviews_count,
+             image = EXCLUDED.image,
+             location = EXCLUDED.location,
+             is_organic = EXCLUDED.is_organic,
+             is_active = EXCLUDED.is_active,
+             is_deleted = EXCLUDED.is_deleted,
+             is_unlisted = EXCLUDED.is_unlisted`,
           [
             p.id,
             sellerUserId,
@@ -211,10 +224,10 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
             p.location || null,
             p.farmOrigin || p.farm_origin || null,
             p.badge || null,
-            p.organic ? 1 : 0,
-            p.isActive !== false && p.is_active !== false ? 1 : 0,
-            p.isDeleted ? 1 : 0,
-            p.isUnlisted ? 1 : 0,
+            Boolean(p.organic),
+            p.isActive !== false && p.is_active !== false,
+            Boolean(p.isDeleted),
+            Boolean(p.isUnlisted),
             p.created_at ? new Date(p.created_at) : null,
           ]
         );
@@ -233,12 +246,12 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         const userId = Number(o.userId || 1);
         await queryWithRetry(
           `INSERT INTO orders (id, receipt_no, user_id, buyer_name, buyer_phone, address, subtotal, shipping_fee, shipping_discount, coupon_code, points_earned, points_redeemed, total, status, payment, payment_ref, payment_status, driver_id, lat, lng, prep_status, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             status = VALUES(status),
-             payment_status = VALUES(payment_status),
-             driver_id = COALESCE(VALUES(driver_id), driver_id),
-             prep_status = COALESCE(VALUES(prep_status), prep_status)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, COALESCE($22, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             status = EXCLUDED.status,
+             payment_status = EXCLUDED.payment_status,
+             driver_id = COALESCE(EXCLUDED.driver_id, orders.driver_id),
+             prep_status = COALESCE(EXCLUDED.prep_status, orders.prep_status)`,
           [
             o.id,
             o.receiptNo || `RCPT-${o.id.replace('ORD-', '')}`,
@@ -272,7 +285,7 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
             try {
               await queryWithRetry(
                 `INSERT INTO order_items (order_id, product_id, name, price, quantity, unit, image, seller, seller_id, seller_user_id, pickup_location, prep_status, prep_notes)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [
                   o.id,
                   item.productId,
@@ -302,6 +315,10 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
     }
   }
 
+  try {
+    await queryWithRetry("SELECT setval(pg_get_serial_sequence('order_items', 'id'), COALESCE(MAX(id), 1)) FROM order_items");
+  } catch {}
+
   // 6. Delivery Jobs
   if (Array.isArray(data.delivery_jobs)) {
     for (const d of data.delivery_jobs) {
@@ -309,10 +326,10 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         const driverId = Number(d.driverId || 1);
         await queryWithRetry(
           `INSERT INTO delivery_jobs (id, order_id, driver_id, buyer_name, buyer_phone, address, status, lat, lng, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             status = VALUES(status),
-             driver_id = VALUES(driver_id)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             status = EXCLUDED.status,
+             driver_id = EXCLUDED.driver_id`,
           [
             d.id,
             d.orderId,
@@ -328,7 +345,6 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         );
         summary.deliveryJobs++;
       } catch (e: any) {
-        console.error(`[Data Migration] Delivery Job ${d.id} skipped:`, e.message);
         summary.errors++;
       }
     }
@@ -340,10 +356,10 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
       try {
         await queryWithRetry(
           `INSERT INTO reviews (id, product_id, user_id, user_name, rating, comment, photos, status, is_verified_purchase, order_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             comment = VALUES(comment),
-             rating = VALUES(rating)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             comment = EXCLUDED.comment,
+             rating = EXCLUDED.rating`,
           [
             r.id,
             r.productId,
@@ -353,14 +369,13 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
             r.comment || '',
             JSON.stringify(r.photos || []),
             r.status || 'published',
-            r.isVerifiedPurchase ? 1 : 0,
+            Boolean(r.isVerifiedPurchase),
             r.orderId || null,
             r.createdAt ? new Date(r.createdAt) : null,
           ]
         );
         summary.reviews++;
       } catch (e: any) {
-        console.error(`[Data Migration] Review ${r.id} skipped:`, e.message);
         summary.errors++;
       }
     }
@@ -370,15 +385,17 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
   if (Array.isArray(data.notifications)) {
     for (const n of data.notifications) {
       try {
+        const userId = Number(n.userId);
+        if (isNaN(userId)) continue;
         await queryWithRetry(
           `INSERT INTO notifications (id, user_id, title, message, category, read_by, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             title = VALUES(title),
-             message = VALUES(message)`,
+           VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             title = EXCLUDED.title,
+             message = EXCLUDED.message`,
           [
             n.id,
-            Number(n.userId || 1),
+            userId,
             n.title,
             n.message,
             n.category || 'General',
@@ -388,7 +405,6 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         );
         summary.notifications++;
       } catch (e: any) {
-        console.error(`[Data Migration] Notification ${n.id} skipped:`, e.message);
         summary.errors++;
       }
     }
@@ -400,10 +416,10 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
       try {
         await queryWithRetry(
           `INSERT INTO messages (id, order_id, from_role, from_name, from_user_id, to_user_id, phone, body, channel, status, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             body = VALUES(body),
-             status = VALUES(status)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             body = EXCLUDED.body,
+             status = EXCLUDED.status`,
           [
             m.id,
             m.orderId,
@@ -420,7 +436,6 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         );
         summary.messages++;
       } catch (e: any) {
-        console.error(`[Data Migration] Message ${m.id} skipped:`, e.message);
         summary.errors++;
       }
     }
@@ -432,23 +447,22 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
       try {
         await queryWithRetry(
           `INSERT INTO coupons (code, discount, type, min_spend, description, is_active)
-           VALUES (?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-             discount = VALUES(discount),
-             min_spend = VALUES(min_spend),
-             description = VALUES(description)`,
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (code) DO UPDATE SET
+             discount = EXCLUDED.discount,
+             min_spend = EXCLUDED.min_spend,
+             description = EXCLUDED.description`,
           [
             cp.code,
             Number(cp.discount || 0),
             cp.type || 'fixed',
             Number(cp.minSpend || 0),
             cp.description || '',
-            cp.isActive !== false ? 1 : 0,
+            cp.isActive !== false,
           ]
         );
         summary.coupons++;
       } catch (e: any) {
-        console.error(`[Data Migration] Coupon ${cp.code} skipped:`, e.message);
         summary.errors++;
       }
     }
@@ -460,9 +474,9 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
       try {
         await queryWithRetry(
           `INSERT INTO audit_logs (id, admin_id, admin_email, action, target_type, target_id, details, ip_address, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE
-             details = VALUES(details)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, CURRENT_TIMESTAMP))
+           ON CONFLICT (id) DO UPDATE SET
+             details = EXCLUDED.details`,
           [
             a.id,
             Number(a.adminId || 1),
@@ -477,7 +491,6 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         );
         summary.auditLogs++;
       } catch (e: any) {
-        console.error(`[Data Migration] Audit log ${a.id} skipped:`, e.message);
         summary.errors++;
       }
     }
@@ -489,8 +502,9 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
       try {
         await queryWithRetry(
           `INSERT INTO processed_webhooks (event_id, order_id, processed_at)
-           VALUES (?, ?, COALESCE(?, CURRENT_TIMESTAMP))
-           ON DUPLICATE KEY UPDATE processed_at = VALUES(processed_at)`,
+           VALUES ($1, $2, COALESCE($3, CURRENT_TIMESTAMP))
+           ON CONFLICT (event_id) DO UPDATE SET
+             processed_at = EXCLUDED.processed_at`,
           [
             w.eventId,
             w.orderId || null,
@@ -499,13 +513,12 @@ export async function migrateExistingData(customJsonPath?: string): Promise<Migr
         );
         summary.processedWebhooks++;
       } catch (e: any) {
-        console.error(`[Data Migration] Webhook ${w.eventId} skipped:`, e.message);
         summary.errors++;
       }
     }
   }
 
-  console.log('[Data Migration] Migration completed successfully!');
+  console.log('[Data Migration] Migration completed successfully to Supabase PostgreSQL!');
   console.table(summary);
 
   return summary;
