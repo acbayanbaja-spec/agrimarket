@@ -2299,11 +2299,14 @@ const AdminDashboardPage = () => {
                   </label>
                   <input
                     required
-                    type="number"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     className="input-field text-xs"
                     value={promoModal.discount}
-                    onChange={(e) => setPromoModal((prev) => ({ ...prev, discount: Number(e.target.value) }))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, '')
+                      setPromoModal((prev) => ({ ...prev, discount: val as any }))
+                    }}
                   />
                 </div>
               </div>
@@ -2311,11 +2314,14 @@ const AdminDashboardPage = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Minimum Spend (₱)</label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   className="input-field text-xs"
                   value={promoModal.minSpend}
-                  onChange={(e) => setPromoModal((prev) => ({ ...prev, minSpend: Number(e.target.value) }))}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '')
+                    setPromoModal((prev) => ({ ...prev, minSpend: val as any }))
+                  }}
                 />
               </div>
 

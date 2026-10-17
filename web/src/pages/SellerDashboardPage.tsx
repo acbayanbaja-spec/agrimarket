@@ -76,12 +76,26 @@ const SellerDashboardPage = () => {
   const [orderStatusFilter, setOrderStatusFilter] = useState('all')
 
   // Add Product Form State
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string
+    category: string
+    price: string | number
+    unit: string
+    stock: string | number
+    location: string
+    image: string
+    description: string
+    organic: boolean
+    tradeable: boolean
+    lat: number
+    lng: number
+    availabilityStatus: 'in_stock' | 'low_stock' | 'out_of_stock' | 'temporarily_unavailable'
+  }>({
     name: '',
     category: categories[0].name,
-    price: 60,
+    price: '',
     unit: 'kg',
-    stock: 25,
+    stock: '',
     location: soccsksargenPlaces[0].label,
     image: '/images/farm.jpg',
     description: '',
@@ -89,7 +103,7 @@ const SellerDashboardPage = () => {
     tradeable: true,
     lat: soccsksargenPlaces[0].lat,
     lng: soccsksargenPlaces[0].lng,
-    availabilityStatus: 'in_stock' as const,
+    availabilityStatus: 'in_stock',
   })
   const [showAddForm, setShowAddForm] = useState(false)
   const [listedNotice, setListedNotice] = useState(false)
@@ -100,9 +114,9 @@ const SellerDashboardPage = () => {
     product: Product | null
     name: string
     category: string
-    price: number
+    price: number | string
     unit: string
-    stock: number
+    stock: number | string
     location: string
     image: string
     description: string
@@ -284,12 +298,14 @@ const SellerDashboardPage = () => {
   const handleCreateProduct = (event: React.FormEvent) => {
     event.preventDefault()
     const place = findPlace(form.location)
+    const numericPrice = Math.max(1, Number(form.price) || 1)
+    const numericStock = Math.max(0, Number(form.stock) || 0)
     const listedProduct = addProduct({
       name: form.name.trim(),
       category: form.category,
-      price: Number(form.price),
-      unit: form.unit,
-      stock: Number(form.stock),
+      price: numericPrice,
+      unit: form.unit.trim() || 'kg',
+      stock: numericStock,
       location: form.location,
       image: form.image,
       description: form.description.trim(),
@@ -616,12 +632,15 @@ const SellerDashboardPage = () => {
                     <div className="flex gap-2">
                       <input
                         required
-                        type="number"
-                        min={1}
+                        type="text"
+                        inputMode="decimal"
                         className="input-field text-xs w-28"
-                        placeholder="₱ Price"
+                        placeholder="₱ Enter price"
                         value={form.price}
-                        onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '')
+                          setForm({ ...form, price: val })
+                        }}
                       />
                       <input
                         required
@@ -637,12 +656,15 @@ const SellerDashboardPage = () => {
                     <label className="block text-xs font-bold text-gray-700 mb-1">Initial Stock Quantity</label>
                     <input
                       required
-                      type="number"
-                      min={0}
+                      type="text"
+                      inputMode="numeric"
                       className="input-field text-xs"
-                      placeholder="Available stock"
+                      placeholder="Enter available stock"
                       value={form.stock}
-                      onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '')
+                        setForm({ ...form, stock: val })
+                      }}
                     />
                   </div>
 
@@ -1672,11 +1694,14 @@ const SellerDashboardPage = () => {
                   <div className="flex gap-1.5">
                     <input
                       required
-                      type="number"
-                      min={1}
+                      type="text"
+                      inputMode="decimal"
                       className="input-field text-xs w-24"
                       value={editModal.price}
-                      onChange={(e) => setEditModal((prev) => ({ ...prev, price: Number(e.target.value) }))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, '')
+                        setEditModal((prev) => ({ ...prev, price: val }))
+                      }}
                     />
                     <input
                       required
@@ -1694,11 +1719,14 @@ const SellerDashboardPage = () => {
                   <label className="block text-xs font-bold text-gray-700 mb-1">Stock Quantity</label>
                   <input
                     required
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="numeric"
                     className="input-field text-xs"
                     value={editModal.stock}
-                    onChange={(e) => setEditModal((prev) => ({ ...prev, stock: Number(e.target.value) }))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '')
+                      setEditModal((prev) => ({ ...prev, stock: val }))
+                    }}
                   />
                 </div>
 

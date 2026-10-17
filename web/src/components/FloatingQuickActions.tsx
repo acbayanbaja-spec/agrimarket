@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { MessageSquare, ArrowUp, Smartphone, Heart, Sparkles } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import DownloadAppModal from './DownloadAppModal'
 
 export const FloatingQuickActions = () => {
+  const location = useLocation()
+  const isLoginPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/forgot-password')
   const { wishlist, unreadCount } = useStore()
   const { isAuthenticated, hasRole } = useAuth()
   const [showBackToTop, setShowBackToTop] = useState(false)
@@ -41,19 +43,21 @@ export const FloatingQuickActions = () => {
           </Link>
         )}
 
-        {/* Floating Chat / Messages Shortcut */}
-        <Link
-          to={isAuthenticated ? '/messages' : '/login'}
-          className="flex items-center justify-center w-11 h-11 bg-soil-900 hover:bg-primary-700 text-white rounded-full shadow-md border border-white/20 hover:scale-105 transition-all relative"
-          title="Direct Farm Chat & SMS"
-        >
-          <MessageSquare className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center animate-pop">
-              {unreadCount}
-            </span>
-          )}
-        </Link>
+        {/* Floating Chat / Messages Shortcut - removed on login page */}
+        {!isLoginPage && (
+          <Link
+            to={isAuthenticated ? '/messages' : '/login'}
+            className="flex items-center justify-center w-11 h-11 bg-soil-900 hover:bg-primary-700 text-white rounded-full shadow-md border border-white/20 hover:scale-105 transition-all relative"
+            title="Direct Farm Chat & SMS"
+          >
+            <MessageSquare className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center animate-pop">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
 
         {/* Back to top button */}
         {showBackToTop && (

@@ -11,8 +11,8 @@ export const AgriAiAssistant: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; tips?: string[] }>>([
     {
       sender: 'ai',
-      text: 'Kumusta! Ako si AgriKaibigan, ang iyong AI assistant para sa pagsasaka at bentahan sa SOCCSKSARGEN. May maitutulong ba ako sa presyo, peste, o pag-ani?',
-      tips: ['Subukan magtanong sa Tagalog, Cebuano, o English.', 'Tingnan ang 14-day price forecast bago magbenta.'],
+      text: 'Kumusta! Ako si AgriKaibigan, ang iyong universal AI assistant sa AgriMarket. Maaari kang magtanong tungkol sa agrikultura, merkado, presyo, o kahit anong gusto mong itanong (siyensya, math, trivia, coding, kwentuhan)!',
+      tips: ['Subukan magtanong sa Tagalog, Cebuano, o English.', 'Puwede kang magtanong ng kahit anong paksa!'],
     },
   ]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -38,16 +38,26 @@ export const AgriAiAssistant: React.FC = () => {
 
     try {
       const res = await api.post('/ai/agri-chat', { message: text });
-      const reply = res.data?.data?.reply || 'Nandito ako para tumulong sa iyong pagsasaka.';
+      const reply = res.data?.data?.reply || 'Nandito ako para tumulong sa anumang katanungan mo.';
       const helpfulTips = res.data?.data?.helpfulTips || [];
       setMessages([...newMsgs, { sender: 'ai', text: reply, tips: helpfulTips }]);
     } catch {
+      try {
+        const directRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(text)}`);
+        if (directRes.ok) {
+          const directText = await directRes.text();
+          if (directText && directText.trim().length > 10 && !directText.includes('Error:')) {
+            setMessages([...newMsgs, { sender: 'ai', text: directText.trim(), tips: ['Answered by Universal AI Assistant'] }]);
+            return;
+          }
+        }
+      } catch {}
       setMessages([
         ...newMsgs,
         {
           sender: 'ai',
-          text: 'Maaari mong gamitin ang aming Organic Pest Solutions (Neem oil spray) at suriin ang merkado sa Koronadal at Gensan bago mag-ani.',
-          tips: ['Mag-spray tuwing alas-4 ng hapon.', 'Panatilihing hydrated ang mga pananim.'],
+          text: `Narito ako upang tumulong sa iyong tanong: "${text}". Bilang iyong universal AI assistant, maaari mo akong tanungin tungkol sa agrikultura, presyo sa pamilihan, pangkalahatang kaalaman, matematika, siyensya, o kahit anong gusto mong malaman!`,
+          tips: ['Maaari kang magtanong sa English, Tagalog, o Bisaya.', 'Tanungin ang kahit anong paksa!'],
         },
       ]);
     } finally {
@@ -211,11 +221,14 @@ export const AgriAiAssistant: React.FC = () => {
 
                 {/* Quick Prompts */}
                 <div className="pt-2">
-                  <p className="text-[11px] text-gray-400 mb-1.5 font-medium">Madalas itanong ng mga magsasaka:</p>
+                  <p className="text-[11px] text-gray-400 mb-1.5 font-medium">Mga mungkahing itanong (o magtanong ng kahit ano):</p>
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       'Paano puksain ang uod sa kamatis?',
-                      'Kailan pinakamagandang magbenta ng mangga?',
+                      'Sino ang nag-imbento ng telepono?',
+                      'What is 125 * 48?',
+                      'Tell me a funny joke',
+                      'Kailan magandang magbenta ng mangga?',
                       'Paano gumawa ng organic compost?',
                     ].map((prompt) => (
                       <button

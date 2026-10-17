@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const RegisterPage = () => {
   const { register, isAuthenticated, ready } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', password: '', confirm: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   if (ready && isAuthenticated) {
-    return <Navigate to="/marketplace" replace />
+    return <Navigate to={from || '/marketplace'} replace />
   }
 
   const submit = async (event: React.FormEvent) => {
@@ -33,7 +35,7 @@ const RegisterPage = () => {
         phone: form.phone.trim() || undefined,
         password: form.password,
       })
-      navigate('/marketplace')
+      navigate(from || '/marketplace')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create your account')
     } finally {
@@ -80,7 +82,7 @@ const RegisterPage = () => {
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-6">
-          Already have an account? <Link to="/login" className="text-primary-700 font-semibold">Log in</Link>
+          Already have an account? <Link to="/login" state={from ? { from } : undefined} className="text-primary-700 font-semibold">Log in</Link>
         </p>
       </div>
     </div>

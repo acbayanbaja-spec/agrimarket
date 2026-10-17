@@ -9,7 +9,7 @@ import QuantityStepper from '../components/QuantityStepper'
 
 const CartPage = () => {
   const { items, subtotal, updateQuantity, removeItem } = useCart()
-  const { hasRole } = useAuth()
+  const { hasRole, isAuthenticated } = useAuth()
   const shipping = subtotal >= 500 ? 0 : 50
   const points = pointsFromSpend(subtotal)
 
@@ -95,7 +95,13 @@ const CartPage = () => {
           <span>{formatPeso(subtotal + shipping)}</span>
         </div>
         <p className="text-xs text-gray-500 mb-4">Use harvest points at checkout to cut shipping (1 point = ₱1 off delivery).</p>
-        <Link to="/checkout" className="btn-primary w-full">Checkout</Link>
+        <Link
+          to={isAuthenticated ? "/checkout" : "/login"}
+          state={isAuthenticated ? undefined : { from: '/checkout' }}
+          className="btn-primary w-full text-center"
+        >
+          {isAuthenticated ? 'Proceed to Checkout' : 'Log in or Sign up to Order'}
+        </Link>
       </aside>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState, useLayoutEffect, useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import {
   MapPin,
@@ -34,7 +34,8 @@ import type { Product } from '../data/catalog'
 
 const ProductDetailPage = () => {
   const { id } = useParams()
-  const { products, addReview, reviewsFor, recommended, posts, toggleWishlist, isWishlisted } = useStore()
+  const navigate = useNavigate()
+  const { products, allProducts, addReview, reviewsFor, recommended, posts, toggleWishlist, isWishlisted } = useStore()
   const { addItem } = useCart()
   const { toast } = useToast()
   const { isAuthenticated, user, hasRole } = useAuth()
@@ -64,7 +65,21 @@ const ProductDetailPage = () => {
   const [relatedRemote, setRelatedRemote] = useState<Product[]>([])
   const [remoteProduct, setRemoteProduct] = useState<Product | null>(null)
   const [productLoading, setProductLoading] = useState(false)
-  const catalogProduct = products.find((item) => item.id === id)
+
+  const localSavedProduct: Product | undefined = (() => {
+    try {
+      const raw = localStorage.getItem('agrimarket.products')
+      const list: Product[] = raw ? JSON.parse(raw) : []
+      return list.find((item) => item.id === id || String(item.id).toLowerCase() === String(id || '').toLowerCase())
+    } catch {
+      return undefined
+    }
+  })()
+
+  const catalogProduct =
+    products.find((item) => item.id === id || String(item.id).toLowerCase() === String(id || '').toLowerCase()) ||
+    allProducts.find((item) => item.id === id || String(item.id).toLowerCase() === String(id || '').toLowerCase()) ||
+    localSavedProduct
   const product = catalogProduct || remoteProduct
   const feedback = product ? reviewsFor(product.id) : []
 
@@ -100,6 +115,19 @@ const ProductDetailPage = () => {
     }
   }, [id, catalogProduct])
 
+  useEffect(() => {
+    if (!product?.id) return
+    try {
+      const raw = localStorage.getItem('agrimarket_recently_viewed')
+      const parsed: string[] = raw ? JSON.parse(raw) : []
+      const updated = [product.id, ...parsed.filter((item) => item !== product.id)].slice(0, 8)
+      localStorage.setItem('agrimarket_recently_viewed', JSON.stringify(updated))
+      setRecentlyViewedIds(updated.filter((item) => item !== product.id))
+    } catch {
+      // Ignore storage errors in restricted contexts
+    }
+  }, [product?.id])
+
   if (!product) {
     return (
       <div className="page-shell text-center">
@@ -120,19 +148,6 @@ const ProductDetailPage = () => {
   const out = product.stock <= 0
   const meta = harvestMeta(product)
   const sellerFeed = posts.filter((post) => post.productId === product.id || (post.sellerName === product.seller && post.category === product.category)).slice(0, 4)
-
-  useEffect(() => {
-    if (!product?.id) return
-    try {
-      const raw = localStorage.getItem('agrimarket_recently_viewed')
-      const parsed: string[] = raw ? JSON.parse(raw) : []
-      const updated = [product.id, ...parsed.filter((item) => item !== product.id)].slice(0, 8)
-      localStorage.setItem('agrimarket_recently_viewed', JSON.stringify(updated))
-      setRecentlyViewedIds(updated.filter((item) => item !== product.id))
-    } catch {
-      // Ignore storage errors in restricted contexts
-    }
-  }, [product?.id])
 
   const variations: Array<{ id: string; name: string; multiplier: number; price: number; unit: string; inStock?: boolean }> =
     (product as any).variations && (product as any).variations.length > 0
@@ -165,6 +180,11 @@ const ProductDetailPage = () => {
     }
     if (hasRole('delivery')) {
       toast('Delivery riders do not place orders. Manage parcels in your Delivery Desk.')
+      return
+    }
+    if (!isAuthenticated) {
+      toast('Please log in or sign up to order harvests', '/login')
+      navigate('/login', { state: { from: `/products/${product.id}` } })
       return
     }
     const itemToAdd = {

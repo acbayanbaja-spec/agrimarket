@@ -56,10 +56,11 @@ function App() {
               <CartSheetProvider>
               <Routes>
                 <Route path="/" element={<MainLayout />}>
-                  <Route index element={<HomePage />} />
-                  <Route path="marketplace" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><MarketplacePage /></ProtectedRoute>} />
-                  <Route path="products/:id" element={<ProtectedRoute roles={['buyer', 'seller', 'admin']}><ProductDetailPage /></ProtectedRoute>} />
-                  <Route path="cart" element={<ProtectedRoute roles={['buyer', 'seller']}><CartPage /></ProtectedRoute>} />
+                  <Route index element={<MarketplacePage />} />
+                  <Route path="landing" element={<HomePage />} />
+                  <Route path="marketplace" element={<MarketplacePage />} />
+                  <Route path="products/:id" element={<ProductDetailPage />} />
+                  <Route path="cart" element={<CartPage />} />
                   <Route path="checkout" element={<ProtectedRoute roles={['buyer', 'seller']}><CheckoutPage /></ProtectedRoute>} />
                   <Route path="login" element={<LoginPage />} />
                   <Route path="register" element={<RegisterPage />} />

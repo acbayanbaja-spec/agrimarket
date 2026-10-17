@@ -11,6 +11,20 @@ if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
   } catch {}
 }
 
+// Prevent mouse wheel from inadvertently incrementing/decrementing number inputs
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'wheel',
+    () => {
+      const active = document.activeElement
+      if (active && (active as HTMLInputElement).type === 'number') {
+        (active as HTMLElement).blur()
+      }
+    },
+    { passive: true }
+  )
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>

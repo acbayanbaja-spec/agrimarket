@@ -106,7 +106,7 @@ const LoginPage = () => {
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-6">
-          New here? <Link to="/register" className="text-primary-700 font-semibold">Create a buyer account</Link>
+          New here? <Link to="/register" state={from ? { from } : undefined} className="text-primary-700 font-semibold">Create a buyer account</Link>
         </p>
         <div className="mt-6 grid grid-cols-2 gap-2">
           {demos.map((demo) => (

@@ -1514,7 +1514,8 @@ class DatabaseStore {
   }
 
   public getProductById(id: string) {
-    return this.data.products.find((p) => p.id === id);
+    const cleanId = String(id || '').trim();
+    return this.data.products.find((p) => p.id === cleanId || p.id.toLowerCase() === cleanId.toLowerCase());
   }
 
   public unlistProduct(id: string, unlisted: boolean = true) {

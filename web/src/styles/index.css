@@ -35,6 +35,17 @@
     outline-offset: 2px;
   }
 
+  /* Remove number input spinners and scroll up/down arrows */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
+  input[type=number] {
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+  }
+
   .skip-link {
     position: absolute;
     left: 1rem;

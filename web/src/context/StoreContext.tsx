@@ -432,7 +432,14 @@ function readJson<T>(key: string, fallback: T): T {
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, addRole, grantRole } = useAuth()
-  const [centralProducts, setCentralProducts] = useState<Product[]>(catalogProducts)
+  const [centralProducts, setCentralProducts] = useState<Product[]>(() => {
+    const stored = readJson<Product[] | null>('agrimarket.products', null)
+    if (stored && stored.length > 0) {
+      const storedIds = new Set(stored.map((p) => p.id))
+      return [...stored, ...catalogProducts.filter((p) => !storedIds.has(p.id))]
+    }
+    return catalogProducts
+  })
   const [stockOverrides, setStockOverrides] = useState<Record<string, number>>({})
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({})
   const [orders, setOrders] = useState<Order[]>([])
@@ -498,7 +505,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       )
       const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
       if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
-        setCentralProducts(remoteProducts)
+        setCentralProducts((current) => {
+          const remoteIds = new Set(remoteProducts.map((p) => p.id))
+          const localOnly = current.filter((p) => !remoteIds.has(p.id))
+          return [...localOnly, ...remoteProducts]
+        })
       }
     } catch (err) {
       console.warn('Central database catalog sync error:', err)
@@ -587,20 +598,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void refreshPromotions()
     void refreshRiders()
 
-    // Hydrate backend orders
-    api.get<{ success?: boolean; data?: Order[] }>('/orders')
-      .then((res) => {
-        const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
-        if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
-          setOrders((current) => {
-            const map = new Map<string, Order>()
-            current.forEach((o) => map.set(o.id, o))
-            remoteOrders.forEach((o) => map.set(o.id, o))
-            return Array.from(map.values())
-          })
-        }
-      })
-      .catch(() => undefined)
+    // Hydrate backend orders only if user is logged in
+    if (localStorage.getItem('token')) {
+      api.get<{ success?: boolean; data?: Order[] }>('/orders')
+        .then((res) => {
+          const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+          if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+            setOrders((current) => {
+              const map = new Map<string, Order>()
+              current.forEach((o) => map.set(o.id, o))
+              remoteOrders.forEach((o) => map.set(o.id, o))
+              return Array.from(map.values())
+            })
+          }
+        })
+        .catch(() => undefined)
+    }
 
     // Connect real-time socket events across all devices (phones, laptops, tablets)
     const socket = getSocket()
@@ -772,19 +785,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const syncInterval = setInterval(() => {
       void refreshCatalog()
       void syncApplications()
-      api.get<{ success?: boolean; data?: Order[] }>('/orders')
-        .then((res) => {
-          const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
-          if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
-            setOrders((current) => {
-              const map = new Map<string, Order>()
-              current.forEach((o) => map.set(o.id, o))
-              remoteOrders.forEach((o) => map.set(o.id, o))
-              return Array.from(map.values())
-            })
-          }
-        })
-        .catch(() => undefined)
+      if (localStorage.getItem('token')) {
+        api.get<{ success?: boolean; data?: Order[] }>('/orders')
+          .then((res) => {
+            const remoteOrders = res.data?.data || (Array.isArray(res.data) ? res.data : [])
+            if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+              setOrders((current) => {
+                const map = new Map<string, Order>()
+                current.forEach((o) => map.set(o.id, o))
+                remoteOrders.forEach((o) => map.set(o.id, o))
+                return Array.from(map.values())
+              })
+            }
+          })
+          .catch(() => undefined)
+      }
     }, 4000)
 
     return () => {
@@ -993,11 +1008,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isActive: true,
       isUnlisted: false,
     }
-    setCentralProducts((current) => [next, ...current.filter((p) => p.id !== next.id)])
-    void publishSyncEvent('PRODUCT_ADDED', { product: next })
-    void api.post('/products', next).catch((err) => {
-      console.warn('Backend product listing sync notice:', err)
+    setCentralProducts((current) => {
+      const updated = [next, ...current.filter((p) => p.id !== next.id)]
+      try {
+        localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+      } catch {}
+      return updated
     })
+    void publishSyncEvent('PRODUCT_ADDED', { product: next })
+    api.post('/products', next)
+      .then((res) => {
+        const savedProd = res.data?.data?.product || (res.data as any)?.product
+        if (savedProd?.id) {
+          setCentralProducts((current) => [savedProd, ...current.filter((p) => p.id !== next.id && p.id !== savedProd.id)])
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend product listing sync notice:', err)
+      })
     notify({
       userId: 'all',
       title: `${next.category} listing just dropped`,

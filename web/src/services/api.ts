@@ -25,12 +25,20 @@ api.interceptors.response.use(
   (error) => {
     const url = String(error.config?.url || '')
     const isAuthAttempt = url.includes('/auth/login') || url.includes('/auth/register')
-    const token = localStorage.getItem('token') || ''
-    if (error.response?.status === 401 && !isAuthAttempt && !token.startsWith('local-') && !token.startsWith('demo-')) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
+    const pathname = window.location.pathname
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password')
+    const isPublicPage = pathname === '/' || pathname.startsWith('/marketplace') || pathname.startsWith('/products') || pathname.startsWith('/categories') || pathname.startsWith('/prices') || pathname.startsWith('/trades')
+
+    if (error.response?.status === 401) {
+      const activeToken = localStorage.getItem('token')
+      // If user had an active real session token that expired, clear it
+      if (activeToken && !activeToken.startsWith('local-') && !activeToken.startsWith('demo-')) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        // Only redirect to login if user was on a protected private route (e.g., /checkout, /orders, /profile)
+        if (!isAuthAttempt && !isAuthPage && !isPublicPage) {
+          window.location.href = '/login'
+        }
       }
     }
 

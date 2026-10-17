@@ -110,8 +110,14 @@ const MarketplacePage = () => {
     return list
   }, [products, selectedCategory, query, seller, sort, recommended, availability, budget, locationFilter, organicParam])
 
-  const filtered = remote?.products || localFiltered
-  const total = remote?.total ?? filtered.length
+  const filtered = useMemo(() => {
+    if (!remote?.products) return localFiltered
+    const remoteIds = new Set(remote.products.map((p) => p.id))
+    const localOnly = localFiltered.filter((p) => !remoteIds.has(p.id))
+    return [...localOnly, ...remote.products]
+  }, [remote, localFiltered])
+
+  const total = remote?.total ? remote.total + (filtered.length - (remote.products?.length || 0)) : filtered.length
   const totalPages = remote?.totalPages ?? 1
 
   return (

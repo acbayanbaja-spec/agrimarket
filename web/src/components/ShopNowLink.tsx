@@ -14,10 +14,10 @@ const ShopNowLink = ({ className, children = 'Shop Now' }: Props) => {
     scrollToTopNow()
   }
 
-  if (canShop) return <Link to="/marketplace" onClick={scrollToTop} className={className}>{children}</Link>
   if (isAuthenticated && hasRole('delivery')) return null
+
   return (
-    <Link to="/login" state={{ from: '/marketplace' }} onClick={scrollToTop} className={className}>
+    <Link to="/marketplace" onClick={scrollToTop} className={className}>
       {children}
     </Link>
   )
