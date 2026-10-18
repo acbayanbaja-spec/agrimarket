@@ -26,7 +26,13 @@ export type Product = {
   priceHistory: PricePoint[]
   isUnlisted?: boolean
   isActive?: boolean
+  is_active?: boolean
+  isDeleted?: boolean
   availabilityStatus?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'temporarily_unavailable'
+  moderationStatus?: 'approved' | 'flagged' | 'rejected'
+  moderationReason?: string
+  moderatedAt?: string
+  moderatedBy?: number
 }
 
 export const categories = [
