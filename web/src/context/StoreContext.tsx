@@ -1583,7 +1583,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             lng: order.lng,
           })
           .catch(() => undefined)
-        return { ...order, status: 'Confirmed' as const, driverId: effectiveDriverId, sellerConfirmedAt: new Date().toISOString() }
+        const packedItems = order.items.map((it) => ({
+          ...it,
+          prepStatus: 'packed' as const,
+          packedAt: new Date().toISOString(),
+        }))
+        return {
+          ...order,
+          items: packedItems,
+          prepStatus: 'packed' as const,
+          packedAt: new Date().toISOString(),
+          status: 'Confirmed' as const,
+          driverId: effectiveDriverId,
+          sellerConfirmedAt: new Date().toISOString(),
+        }
       })
     )
   }
@@ -1703,9 +1716,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const myListings = useMemo(() => {
     if (!user) return []
+    const legacyAliases: Record<number, string[]> = {
+      2: ['seller-1', 'seller-2'],
+      13: ['seller-2', 'seller-3', 'seller-13'],
+      15: ['seller-3', 'seller-5', 'seller-15'],
+      12: ['seller-4', 'seller-2', 'seller-12'],
+      17: ['seller-5', 'seller-7', 'seller-17'],
+      16: ['seller-6', 'seller-16'],
+      18: ['seller-7', 'seller-8', 'seller-9', 'seller-18'],
+      14: ['seller-4', 'seller-6', 'seller-8', 'seller-14'],
+    }
+    const aliases = legacyAliases[user.id] || []
     return allProducts.filter((product) => {
       if (product.sellerUserId === user.id) return true
       if (product.sellerId === `user-${user.id}` || product.sellerId === `seller-${user.id}`) return true
+      if (aliases.includes(product.sellerId)) return true
       if ((user.email === 'seller@agrimarket.com' || user.id === 2) && (product.sellerId === 'seller-1' || product.sellerUserId === 2)) return true
       return false
     })
@@ -1713,11 +1738,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const sellerOrders = useMemo(() => {
     if (!user) return []
+    const legacyAliases: Record<number, string[]> = {
+      2: ['seller-1', 'seller-2'],
+      13: ['seller-2', 'seller-3', 'seller-13'],
+      15: ['seller-3', 'seller-5', 'seller-15'],
+      12: ['seller-4', 'seller-2', 'seller-12'],
+      17: ['seller-5', 'seller-7', 'seller-17'],
+      16: ['seller-6', 'seller-16'],
+      18: ['seller-7', 'seller-8', 'seller-9', 'seller-18'],
+      14: ['seller-4', 'seller-6', 'seller-8', 'seller-14'],
+    }
+    const aliases = legacyAliases[user.id] || []
     const listingIds = new Set(myListings.map((product) => product.id))
     return orders.filter((order) =>
       order.items.some((item) =>
         listingIds.has(item.productId) ||
         item.sellerUserId === user.id ||
+        (item.sellerId && aliases.includes(item.sellerId)) ||
         ((user.email === 'seller@agrimarket.com' || user.id === 2) && (item.sellerUserId === 2 || item.sellerId === 'seller-1'))
       )
     )

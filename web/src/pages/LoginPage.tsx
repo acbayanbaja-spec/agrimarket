@@ -4,11 +4,17 @@ import { Bike, Leaf, Lock, ShieldCheck, Sparkles, Store } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const demos = [
-  { label: 'Buyer', email: 'buyer@agrimarket.com', password: 'buyer123', hint: 'Shop SOCCSKSARGEN harvests' },
-  { label: 'Seller (Green Valley)', email: 'seller@agrimarket.com', password: 'seller123', hint: 'Confirm tomato & rice orders' },
-  { label: 'Seller (Poultry)', email: 'seller.poultry@agrimarket.com', password: 'seller123', hint: 'Confirm egg & poultry orders' },
-  { label: 'Admin', email: 'admin@agrimarket.com', password: 'admin123', hint: 'Audit KYC & moderate catalog' },
-  { label: 'Rider', email: 'driver@agrimarket.com', password: 'driver123', hint: 'Pick up confirmed crates' },
+  { label: 'Buyer (Juan)', email: 'buyer@agrimarket.com', password: 'buyer123', hint: 'Shop SOCCSKSARGEN harvests' },
+  { label: 'Admin (Superuser)', email: 'admin@agrimarket.com', password: 'admin123', hint: 'Audit KYC & moderation' },
+  { label: 'Rider (Rico)', email: 'driver@agrimarket.com', password: 'driver123', hint: 'Pick up confirmed crates' },
+  { label: '🥬 Vegetables (Green Valley)', email: 'seller.vegetables@agrimarket.com', password: 'seller123', hint: 'Maria Santos · Polomolok' },
+  { label: '🥭 Fruits (Midsayap Gold)', email: 'seller.fruits@agrimarket.com', password: 'seller123', hint: 'Eduardo Dizon · Midsayap' },
+  { label: '🌾 Rice (Tacurong Mills)', email: 'seller.rice@agrimarket.com', password: 'seller123', hint: 'Lilia Mendoza · Tacurong' },
+  { label: '🌽 Grains (Koronadal Farms)', email: 'seller.grains@agrimarket.com', password: 'seller123', hint: 'Juanita Reyes · Koronadal' },
+  { label: '🐟 Fish (Lake Sebu)', email: 'seller.fish@agrimarket.com', password: 'seller123', hint: 'Danilo Blaan · Lake Sebu' },
+  { label: '🐓 Poultry (Sunrise)', email: 'seller.poultry@agrimarket.com', password: 'seller123', hint: 'Nestor Aquino · Koronadal' },
+  { label: '🐄 Livestock (Surallah Dairy)', email: 'seller.livestock@agrimarket.com', password: 'seller123', hint: 'Ramon Valdez · Surallah' },
+  { label: '🧺 Supplies (Gensan Agri)', email: 'seller.supplies@agrimarket.com', password: 'seller123', hint: 'Roberto Tan · GenSan' },
 ]
 
 function homeFor(roles: string[]) {
@@ -108,21 +114,24 @@ const LoginPage = () => {
         <p className="text-sm text-gray-600 mt-6">
           New here? <Link to="/register" state={from ? { from } : undefined} className="text-primary-700 font-semibold">Create a buyer account</Link>
         </p>
-        <div className="mt-6 grid grid-cols-2 gap-2">
-          {demos.map((demo) => (
-            <button
-              key={demo.email}
-              type="button"
-              className="rounded-2xl border border-gray-100 bg-soil-50 p-3 text-left hover:border-primary-300 transition-colors"
-              onClick={() => {
-                setEmail(demo.email)
-                setPassword(demo.password)
-              }}
-            >
-              <p className="text-xs font-bold text-primary-800 inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> {demo.label}</p>
-              <p className="text-[11px] text-gray-500 mt-1">{demo.hint}</p>
-            </button>
-          ))}
+        <div className="mt-6">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Instant Demo Accounts</p>
+          <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+            {demos.map((demo) => (
+              <button
+                key={demo.email}
+                type="button"
+                className="rounded-2xl border border-gray-100 bg-soil-50 p-2.5 text-left hover:border-primary-300 hover:bg-emerald-50/50 transition-colors"
+                onClick={() => {
+                  setEmail(demo.email)
+                  setPassword(demo.password)
+                }}
+              >
+                <p className="text-xs font-bold text-primary-800 inline-flex items-center gap-1"><Sparkles className="h-3 w-3 shrink-0" /> <span className="truncate">{demo.label}</span></p>
+                <p className="text-[11px] text-gray-500 mt-0.5 truncate">{demo.hint}</p>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -57,20 +57,43 @@ function existsError() {
   return err;
 }
 
+export const SELLER_EMAIL_ALIASES: Record<string, string[]> = {
+  'seller.vegetables@agrimarket.com': ['seller@agrimarket.com'],
+  'seller@agrimarket.com': ['seller.vegetables@agrimarket.com'],
+  'seller.fruits@agrimarket.com': ['seller.midsayap@agrimarket.com'],
+  'seller.midsayap@agrimarket.com': ['seller.fruits@agrimarket.com'],
+  'seller.rice@agrimarket.com': ['seller.tacurong@agrimarket.com'],
+  'seller.tacurong@agrimarket.com': ['seller.rice@agrimarket.com'],
+  'seller.grains@agrimarket.com': ['seller.koronadal@agrimarket.com'],
+  'seller.koronadal@agrimarket.com': ['seller.grains@agrimarket.com'],
+  'seller.fish@agrimarket.com': ['seller.lakesebu@agrimarket.com'],
+  'seller.lakesebu@agrimarket.com': ['seller.fish@agrimarket.com'],
+  'seller.supplies@agrimarket.com': ['seller.gensan@agrimarket.com'],
+  'seller.gensan@agrimarket.com': ['seller.supplies@agrimarket.com'],
+  'seller.livestock@agrimarket.com': ['seller.dairy@agrimarket.com'],
+  'seller.dairy@agrimarket.com': ['seller.livestock@agrimarket.com'],
+};
+
 async function loadMysqlUserByEmail(email: string) {
   const connection = await pool.getConnection();
   try {
-    const [users] = await connection.query(
-      `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.is_verified, u.is_active,
-       STRING_AGG(r.name, ',') as roles
-       FROM users u
-       LEFT JOIN user_roles ur ON u.id = ur.user_id
-       LEFT JOIN roles r ON ur.role_id = r.id
-       WHERE u.email = ?
-       GROUP BY u.id`,
-      [email]
-    );
-    return (users as any[])[0] || null;
+    const candidateEmails = [email, ...(SELLER_EMAIL_ALIASES[email] || [])];
+    for (const cand of candidateEmails) {
+      const [users] = await connection.query(
+        `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.is_verified, u.is_active,
+         STRING_AGG(r.name, ',') as roles
+         FROM users u
+         LEFT JOIN user_roles ur ON u.id = ur.user_id
+         LEFT JOIN roles r ON ur.role_id = r.id
+         WHERE u.email = ?
+         GROUP BY u.id`,
+        [cand]
+      );
+      if ((users as any[]).length > 0) {
+        return (users as any[])[0];
+      }
+    }
+    return null;
   } finally {
     connection.release();
   }
