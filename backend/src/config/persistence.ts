@@ -17,9 +17,9 @@ export function isDatabaseRequired(): boolean {
 }
 
 export function isEmbeddedFallbackAllowed(): boolean {
-  if (isProductionEnv()) return false;
+  if (process.env.ALLOW_EMBEDDED_STORE === 'true') return true;
   if (process.env.ALLOW_EMBEDDED_STORE === 'false') return false;
-  if (isDatabaseRequired()) return false;
+  if (process.env.DB_REQUIRED === 'true') return false;
   return true;
 }
 

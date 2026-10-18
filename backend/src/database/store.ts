@@ -1456,7 +1456,7 @@ class DatabaseStore {
       ready,
       databaseRequired: required,
       connected: this.isMySqlConnected,
-      mode: this.isMySqlConnected ? 'mysql' : embedded ? 'embedded_dev' : 'unavailable',
+      mode: this.isMySqlConnected ? 'postgresql' : embedded ? 'embedded_dev' : 'unavailable',
       failureKind: this.isMySqlConnected ? null : this.lastFailureKind,
       failureMessage: this.isMySqlConnected ? null : this.lastFailureMessage,
     };

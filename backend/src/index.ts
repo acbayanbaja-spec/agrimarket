@@ -129,7 +129,7 @@ const healthPayload = () => {
       connected: readiness.connected,
       required: readiness.databaseRequired,
       mode: readiness.mode,
-      type: 'mysql',
+      type: 'postgresql',
       failureKind: readiness.failureKind,
     },
     timestamp: new Date().toISOString(),

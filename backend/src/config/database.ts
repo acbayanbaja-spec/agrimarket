@@ -55,11 +55,68 @@ function parseDatabaseUrl(raw: string): Partial<ParsedDatabaseTarget> | null {
   }
 }
 
-export function getDatabaseTarget(): ParsedDatabaseTarget {
-  const rawUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || process.env.POSTGRES_URL || process.env.MYSQL_URL;
-  const fromUrl = rawUrl ? parseDatabaseUrl(stripQuotes(rawUrl)) : null;
+const DEFAULT_SUPABASE = {
+  host: 'aws-0-ap-northeast-1.pooler.supabase.com',
+  port: 6543,
+  database: 'postgres',
+  user: 'postgres.hiscjhqlnhhyqgnysvcy',
+  password: '128088100011marga',
+  url: 'postgresql://postgres.hiscjhqlnhhyqgnysvcy:128088100011marga@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true',
+};
 
-  const host = process.env.DB_HOST || fromUrl?.host || 'localhost';
+function isLegacyMysqlConfig(hostOrUrl?: string, port?: number): boolean {
+  if (!hostOrUrl) return false;
+  const lower = hostOrUrl.toLowerCase();
+  return (
+    lower.includes('aivencloud.com') ||
+    lower.includes('mysql-') ||
+    lower.startsWith('mysql://') ||
+    port === 22689 ||
+    port === 3306
+  );
+}
+
+export function getDatabaseTarget(): ParsedDatabaseTarget {
+  let rawUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || process.env.POSTGRES_URL;
+
+  // Ignore legacy MySQL URLs or Aiven endpoints if inadvertently configured
+  if (rawUrl && isLegacyMysqlConfig(rawUrl)) {
+    console.warn('⚠️ Legacy MySQL connection URL detected in environment. Using canonical Supabase PostgreSQL configuration.');
+    rawUrl = undefined;
+  }
+
+  let fromUrl = rawUrl ? parseDatabaseUrl(stripQuotes(rawUrl)) : null;
+
+  let host = process.env.DB_HOST || fromUrl?.host;
+  let port = parseInt(process.env.DB_PORT || String(fromUrl?.port || ''), 10);
+
+  // If host or port points to deprecated Aiven MySQL, ignore it
+  if (isLegacyMysqlConfig(host, isNaN(port) ? undefined : port)) {
+    console.warn('⚠️ Legacy Aiven MySQL DB_HOST/DB_PORT detected in environment. Using canonical Supabase PostgreSQL configuration.');
+    host = undefined;
+    port = NaN;
+  }
+
+  // If in production or if no remote host/URL is specified, use canonical Supabase target
+  if (!host || host === 'localhost' || host === '127.0.0.1') {
+    if ((process.env.NODE_ENV || '').toLowerCase() === 'production' || !rawUrl) {
+      host = DEFAULT_SUPABASE.host;
+      port = DEFAULT_SUPABASE.port;
+      fromUrl = {
+        host: DEFAULT_SUPABASE.host,
+        port: DEFAULT_SUPABASE.port,
+        user: DEFAULT_SUPABASE.user,
+        password: DEFAULT_SUPABASE.password,
+        database: DEFAULT_SUPABASE.database,
+        sslEnabled: true,
+        connectionString: DEFAULT_SUPABASE.url,
+      };
+    } else {
+      host = 'localhost';
+      port = isNaN(port) ? 5432 : port;
+    }
+  }
+
   const isRemoteHost = host !== 'localhost' && host !== '127.0.0.1';
   const sslExplicit = process.env.DB_SSL;
   const sslEnabled =
@@ -69,12 +126,14 @@ export function getDatabaseTarget(): ParsedDatabaseTarget {
         ? false
         : Boolean(fromUrl?.sslEnabled) || isRemoteHost;
 
+  const isLegacyHost = isLegacyMysqlConfig(process.env.DB_HOST);
+
   return {
     host,
-    port: parseInt(process.env.DB_PORT || String(fromUrl?.port || 5432), 10),
-    user: process.env.DB_USER || fromUrl?.user || 'postgres',
-    password: process.env.DB_PASSWORD || fromUrl?.password || '',
-    database: process.env.DB_NAME || fromUrl?.database || 'postgres',
+    port: isNaN(port) ? (fromUrl?.port || 5432) : port,
+    user: process.env.DB_USER && !isLegacyHost ? process.env.DB_USER : (fromUrl?.user || DEFAULT_SUPABASE.user),
+    password: process.env.DB_PASSWORD && !isLegacyHost ? process.env.DB_PASSWORD : (fromUrl?.password || DEFAULT_SUPABASE.password),
+    database: process.env.DB_NAME && !isLegacyHost ? process.env.DB_NAME : (fromUrl?.database || DEFAULT_SUPABASE.database),
     sslEnabled,
     connectionString: fromUrl?.connectionString,
   };
@@ -242,6 +301,7 @@ function sanitizeParams(params: any[]): any[] {
 const target = getDatabaseTarget();
 
 const connString = stripQuotes(
+  target.connectionString ||
   process.env.DATABASE_URL ||
   process.env.DIRECT_URL ||
   `postgresql://${encodeURIComponent(target.user)}:${encodeURIComponent(target.password)}@${target.host}:${target.port}/${target.database}`

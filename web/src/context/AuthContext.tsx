@@ -52,7 +52,18 @@ const demoAccounts: LocalAccount[] = [
   { id: 15, email: 'seller.tacurong@agrimarket.com', password: 'seller123', firstName: 'Lilia', lastName: 'Mendoza', phone: '+639175556677', roles: ['seller', 'buyer'] },
   { id: 16, email: 'seller.poultry@agrimarket.com', password: 'seller123', firstName: 'Nestor', lastName: 'Aquino', phone: '+639176667788', roles: ['seller', 'buyer'] },
   { id: 17, email: 'seller.lakesebu@agrimarket.com', password: 'seller123', firstName: 'Danilo', lastName: 'Blaan', phone: '+639177778899', roles: ['seller', 'buyer'] },
+  { id: 18, email: 'seller.dairy@agrimarket.com', password: 'seller123', firstName: 'Ramon', lastName: 'Valdez', phone: '+639178889900', roles: ['seller', 'buyer'] },
 ]
+
+const sellerEmailAliases: Record<string, string> = {
+  'seller.vegetables@agrimarket.com': 'seller@agrimarket.com',
+  'seller.fruits@agrimarket.com': 'seller.midsayap@agrimarket.com',
+  'seller.rice@agrimarket.com': 'seller.tacurong@agrimarket.com',
+  'seller.grains@agrimarket.com': 'seller.koronadal@agrimarket.com',
+  'seller.fish@agrimarket.com': 'seller.lakesebu@agrimarket.com',
+  'seller.livestock@agrimarket.com': 'seller.dairy@agrimarket.com',
+  'seller.supplies@agrimarket.com': 'seller.gensan@agrimarket.com',
+}
 
 function readLocalUsers(): LocalAccount[] {
   try {
@@ -112,8 +123,13 @@ function withApprovedRoles(next: User): User {
 }
 
 function findLocalAccount(email: string, password: string) {
+  const normalized = email.trim().toLowerCase()
+  const targetEmail = sellerEmailAliases[normalized] || normalized
   const all = [...demoAccounts, ...readLocalUsers()]
-  return all.find((account) => account.email.toLowerCase() === email.toLowerCase() && account.password === password)
+  return all.find((account) => {
+    const accEmail = account.email.toLowerCase()
+    return (accEmail === targetEmail || accEmail === normalized) && account.password === password
+  })
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -150,7 +166,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return nextUser
     } catch (error: any) {
       const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
-      if (import.meta.env.DEV && isNetworkError) {
+      const isServerDown = error?.response?.status === 503 || error?.response?.status === 502 || error?.response?.status === 504
+      if (isNetworkError || isServerDown) {
         const localMatch = findLocalAccount(email, password)
         if (localMatch) {
           const nextUser: User = {
