@@ -535,14 +535,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user, addRole, grantRole } = useAuth()
   const [centralProducts, setCentralProducts] = useState<Product[]>(() => {
     const deletedIds = new Set(readJson<string[]>('agrimarket.deleted_products', []))
+    deletedIds.add('prod-1791732814162-2f8d')
     const stored = readJson<Product[] | null>('agrimarket.products', null)
     if (stored && stored.length > 0) {
       const storedIds = new Set(stored.map((p) => p.id))
       return [...stored.map(normalizeProductSeller), ...catalogProducts.filter((p) => !storedIds.has(p.id)).map(normalizeProductSeller)].filter(
-        (p) => !deletedIds.has(p.id) && !p.isDeleted
+        (p) =>
+          !deletedIds.has(p.id) &&
+          !p.isDeleted &&
+          p.id !== 'prod-1791732814162-2f8d' &&
+          !p.id.startsWith('prod-fruits-') &&
+          !p.id.startsWith('prod-grain-') &&
+          !p.id.startsWith('prod-fish-')
       )
     }
-    return catalogProducts.map(normalizeProductSeller).filter((p) => !deletedIds.has(p.id))
+    return catalogProducts.map(normalizeProductSeller).filter((p) => !deletedIds.has(p.id) && p.id !== 'prod-1791732814162-2f8d')
   })
   const [stockOverrides, setStockOverrides] = useState<Record<string, number>>({})
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({})
@@ -611,9 +618,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
         setCentralProducts((current) => {
           const deletedIds = new Set(readJson<string[]>('agrimarket.deleted_products', []))
+          deletedIds.add('prod-1791732814162-2f8d')
           const currentMap = new Map<string, Product>(current.map((p) => [p.id, p]))
           const mergedRemote = remoteProducts
-            .filter((p) => !deletedIds.has(p.id) && !p.isDeleted)
+            .filter(
+              (p) =>
+                !deletedIds.has(p.id) &&
+                !p.isDeleted &&
+                p.id !== 'prod-1791732814162-2f8d' &&
+                !p.id.startsWith('prod-fruits-') &&
+                !p.id.startsWith('prod-grain-') &&
+                !p.id.startsWith('prod-fish-')
+            )
             .map((remote) => {
               const existing = currentMap.get(remote.id)
               if (!existing) return remote
@@ -630,7 +646,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               }
             })
           const remoteIds = new Set(remoteProducts.map((p) => p.id))
-          const localOnly = current.filter((p) => !remoteIds.has(p.id) && !deletedIds.has(p.id) && !p.isDeleted)
+          const localOnly = current.filter(
+            (p) =>
+              !remoteIds.has(p.id) &&
+              !deletedIds.has(p.id) &&
+              !p.isDeleted &&
+              p.id !== 'prod-1791732814162-2f8d' &&
+              !p.id.startsWith('prod-fruits-') &&
+              !p.id.startsWith('prod-grain-') &&
+              !p.id.startsWith('prod-fish-')
+          )
           const nextCatalog = [...localOnly, ...mergedRemote]
           try {
             localStorage.setItem('agrimarket.products', JSON.stringify(nextCatalog))

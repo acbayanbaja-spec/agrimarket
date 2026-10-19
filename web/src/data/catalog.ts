@@ -475,40 +475,6 @@ export const products: Product[] = [
     "availabilityStatus": "in_stock"
   },
   {
-    "id": "prod-1791732814162-2f8d",
-    "name": "Highland Red Bell Peppers",
-    "category": "Vegetables",
-    "price": 140,
-    "unit": "kg",
-    "stock": 65,
-    "rating": 5,
-    "reviews": 0,
-    "seller": "Maria Santos",
-    "sellerId": "seller-2",
-    "sellerUserId": 2,
-    "location": "Polomolok, South Cotabato",
-    "image": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80",
-    "photos": [
-      "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80"
-    ],
-    "description": "Sweet, crisp bell peppers harvested fresh.",
-    "organic": true,
-    "tradeable": false,
-    "lat": 6.2214,
-    "lng": 125.0647,
-    "priceHistory": [
-      {
-        "date": "2026-10-01",
-        "price": 140
-      }
-    ],
-    "isActive": true,
-    "is_active": true,
-    "isUnlisted": false,
-    "isDeleted": false,
-    "availabilityStatus": "in_stock"
-  },
-  {
     "id": "p-mango",
     "name": "Carabao Mangoes",
     "category": "Fruits",
@@ -1129,7 +1095,7 @@ export const sellers = [
     "name": "Maria Santos",
     "farmName": "Green Valley Farm",
     "location": "Polomolok, South Cotabato",
-    "products": 11,
+    "products": 10,
     "rating": 4.8,
     "sellerUserId": 2,
     "category": "Vegetables",

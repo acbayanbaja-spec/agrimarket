@@ -41,7 +41,8 @@ export const categories = [
     "emoji": "🥬",
     "description": "Leafy greens, roots and daily harvests",
     "image": "/images/kangkong.jpg",
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
+    "farmName": "Green Valley Farm",
     "sellerUserId": 2
   },
   {
@@ -49,7 +50,8 @@ export const categories = [
     "emoji": "🥭",
     "description": "Seasonal fruits from local orchards",
     "image": "/images/mango.jpg",
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
+    "farmName": "Midsayap Gold Orchard",
     "sellerUserId": 13
   },
   {
@@ -57,7 +59,8 @@ export const categories = [
     "emoji": "🌾",
     "description": "Dinorado, Sinandomeng, brown and black rice",
     "image": "/images/rice.jpg",
-    "seller": "Tacurong Rice Mills",
+    "seller": "Lilia Mendoza",
+    "farmName": "Tacurong Rice Mills",
     "sellerUserId": 15
   },
   {
@@ -65,7 +68,8 @@ export const categories = [
     "emoji": "🌽",
     "description": "Yellow sweet corn, flint, feeds and grains",
     "image": "/images/corn.jpg",
-    "seller": "Koronadal Grain Farms",
+    "seller": "Juanita Reyes",
+    "farmName": "Koronadal Grain Farms",
     "sellerUserId": 12
   },
   {
@@ -73,7 +77,8 @@ export const categories = [
     "emoji": "🐟",
     "description": "Fresh catch and pond fish",
     "image": "/images/tilapia.jpg",
-    "seller": "Lake Sebu Fisheries",
+    "seller": "Danilo Blaan",
+    "farmName": "Lake Sebu Fisheries",
     "sellerUserId": 17
   },
   {
@@ -81,7 +86,8 @@ export const categories = [
     "emoji": "🐓",
     "description": "Chicken, pasture eggs, and duck",
     "image": "/images/eggs.jpg",
-    "seller": "Koronadal Sunrise Poultry",
+    "seller": "Nestor Aquino",
+    "farmName": "Koronadal Sunrise Poultry",
     "sellerUserId": 16
   },
   {
@@ -89,7 +95,8 @@ export const categories = [
     "emoji": "🐄",
     "description": "Farm-raised meat and dairy",
     "image": "/images/milk.jpg",
-    "seller": "Surallah Dairy Farm",
+    "seller": "Ramon Valdez",
+    "farmName": "Surallah Dairy Farm",
     "sellerUserId": 18
   },
   {
@@ -97,21 +104,32 @@ export const categories = [
     "emoji": "🧺",
     "description": "Tools, fertilizers, seeds and soil essentials",
     "image": "/images/compost.jpg",
-    "seller": "Gensan Agri Supply",
+    "seller": "Roberto Tan",
+    "farmName": "Gensan Agri Supply",
     "sellerUserId": 14
   }
 ]
 
-export function stockLabel(stock: number) {
-  if (stock <= 0) return 'Out of stock'
-  if (stock <= 20) return 'Low stock'
+export function stockLabel(stock: number, availabilityStatus?: string, isActive?: boolean, isUnlisted?: boolean) {
+  if (isUnlisted || isActive === false || availabilityStatus === 'temporarily_unavailable') {
+    return 'Temporarily unavailable'
+  }
+  if (availabilityStatus === 'out_of_stock' || stock <= 0) return 'Out of stock'
+  if (availabilityStatus === 'low_stock' || stock <= 20) return 'Low stock'
   return 'In stock'
 }
 
-export function stockTone(stock: number) {
-  if (stock <= 0) return 'bg-red-100 text-red-800'
-  if (stock <= 20) return 'bg-amber-100 text-amber-800'
-  return 'bg-primary-100 text-primary-800'
+export function stockTone(stock: number, availabilityStatus?: string, isActive?: boolean, isUnlisted?: boolean) {
+  if (isUnlisted || isActive === false || availabilityStatus === 'temporarily_unavailable') {
+    return 'bg-gray-100 text-gray-700 border-gray-300'
+  }
+  if (availabilityStatus === 'out_of_stock' || stock <= 0) {
+    return 'bg-rose-100 text-rose-800 border-rose-200'
+  }
+  if (availabilityStatus === 'low_stock' || stock <= 20) {
+    return 'bg-amber-100 text-amber-800 border-amber-200'
+  }
+  return 'bg-emerald-100 text-emerald-800 border-emerald-200'
 }
 
 export const products: Product[] = [
@@ -124,7 +142,7 @@ export const products: Product[] = [
     "stock": 120,
     "rating": 4.8,
     "reviews": 64,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -159,7 +177,7 @@ export const products: Product[] = [
     "stock": 45,
     "rating": 4.6,
     "reviews": 28,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -193,7 +211,7 @@ export const products: Product[] = [
     "stock": 60,
     "rating": 4.8,
     "reviews": 47,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -227,7 +245,7 @@ export const products: Product[] = [
     "stock": 95,
     "rating": 4.7,
     "reviews": 32,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -261,7 +279,7 @@ export const products: Product[] = [
     "stock": 110,
     "rating": 4.6,
     "reviews": 25,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -295,7 +313,7 @@ export const products: Product[] = [
     "stock": 60,
     "rating": 4.9,
     "reviews": 42,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -329,7 +347,7 @@ export const products: Product[] = [
     "stock": 40,
     "rating": 4.8,
     "reviews": 33,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -363,7 +381,7 @@ export const products: Product[] = [
     "stock": 180,
     "rating": 4.8,
     "reviews": 76,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -397,7 +415,7 @@ export const products: Product[] = [
     "stock": 80,
     "rating": 4.9,
     "reviews": 52,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -431,7 +449,7 @@ export const products: Product[] = [
     "stock": 70,
     "rating": 4.7,
     "reviews": 38,
-    "seller": "Green Valley Farm",
+    "seller": "Maria Santos",
     "sellerId": "seller-2",
     "sellerUserId": 2,
     "location": "Polomolok, South Cotabato",
@@ -457,40 +475,6 @@ export const products: Product[] = [
     "availabilityStatus": "in_stock"
   },
   {
-    "id": "prod-1791732814162-2f8d",
-    "name": "Highland Red Bell Peppers",
-    "category": "Vegetables",
-    "price": 140,
-    "unit": "kg",
-    "stock": 65,
-    "rating": 5,
-    "reviews": 0,
-    "seller": "Green Valley Farm",
-    "sellerId": "seller-2",
-    "sellerUserId": 2,
-    "location": "Polomolok, South Cotabato",
-    "image": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80",
-    "photos": [
-      "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80"
-    ],
-    "description": "Sweet, crisp bell peppers harvested fresh.",
-    "organic": true,
-    "tradeable": false,
-    "lat": 6.2214,
-    "lng": 125.0647,
-    "priceHistory": [
-      {
-        "date": "2026-10-01",
-        "price": 140
-      }
-    ],
-    "isActive": true,
-    "is_active": true,
-    "isUnlisted": false,
-    "isDeleted": false,
-    "availabilityStatus": "in_stock"
-  },
-  {
     "id": "p-mango",
     "name": "Carabao Mangoes",
     "category": "Fruits",
@@ -499,7 +483,7 @@ export const products: Product[] = [
     "stock": 60,
     "rating": 4.9,
     "reviews": 82,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -534,7 +518,7 @@ export const products: Product[] = [
     "stock": 50,
     "rating": 4.7,
     "reviews": 41,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -568,7 +552,7 @@ export const products: Product[] = [
     "stock": 85,
     "rating": 4.7,
     "reviews": 44,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -602,7 +586,7 @@ export const products: Product[] = [
     "stock": 40,
     "rating": 5,
     "reviews": 94,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -636,7 +620,7 @@ export const products: Product[] = [
     "stock": 50,
     "rating": 4.9,
     "reviews": 61,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -670,7 +654,7 @@ export const products: Product[] = [
     "stock": 90,
     "rating": 4.7,
     "reviews": 49,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -704,7 +688,7 @@ export const products: Product[] = [
     "stock": 55,
     "rating": 4.9,
     "reviews": 63,
-    "seller": "Midsayap Gold Orchard",
+    "seller": "Eduardo Dizon",
     "sellerId": "seller-13",
     "sellerUserId": 13,
     "location": "Midsayap, Cotabato",
@@ -738,7 +722,7 @@ export const products: Product[] = [
     "stock": 300,
     "rating": 4.9,
     "reviews": 110,
-    "seller": "Tacurong Rice Mills",
+    "seller": "Lilia Mendoza",
     "sellerId": "seller-15",
     "sellerUserId": 15,
     "location": "Tacurong City, Sultan Kudarat",
@@ -772,7 +756,7 @@ export const products: Product[] = [
     "stock": 150,
     "rating": 4.9,
     "reviews": 69,
-    "seller": "Tacurong Rice Mills",
+    "seller": "Lilia Mendoza",
     "sellerId": "seller-15",
     "sellerUserId": 15,
     "location": "Tacurong City, Sultan Kudarat",
@@ -806,7 +790,7 @@ export const products: Product[] = [
     "stock": 80,
     "rating": 4.7,
     "reviews": 35,
-    "seller": "Koronadal Grain Farms",
+    "seller": "Juanita Reyes",
     "sellerId": "seller-12",
     "sellerUserId": 12,
     "location": "Koronadal City, South Cotabato",
@@ -840,7 +824,7 @@ export const products: Product[] = [
     "stock": 90,
     "rating": 4.9,
     "reviews": 67,
-    "seller": "Lake Sebu Fisheries",
+    "seller": "Danilo Blaan",
     "sellerId": "seller-17",
     "sellerUserId": 17,
     "location": "Lake Sebu, South Cotabato",
@@ -874,7 +858,7 @@ export const products: Product[] = [
     "stock": 85,
     "rating": 4.8,
     "reviews": 83,
-    "seller": "Lake Sebu Fisheries",
+    "seller": "Danilo Blaan",
     "sellerId": "seller-17",
     "sellerUserId": 17,
     "location": "Lake Sebu, South Cotabato",
@@ -908,7 +892,7 @@ export const products: Product[] = [
     "stock": 25,
     "rating": 4.8,
     "reviews": 39,
-    "seller": "Koronadal Sunrise Poultry",
+    "seller": "Nestor Aquino",
     "sellerId": "seller-16",
     "sellerUserId": 16,
     "location": "Koronadal City, South Cotabato",
@@ -942,7 +926,7 @@ export const products: Product[] = [
     "stock": 75,
     "rating": 4.8,
     "reviews": 53,
-    "seller": "Koronadal Sunrise Poultry",
+    "seller": "Nestor Aquino",
     "sellerId": "seller-16",
     "sellerUserId": 16,
     "location": "Koronadal City, South Cotabato",
@@ -976,7 +960,7 @@ export const products: Product[] = [
     "stock": 35,
     "rating": 4.8,
     "reviews": 36,
-    "seller": "Surallah Dairy Farm",
+    "seller": "Ramon Valdez",
     "sellerId": "seller-18",
     "sellerUserId": 18,
     "location": "Surallah, South Cotabato",
@@ -1010,7 +994,7 @@ export const products: Product[] = [
     "stock": 65,
     "rating": 4.9,
     "reviews": 58,
-    "seller": "Gensan Agri Supply",
+    "seller": "Roberto Tan",
     "sellerId": "seller-14",
     "sellerUserId": 14,
     "location": "General Santos City",
@@ -1044,7 +1028,7 @@ export const products: Product[] = [
     "stock": 140,
     "rating": 4.6,
     "reviews": 29,
-    "seller": "Gensan Agri Supply",
+    "seller": "Roberto Tan",
     "sellerId": "seller-14",
     "sellerUserId": 14,
     "location": "General Santos City",
@@ -1078,7 +1062,7 @@ export const products: Product[] = [
     "stock": 45,
     "rating": 5,
     "reviews": 115,
-    "seller": "Gensan Agri Supply",
+    "seller": "Roberto Tan",
     "sellerId": "seller-14",
     "sellerUserId": 14,
     "location": "General Santos City",
@@ -1107,10 +1091,11 @@ export const products: Product[] = [
 
 export const sellers = [
   {
-    "id": "seller-1",
-    "name": "Green Valley Farm",
+    "id": "seller-2",
+    "name": "Maria Santos",
+    "farmName": "Green Valley Farm",
     "location": "Polomolok, South Cotabato",
-    "products": 8,
+    "products": 10,
     "rating": 4.8,
     "sellerUserId": 2,
     "category": "Vegetables",
@@ -1118,10 +1103,11 @@ export const sellers = [
     "email": "seller.vegetables@agrimarket.com"
   },
   {
-    "id": "seller-2",
-    "name": "Midsayap Gold Orchard",
+    "id": "seller-13",
+    "name": "Eduardo Dizon",
+    "farmName": "Midsayap Gold Orchard",
     "location": "Midsayap, Cotabato",
-    "products": 5,
+    "products": 7,
     "rating": 4.9,
     "sellerUserId": 13,
     "category": "Fruits",
@@ -1129,10 +1115,11 @@ export const sellers = [
     "email": "seller.fruits@agrimarket.com"
   },
   {
-    "id": "seller-3",
-    "name": "Tacurong Rice Mills",
+    "id": "seller-15",
+    "name": "Lilia Mendoza",
+    "farmName": "Tacurong Rice Mills",
     "location": "Tacurong City, Sultan Kudarat",
-    "products": 4,
+    "products": 2,
     "rating": 4.8,
     "sellerUserId": 15,
     "category": "Rice",
@@ -1140,10 +1127,11 @@ export const sellers = [
     "email": "seller.rice@agrimarket.com"
   },
   {
-    "id": "seller-4",
-    "name": "Koronadal Grain Farms",
+    "id": "seller-12",
+    "name": "Juanita Reyes",
+    "farmName": "Koronadal Grain Farms",
     "location": "Koronadal City, South Cotabato",
-    "products": 2,
+    "products": 1,
     "rating": 4.7,
     "sellerUserId": 12,
     "category": "Grains",
@@ -1151,10 +1139,11 @@ export const sellers = [
     "email": "seller.grains@agrimarket.com"
   },
   {
-    "id": "seller-5",
-    "name": "Lake Sebu Fisheries",
+    "id": "seller-17",
+    "name": "Danilo Blaan",
+    "farmName": "Lake Sebu Fisheries",
     "location": "Lake Sebu, South Cotabato",
-    "products": 3,
+    "products": 2,
     "rating": 4.8,
     "sellerUserId": 17,
     "category": "Fish",
@@ -1162,10 +1151,11 @@ export const sellers = [
     "email": "seller.fish@agrimarket.com"
   },
   {
-    "id": "seller-6",
-    "name": "Koronadal Sunrise Poultry",
+    "id": "seller-16",
+    "name": "Nestor Aquino",
+    "farmName": "Koronadal Sunrise Poultry",
     "location": "Koronadal City, South Cotabato",
-    "products": 3,
+    "products": 2,
     "rating": 4.8,
     "sellerUserId": 16,
     "category": "Poultry",
@@ -1173,10 +1163,11 @@ export const sellers = [
     "email": "seller.poultry@agrimarket.com"
   },
   {
-    "id": "seller-7",
-    "name": "Surallah Dairy Farm",
+    "id": "seller-18",
+    "name": "Ramon Valdez",
+    "farmName": "Surallah Dairy Farm",
     "location": "Surallah, South Cotabato",
-    "products": 2,
+    "products": 1,
     "rating": 4.8,
     "sellerUserId": 18,
     "category": "Livestock",
@@ -1184,10 +1175,11 @@ export const sellers = [
     "email": "seller.livestock@agrimarket.com"
   },
   {
-    "id": "seller-8",
-    "name": "Gensan Agri Supply",
+    "id": "seller-14",
+    "name": "Roberto Tan",
+    "farmName": "Gensan Agri Supply",
     "location": "General Santos City",
-    "products": 2,
+    "products": 3,
     "rating": 4.7,
     "sellerUserId": 14,
     "category": "Farm Supplies",
@@ -1196,9 +1188,18 @@ export const sellers = [
   }
 ]
 
-export const shippingCoupons = [
-  { code: 'FREESHIP', description: 'Free shipping on ₱300+ inside SOCCSKSARGEN', type: 'fixed' as const, value: 50, minOrder: 300 },
-  { code: 'AGRIFARM30', description: '₱30 off fresh vegetables voucher', type: 'fixed' as const, value: 30, minOrder: 150 },
-  { code: 'COINBACK10', description: '10% Coins Cashback voucher', type: 'percent' as const, value: 10, minOrder: 200 },
-  { code: 'HARVEST50', description: '₱50 off on orders ₱450+', type: 'fixed' as const, value: 50, minOrder: 450 },
-]
+export type Coupon = {
+  code: string
+  description: string
+  type: 'fixed' | 'percent'
+  value: number
+  minOrder: number
+  badge?: string
+}
+
+export const shippingCoupons: Coupon[] = [
+  { code: 'FREESHIP', description: 'Free shipping on ₱300+ inside SOCCSKSARGEN', type: 'fixed', value: 50, minOrder: 300, badge: 'FREE SHIPPING' },
+  { code: 'AGRIFARM30', description: '₱30 off fresh vegetables voucher', type: 'fixed', value: 30, minOrder: 150, badge: 'HARVEST DEALS' },
+  { code: 'COINBACK10', description: '10% Coins Cashback voucher', type: 'percent', value: 10, minOrder: 200, badge: 'CASHBACK' },
+  { code: 'HARVEST50', description: '₱50 off on orders ₱450+', type: 'fixed', value: 50, minOrder: 450, badge: 'MEGA VOUCHER' },
+];

@@ -821,32 +821,6 @@ export const initialProducts: ProductEntity[] = [
     isUnlisted: false,
     isDeleted: false,
   },
-  {
-    id: 'prod-1791732814162-2f8d',
-    name: 'Highland Red Bell Peppers',
-    category: 'Vegetables',
-    price: 140,
-    unit: 'kg',
-    stock: 65,
-    rating: 5,
-    reviews: 0,
-    seller: 'Maria Santos',
-    sellerId: 'seller-2',
-    sellerUserId: 2,
-    location: 'Polomolok, South Cotabato',
-    image: 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80',
-    photos: ['https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80'],
-    description: 'Sweet, crisp bell peppers harvested fresh.',
-    organic: true,
-    tradeable: false,
-    lat: 6.2214,
-    lng: 125.0647,
-    priceHistory: [{ date: '2026-10-01', price: 140 }],
-    isActive: true,
-    is_active: true,
-    isUnlisted: false,
-    isDeleted: false,
-  },
 
   // 2. Fruits -> Midsayap Gold Orchard (Eduardo Dizon, id: 13, seller-13)
   {
@@ -1386,10 +1360,10 @@ const initialOrders: OrderEntity[] = [
         price: 58,
         quantity: 10,
         image: '/images/rice.jpg',
-        seller: 'Maria Santos',
-        sellerId: 'seller-1',
-        sellerUserId: 2,
-        pickupLocation: "M'lang, Cotabato",
+        seller: 'Lilia Mendoza',
+        sellerId: 'seller-15',
+        sellerUserId: 15,
+        pickupLocation: 'Tacurong City, Sultan Kudarat',
       },
     ],
     subtotal: 580,
@@ -1883,7 +1857,7 @@ class DatabaseStore {
 
       try {
         const [productRows]: any = await pool.query(
-          'SELECT * FROM products WHERE is_deleted IS NOT TRUE'
+          "SELECT * FROM products WHERE is_deleted IS NOT TRUE AND id != 'prod-1791732814162-2f8d' AND id NOT LIKE 'prod-fruits-%' AND id NOT LIKE 'prod-grain-%' AND id NOT LIKE 'prod-fish-%'"
         );
         if (productRows?.length) {
           this.data.products = productRows.map((row: any) => {
@@ -2051,7 +2025,15 @@ class DatabaseStore {
           users: loadedUsers,
           products: (() => {
             const rawProds: ProductEntity[] = parsed.products || initialProducts;
-            return rawProds.map((p) => {
+            return rawProds
+              .filter(
+                (p) =>
+                  p.id !== 'prod-1791732814162-2f8d' &&
+                  !p.id.startsWith('prod-fruits-') &&
+                  !p.id.startsWith('prod-grain-') &&
+                  !p.id.startsWith('prod-fish-')
+              )
+              .map((p) => {
               let cat = p.category;
               if (cat === 'Rice & Grains') {
                 cat = (p.name || '').toLowerCase().includes('rice') ? 'Rice' : 'Grains';
@@ -2301,16 +2283,23 @@ class DatabaseStore {
 
   // --- Products ---
   public getProducts(includeInactive: boolean = false, sellerUserId?: number) {
+    const isCatalogProduct = (p: ProductEntity) =>
+      p.id !== 'prod-1791732814162-2f8d' &&
+      !p.id.startsWith('prod-fruits-') &&
+      !p.id.startsWith('prod-grain-') &&
+      !p.id.startsWith('prod-fish-');
+
     if (sellerUserId) {
       return this.data.products.filter(
-        (p) => !p.isDeleted && (p.sellerUserId === sellerUserId || p.sellerId === `seller-${sellerUserId}`)
+        (p) => isCatalogProduct(p) && !p.isDeleted && (p.sellerUserId === sellerUserId || p.sellerId === `seller-${sellerUserId}`)
       );
     }
     if (includeInactive) {
-      return this.data.products.filter((p) => !p.isDeleted);
+      return this.data.products.filter((p) => isCatalogProduct(p) && !p.isDeleted);
     }
     return this.data.products.filter(
       (p) =>
+        isCatalogProduct(p) &&
         !p.isDeleted &&
         p.isActive !== false &&
         p.is_active !== false &&

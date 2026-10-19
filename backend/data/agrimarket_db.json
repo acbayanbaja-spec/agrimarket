@@ -45,6 +45,19 @@
       "created_at": "2026-10-12T04:17:11.000Z"
     },
     {
+      "id": 24,
+      "email": "test.second.1792413977708@agrimarket.com",
+      "password_hash": "$2a$10$XV0pu2jiDKDifg6fUC151.Lqcgq9GdZqjtiYGVxch8nPuO.MCAQEu",
+      "first_name": "Second",
+      "last_name": "User",
+      "roles": [
+        "buyer"
+      ],
+      "is_verified": true,
+      "is_active": true,
+      "created_at": "2026-10-19T12:47:00.292Z"
+    },
+    {
       "id": 19,
       "email": "opsadmin@agrimarket.com",
       "password_hash": "$2a$12$D5HLFhDZ/zMZSS3hU2Vjlu2Spa60e23D7xzXgAZYpC4/gjnZI4P9W",
@@ -146,6 +159,19 @@
       "created_at": "2026-10-12T16:52:54.000Z"
     },
     {
+      "id": 18,
+      "email": "suspended.test@agrimarket.com",
+      "password_hash": "mockhash",
+      "first_name": "Suspended",
+      "last_name": "Farmer",
+      "roles": [
+        "seller"
+      ],
+      "is_verified": true,
+      "is_active": false,
+      "created_at": "2026-10-12T04:22:01.000Z"
+    },
+    {
       "id": 2,
       "email": "seller@agrimarket.com",
       "password_hash": "$2a$08$QUtB50j2jweh2ssOANSVjuAu40dxBvo9JghSKljKgdxxaIc0M4NJq",
@@ -187,23 +213,10 @@
       ],
       "is_verified": true,
       "is_active": true,
-      "created_at": "2026-10-19T12:46:16.979Z"
+      "created_at": "2026-10-19T12:46:59.960Z"
     },
     {
-      "id": 24,
-      "email": "test.second.1792413977708@agrimarket.com",
-      "password_hash": "$2a$10$XV0pu2jiDKDifg6fUC151.Lqcgq9GdZqjtiYGVxch8nPuO.MCAQEu",
-      "first_name": "Second",
-      "last_name": "User",
-      "roles": [
-        "buyer"
-      ],
-      "is_verified": true,
-      "is_active": true,
-      "created_at": "2026-10-19T12:46:18.342Z"
-    },
-    {
-      "id": 18,
+      "id": 25,
       "email": "seller.livestock@agrimarket.com",
       "password_hash": "/3iU.L8M6Yv1.gV7K4D.WvX0zXp8N.bQvWJ0r9Yv1.gV",
       "first_name": "Ramon",
@@ -976,34 +989,6 @@
       "isDeleted": false
     },
     {
-      "id": "prod-1791732814162-2f8d",
-      "name": "Highland Red Bell Peppers",
-      "category": "Vegetables",
-      "price": 140,
-      "unit": "kg",
-      "stock": 65,
-      "rating": 5,
-      "reviews": 0,
-      "seller": "Maria Santos",
-      "sellerId": "seller-2",
-      "sellerUserId": 2,
-      "location": "Polomolok, South Cotabato",
-      "image": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80",
-      "photos": [
-        "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=600&auto=format&fit=crop&q=80"
-      ],
-      "description": "Sweet, crisp bell peppers harvested fresh in Tupi foothills.",
-      "organic": true,
-      "tradeable": false,
-      "lat": 6.2214,
-      "lng": 125.0647,
-      "created_at": "2026-10-11T15:33:34.000Z",
-      "isActive": true,
-      "is_active": true,
-      "isUnlisted": false,
-      "isDeleted": false
-    },
-    {
       "id": "p-tomato",
       "name": "Salad Tomatoes",
       "category": "Vegetables",
@@ -1099,8 +1084,8 @@
   ],
   "orders": [
     {
-      "id": "TEST-ORD-1792436907150",
-      "receiptNo": "RCPT-TEST-ORD-1792436907150",
+      "id": "TEST-ORD-1792451134028",
+      "receiptNo": "RCPT-TEST-ORD-1792451134028",
       "userId": 1,
       "buyerName": "Juan Dela Cruz",
       "buyerPhone": "+639171234567",
@@ -1113,7 +1098,7 @@
       "pointsEarned": 75,
       "pointsRedeemed": 0,
       "total": 800,
-      "createdAt": "2026-10-19T19:08:27.150Z",
+      "createdAt": "2026-10-19T23:05:34.028Z",
       "prepStatus": "packed",
       "items": [
         {
@@ -1129,9 +1114,9 @@
           "pickupLocation": "Koronadal City",
           "prepStatus": "packed",
           "prepNotes": "Inspected fresh",
-          "packedAt": "2026-10-19T19:08:27.155Z",
+          "packedAt": "2026-10-19T23:05:34.035Z",
           "sellerConfirmed": true,
-          "sellerConfirmedAt": "2026-10-19T19:08:27.155Z"
+          "sellerConfirmedAt": "2026-10-19T23:05:34.035Z"
         },
         {
           "productId": "prod-grain-1",
@@ -1146,8 +1131,8 @@
           "pickupLocation": "Midsayap",
           "prepStatus": "packed",
           "sellerConfirmed": true,
-          "sellerConfirmedAt": "2026-10-19T19:08:27.160Z",
-          "packedAt": "2026-10-19T19:08:27.160Z"
+          "sellerConfirmedAt": "2026-10-19T23:05:34.040Z",
+          "packedAt": "2026-10-19T23:05:34.040Z"
         },
         {
           "productId": "prod-fish-1",
@@ -1162,8 +1147,8 @@
           "pickupLocation": "GenSan Port",
           "prepStatus": "packed",
           "sellerConfirmed": true,
-          "sellerConfirmedAt": "2026-10-19T19:08:27.165Z",
-          "packedAt": "2026-10-19T19:08:27.165Z"
+          "sellerConfirmedAt": "2026-10-19T23:05:34.044Z",
+          "packedAt": "2026-10-19T23:05:34.044Z"
         }
       ],
       "statusHistory": [
@@ -1172,7 +1157,7 @@
           "changedBy": 1,
           "changedByName": "Juan Dela Cruz",
           "changedByRole": "buyer",
-          "timestamp": "2026-10-19T19:08:27.150Z",
+          "timestamp": "2026-10-19T23:05:34.028Z",
           "note": "Order placed by buyer"
         },
         {
@@ -1180,7 +1165,7 @@
           "changedBy": 13,
           "changedByName": "Eduardo Dizon",
           "changedByRole": "seller",
-          "timestamp": "2026-10-19T19:08:27.160Z",
+          "timestamp": "2026-10-19T23:05:34.040Z",
           "note": "Eduardo Dizon confirmed their produce (1 product(s)). Waiting for 1 other product(s) from other sellers."
         },
         {
@@ -1188,109 +1173,12 @@
           "changedBy": 15,
           "changedByName": "Lilia Mendoza",
           "changedByRole": "seller",
-          "timestamp": "2026-10-19T19:08:27.165Z",
+          "timestamp": "2026-10-19T23:05:34.044Z",
           "note": "All products confirmed across all sellers. Order is confirmed for courier collection."
         }
       ],
-      "sellerConfirmedAt": "2026-10-19T19:08:27.165Z",
-      "packedAt": "2026-10-19T19:08:27.165Z"
-    },
-    {
-      "id": "TEST-ORD-1792414008822",
-      "receiptNo": "RCPT-TEST-ORD-1792414008822",
-      "userId": 1,
-      "buyerName": "Juan Dela Cruz",
-      "buyerPhone": "+639171234567",
-      "address": "Koronadal City",
-      "payment": "GCash",
-      "status": "Confirmed",
-      "subtotal": 750,
-      "shippingFee": 50,
-      "shippingDiscount": 0,
-      "pointsEarned": 75,
-      "pointsRedeemed": 0,
-      "total": 800,
-      "createdAt": "2026-10-19T12:46:48.822Z",
-      "prepStatus": "packed",
-      "items": [
-        {
-          "productId": "prod-fruits-1",
-          "name": "Fresh Carabao Mango",
-          "price": 150,
-          "quantity": 2,
-          "unit": "kg",
-          "image": "/mango.jpg",
-          "seller": "Maria Santos Fruit Farm",
-          "sellerId": "seller-2",
-          "sellerUserId": 2,
-          "pickupLocation": "Koronadal City",
-          "prepStatus": "packed",
-          "prepNotes": "Inspected fresh",
-          "packedAt": "2026-10-19T12:46:48.827Z",
-          "sellerConfirmed": true,
-          "sellerConfirmedAt": "2026-10-19T12:46:48.827Z"
-        },
-        {
-          "productId": "prod-grain-1",
-          "name": "Organic Yellow Corn",
-          "price": 90,
-          "quantity": 3,
-          "unit": "kg",
-          "image": "/corn.jpg",
-          "seller": "Eduardo Dizon Grain Farm",
-          "sellerId": "seller-13",
-          "sellerUserId": 13,
-          "pickupLocation": "Midsayap",
-          "prepStatus": "packed",
-          "sellerConfirmed": true,
-          "sellerConfirmedAt": "2026-10-19T12:46:48.831Z",
-          "packedAt": "2026-10-19T12:46:48.831Z"
-        },
-        {
-          "productId": "prod-fish-1",
-          "name": "Fresh Lake Sebu Tilapia",
-          "price": 180,
-          "quantity": 1,
-          "unit": "kg",
-          "image": "/tilapia.jpg",
-          "seller": "General Santos Fishery",
-          "sellerId": "seller-15",
-          "sellerUserId": 15,
-          "pickupLocation": "GenSan Port",
-          "prepStatus": "packed",
-          "sellerConfirmed": true,
-          "sellerConfirmedAt": "2026-10-19T12:46:48.833Z",
-          "packedAt": "2026-10-19T12:46:48.833Z"
-        }
-      ],
-      "statusHistory": [
-        {
-          "status": "Pending",
-          "changedBy": 1,
-          "changedByName": "Juan Dela Cruz",
-          "changedByRole": "buyer",
-          "timestamp": "2026-10-19T12:46:48.822Z",
-          "note": "Order placed by buyer"
-        },
-        {
-          "status": "Pending",
-          "changedBy": 13,
-          "changedByName": "Eduardo Dizon",
-          "changedByRole": "seller",
-          "timestamp": "2026-10-19T12:46:48.831Z",
-          "note": "Eduardo Dizon confirmed their produce (1 product(s)). Waiting for 1 other product(s) from other sellers."
-        },
-        {
-          "status": "Confirmed",
-          "changedBy": 15,
-          "changedByName": "Lilia Mendoza",
-          "changedByRole": "seller",
-          "timestamp": "2026-10-19T12:46:48.833Z",
-          "note": "All products confirmed across all sellers. Order is confirmed for courier collection."
-        }
-      ],
-      "sellerConfirmedAt": "2026-10-19T12:46:48.833Z",
-      "packedAt": "2026-10-19T12:46:48.833Z"
+      "sellerConfirmedAt": "2026-10-19T23:05:34.044Z",
+      "packedAt": "2026-10-19T23:05:34.044Z"
     },
     {
       "id": "ORD-44877661",
@@ -5368,24 +5256,14 @@
   ],
   "delivery_jobs": [
     {
-      "id": "DEL-TEST-1792436907150",
-      "orderId": "TEST-ORD-1792436907150",
+      "id": "DEL-TEST-1792451134028",
+      "orderId": "TEST-ORD-1792451134028",
       "driverId": 4,
       "buyerName": "Juan Dela Cruz",
       "buyerPhone": "+639171234567",
       "address": "Koronadal City",
       "status": "Pending",
-      "updatedAt": "2026-10-19T19:08:27.150Z"
-    },
-    {
-      "id": "DEL-TEST-1792414008822",
-      "orderId": "TEST-ORD-1792414008822",
-      "driverId": 4,
-      "buyerName": "Juan Dela Cruz",
-      "buyerPhone": "+639171234567",
-      "address": "Koronadal City",
-      "status": "Pending",
-      "updatedAt": "2026-10-19T12:46:48.822Z"
+      "updatedAt": "2026-10-19T23:05:34.028Z"
     },
     {
       "id": "DEL-44977986",
