@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
@@ -8,11 +8,30 @@ const NotificationBell = () => {
   const { isAuthenticated, user } = useAuth()
   const { notifications, unreadCount, markNotificationsRead, markNotificationRead } = useStore()
   const [open, setOpen] = useState(false)
+  const bellRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('touchstart', handleOutsideClick)
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('touchstart', handleOutsideClick)
+    }
+  }, [open])
 
   if (!isAuthenticated) return null
 
   return (
-    <div className="relative">
+    <div ref={bellRef} className="relative">
       <button
         type="button"
         className="relative btn-ghost"

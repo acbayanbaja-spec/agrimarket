@@ -212,27 +212,30 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Quick stats on desktop */}
-            {!isAdmin ? (
-              <div className="flex items-center gap-6 sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
-                <div className="text-center sm:text-left">
-                  <div className="text-2xl font-extrabold text-white">{myOrders.length}</div>
-                  <div className="text-xs text-emerald-200">Total Orders</div>
-                </div>
-                <div className="text-center sm:text-left">
-                  <div className="text-2xl font-extrabold text-amber-300">{loyaltyPoints}</div>
-                  <div className="text-xs text-emerald-200">AgriCoins</div>
-                </div>
-                <div className="text-center sm:text-left">
-                  <div className="text-2xl font-extrabold text-white">{claimedVouchers.length}</div>
-                  <div className="text-xs text-emerald-200">Vouchers</div>
-                </div>
-              </div>
-            ) : (
+            {/* Role and Account Status Hub on the side */}
+            {isAdmin ? (
               <div className="sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
                 <div className="text-xs text-emerald-200 uppercase tracking-wider font-bold">Admin Governance</div>
                 <div className="text-base font-extrabold text-white mt-0.5">Platform Operations Hub</div>
-                <div className="text-xs text-emerald-200/90 mt-0.5">Management & Moderation Only</div>
+                <div className="text-xs text-emerald-200/90 mt-0.5">Management & Moderation Desk</div>
+              </div>
+            ) : hasRole('delivery') ? (
+              <div className="sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
+                <div className="text-xs text-emerald-200 uppercase tracking-wider font-bold">Logistics Partner</div>
+                <div className="text-base font-extrabold text-white mt-0.5">Delivery Rider Hub</div>
+                <div className="text-xs text-emerald-200/90 mt-0.5">Active Courier & Dispatch</div>
+              </div>
+            ) : hasRole('seller') ? (
+              <div className="sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
+                <div className="text-xs text-emerald-200 uppercase tracking-wider font-bold">Merchant Hub</div>
+                <div className="text-base font-extrabold text-white mt-0.5">Verified Producer</div>
+                <div className="text-xs text-emerald-200/90 mt-0.5">Fresh Agricultural Marketplace</div>
+              </div>
+            ) : (
+              <div className="sm:border-l sm:border-white/15 sm:pl-6 text-emerald-100">
+                <div className="text-xs text-emerald-200 uppercase tracking-wider font-bold">Verified Member</div>
+                <div className="text-base font-extrabold text-white mt-0.5">AgriMarket Buyer</div>
+                <div className="text-xs text-emerald-200/90 mt-0.5">Farm-to-Door Community</div>
               </div>
             )}
           </div>
@@ -282,8 +285,8 @@ const ProfilePage = () => {
         </section>
       )}
 
-      {/* 3. My Purchases Section (Functional Order Pipeline - Non-Admin Only) */}
-      {!isAdmin && (
+      {/* 3. My Purchases Section (Functional Order Pipeline - Non-Admin & Non-Delivery Only) */}
+      {!isAdmin && !hasRole('delivery') && (
         <section className="card bg-white p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <div>
@@ -448,8 +451,8 @@ const ProfilePage = () => {
         </section>
       )}
 
-      {/* 4. Rewards, Coins & Vouchers Section (Non-Admin Only) */}
-      {!isAdmin && (
+      {/* 4. Rewards, Coins & Vouchers Section (Non-Admin & Non-Delivery Only) */}
+      {!isAdmin && !hasRole('delivery') && (
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* AgriCoins Card */}
           <div
@@ -672,10 +675,10 @@ const ProfilePage = () => {
       {/* --- REUSABLE MODALS --- */}
 
       {/* Voucher Center Modal */}
-      {!isAdmin && <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />}
+      {!isAdmin && !hasRole('delivery') && <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />}
 
       {/* Daily Coins Check-In Modal */}
-      {!isAdmin && <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />}
+      {!isAdmin && !hasRole('delivery') && <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />}
 
       {/* Account Settings / Edit Profile Modal */}
       {isSettingsOpen && (

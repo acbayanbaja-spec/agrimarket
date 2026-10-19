@@ -1,37 +1,39 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, Truck, Shield, Leaf, Store, Wallet, MapPin, Zap, Ticket, Coins, Smartphone, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react'
+import { Link, Navigate } from 'react-router-dom'
+import { ArrowRight, Truck, Shield, Leaf, Store, Wallet, MapPin, Zap, Smartphone, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react'
 import { categories } from '../data/catalog'
 import { useStore } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
 import ProductCard from '../components/ProductCard'
 import ProductImage from '../components/ProductImage'
 import Seo from '../components/Seo'
 import ShopNowLink from '../components/ShopNowLink'
 import FlashDealsSection from '../components/FlashDealsSection'
 import DownloadAppModal from '../components/DownloadAppModal'
-import VoucherCenterModal from '../components/VoucherCenterModal'
-import DailyCoinsCheckIn from '../components/DailyCoinsCheckIn'
 import { scrollToTopNow } from '../components/ScrollToTop'
 
 const HomePage = () => {
-  const { products, recommended, loyaltyPoints } = useStore()
+  const { products, recommended } = useStore()
+  const { isAuthenticated, hasRole } = useAuth()
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
-  const [isVoucherOpen, setIsVoucherOpen] = useState(false)
-  const [isCoinsOpen, setIsCoinsOpen] = useState(false)
+
+  if (isAuthenticated && hasRole('delivery')) {
+    return <Navigate to="/delivery" replace />
+  }
 
   const featured = recommended.slice(0, 4)
   const harvest = products.filter((product) => product.stock > 0).slice(0, 4)
 
-  // Quick Feature & Category bubbles (Shopee circular strip)
+  // Quick Feature & Category bubbles (circular strip)
   const quickBubbles = [
     { label: 'Flash Deals', icon: Zap, tone: 'bg-rose-500 text-white', to: '/marketplace', badge: 'HOT' },
-    { label: 'Free Delivery', icon: Truck, tone: 'bg-emerald-600 text-white', action: () => setIsVoucherOpen(true), badge: '₱0' },
-    { label: 'Daily Coins', icon: Coins, tone: 'bg-amber-500 text-white', action: () => setIsCoinsOpen(true), badge: `${loyaltyPoints}pts` },
-    { label: 'Vouchers', icon: Ticket, tone: 'bg-orange-500 text-white', action: () => setIsVoucherOpen(true) },
+    { label: 'Free Delivery', icon: Truck, tone: 'bg-emerald-600 text-white', to: '/marketplace', badge: '₱0' },
     { label: 'Vegetables', icon: Leaf, tone: 'bg-green-600 text-white', to: '/marketplace?category=Vegetables' },
     { label: 'Fresh Fruits', icon: Sparkles, tone: 'bg-yellow-500 text-white', to: '/marketplace?category=Fruits' },
     { label: 'Rice & Grains', icon: Store, tone: 'bg-soil-700 text-white', to: '/marketplace?category=Rice%20%26%20Grains' },
     { label: 'Price Monitor', icon: Store, tone: 'bg-primary-700 text-white', to: '/prices' },
+    { label: 'Seller KYC', icon: Shield, tone: 'bg-teal-600 text-white', to: '/become-seller' },
+    { label: 'Logistics', icon: MapPin, tone: 'bg-amber-600 text-white', to: '/shipping' },
   ]
 
   return (
@@ -74,13 +76,12 @@ const HomePage = () => {
               <Smartphone className="h-4 w-4" /> Download Mobile App
             </button>
 
-            <button
-              type="button"
-              onClick={() => setIsVoucherOpen(true)}
+            <Link
+              to="/prices"
               className="btn-outline border-white text-white hover:bg-white/10 min-h-[46px] px-5 text-sm font-semibold inline-flex items-center gap-1.5"
             >
-              <Ticket className="h-4 w-4 text-yellow-300" /> Claim Vouchers
-            </button>
+              <Store className="h-4 w-4 text-emerald-300" /> Price Monitor
+            </Link>
           </div>
         </div>
       </section>
@@ -109,18 +110,10 @@ const HomePage = () => {
                 </div>
               )
 
-              if (bubble.to) {
-                return (
-                  <Link key={bubble.label} to={bubble.to} onClick={scrollToTopNow}>
-                    {content}
-                  </Link>
-                )
-              }
-
               return (
-                <button key={bubble.label} type="button" onClick={bubble.action}>
+                <Link key={bubble.label} to={bubble.to} onClick={scrollToTopNow}>
                   {content}
-                </button>
+                </Link>
               )
             })}
           </div>
@@ -129,39 +122,6 @@ const HomePage = () => {
 
       {/* Shopee Style Live Flash Deals Section */}
       <FlashDealsSection />
-
-      {/* Voucher Teaser Banner */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div
-          onClick={() => setIsVoucherOpen(true)}
-          className="bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500 rounded-3xl p-4 sm:p-5 text-white flex flex-wrap items-center justify-between gap-4 cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-[1.01]"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
-              <Ticket className="h-6 w-6 text-yellow-200 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base sm:text-lg">Shopee & Lazada Style Voucher Center</span>
-                <span className="bg-yellow-400 text-orange-950 font-black text-[10px] px-2 py-0.5 rounded-full uppercase">
-                  Collect Now
-                </span>
-              </div>
-              <p className="text-xs text-orange-100 mt-0.5">
-                Up to ₱100 OFF Fresh Harvests & 100% Free Shipping inside SOCCSKSARGEN.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="btn-primary bg-white text-orange-800 hover:bg-orange-50 text-xs py-2 px-4 rounded-xl font-bold shadow-sm inline-flex items-center gap-1 shrink-0"
-          >
-            <span>Open Voucher Wallet</span>
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </section>
 
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -265,8 +225,6 @@ const HomePage = () => {
 
       {/* Modals */}
       <DownloadAppModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} />
-      <VoucherCenterModal isOpen={isVoucherOpen} onClose={() => setIsVoucherOpen(false)} />
-      <DailyCoinsCheckIn isOpen={isCoinsOpen} onClose={() => setIsCoinsOpen(false)} />
     </div>
   )
 }
