@@ -97,9 +97,8 @@ export async function uploadProductImage(file: File): Promise<string> {
   // 2. Try direct server upload to /api/upload
   try {
     const formData = new FormData()
-    formData.append('file', file)
+    // NOTE: We do not manually set 'Content-Type' to allow Axios/browser to set multipart boundary automatically
     const res = await api.post<{ success?: boolean; data?: { url: string }; url?: string }>('/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 10000,
     })
     const uploadedUrl = res.data?.data?.url || (res.data as any)?.url

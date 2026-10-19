@@ -195,11 +195,28 @@ export interface TradeOfferEntity {
   fromName: string;
   fromProductId: string;
   fromProductName: string;
+  fromProductImage?: string;
+  offerQuantity?: number;
+  offerUnit?: string;
+  offerValue?: number;
   toSellerId: string;
+  toSellerName?: string;
   toProductId: string;
   toProductName: string;
+  toProductImage?: string;
+  wantQuantity?: number;
+  wantUnit?: string;
+  wantValue?: number;
+  cashOffset?: number;
   note: string;
-  status: 'Open' | 'Accepted' | 'Declined';
+  status: 'Open' | 'Accepted' | 'Declined' | 'Countered';
+  counterOffer?: {
+    counterQuantity?: number;
+    counterCashOffset?: number;
+    counterNote?: string;
+    counterBy?: string;
+    counterAt?: string;
+  };
   createdAt: string;
 }
 
@@ -3170,10 +3187,17 @@ class DatabaseStore {
     return trade;
   }
 
-  public updateTradeStatus(id: string, status: 'Accepted' | 'Declined') {
+  public updateTradeStatus(
+    id: string,
+    status: 'Accepted' | 'Declined' | 'Countered',
+    counterDetails?: { counterQuantity?: number; counterCashOffset?: number; counterNote?: string; counterBy?: string; counterAt?: string }
+  ) {
     const trade = this.data.trades.find((t) => t.id === id);
     if (trade) {
       trade.status = status;
+      if (counterDetails) {
+        trade.counterOffer = counterDetails;
+      }
       this.saveData();
       return trade;
     }

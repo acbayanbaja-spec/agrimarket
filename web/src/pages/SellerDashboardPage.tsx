@@ -32,11 +32,20 @@ import {
   Check,
   Boxes,
   Upload,
+  Camera,
+  Loader2,
+  ArrowRightLeft,
+  CloudSun,
+  Calendar,
+  Stethoscope,
 } from 'lucide-react'
 import { fileToDataUrl, formatPeso, uploadProductImage } from '../lib/utils'
 import Seo from '../components/Seo'
 import ProductImage from '../components/ProductImage'
 import OrderTimeline from '../components/OrderTimeline'
+import WeatherAdvisoryWidget from '../components/WeatherAdvisoryWidget'
+import SeasonalHarvestCalendarModal from '../components/SeasonalHarvestCalendarModal'
+import CropDoctorModal from '../components/CropDoctorModal'
 import api from '../services/api'
 
 type SellerTab = 'products' | 'orders' | 'messages' | 'analytics' | 'feed'
@@ -110,6 +119,10 @@ const SellerDashboardPage = () => {
   const [listedNotice, setListedNotice] = useState(false)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [isUploadingEditPhoto, setIsUploadingEditPhoto] = useState(false)
+  const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
+  const [showSellerWeather, setShowSellerWeather] = useState(false)
+  const [showSellerCalendar, setShowSellerCalendar] = useState(false)
+  const [showSellerCropDoctor, setShowSellerCropDoctor] = useState(false)
 
   // Edit Product Modal State
   const [editModal, setEditModal] = useState<{
@@ -324,6 +337,18 @@ const SellerDashboardPage = () => {
     }
   }
 
+  const handleQuickPhotoUpload = async (productId: string, file: File) => {
+    setUploadingProductId(productId)
+    try {
+      const url = await uploadProductImage(file)
+      updateProduct(productId, { image: url, photos: [url] })
+    } catch (err) {
+      console.error('Failed to quick upload product image:', err)
+    } finally {
+      setUploadingProductId(null)
+    }
+  }
+
   const handleCreateProduct = (event: React.FormEvent) => {
     event.preventDefault()
     const place = findPlace(form.location)
@@ -485,7 +510,47 @@ const SellerDashboardPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/trades"
+            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:bg-emerald-50 text-emerald-800 border-emerald-300"
+            title="Open Producer Barter Tradeboard"
+          >
+            <ArrowRightLeft className="h-4 w-4 text-emerald-600" />
+            <span>Producer Tradeboard</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setShowSellerWeather(!showSellerWeather)}
+            className={`py-2 px-3 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition border ${
+              showSellerWeather
+                ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <CloudSun className="h-4 w-4 text-amber-500" />
+            <span>{showSellerWeather ? 'Hide Weather' : 'Agri-Weather'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSellerCalendar(true)}
+            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+          >
+            <Calendar className="h-4 w-4 text-primary-700" />
+            <span>Harvest Guide</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSellerCropDoctor(true)}
+            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+          >
+            <Stethoscope className="h-4 w-4 text-teal-700" />
+            <span>Crop Doctor</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -498,6 +563,12 @@ const SellerDashboardPage = () => {
           </button>
         </div>
       </div>
+
+      {showSellerWeather && (
+        <div className="animate-fade-down">
+          <WeatherAdvisoryWidget />
+        </div>
+      )}
 
       {listedNotice && (
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center justify-between animate-fade-in shadow-sm">
@@ -762,14 +833,27 @@ const SellerDashboardPage = () => {
                               }}
                             />
                           </label>
-                          <input
-                            type="text"
-                            className="input-field text-xs py-1.5 flex-1 min-w-[200px]"
-                            placeholder="Or paste image URL (e.g. https://...)"
-                            value={form.image.startsWith('data:') ? '(Uploaded Image File)' : form.image}
-                            onChange={(e) => setForm({ ...form, image: e.target.value })}
-                          />
-                          {form.image && form.image !== '/images/farm.jpg' && (
+                          {form.image.startsWith('data:') ? (
+                            <div className="flex items-center justify-between gap-2 flex-1 min-w-[200px] bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5 text-xs text-emerald-800">
+                              <span className="font-semibold truncate">Custom photo file attached</span>
+                              <button
+                                type="button"
+                                className="text-xs text-rose-600 hover:text-rose-800 font-bold shrink-0 ml-1"
+                                onClick={() => setForm({ ...form, image: '/images/farm.jpg' })}
+                              >
+                                Reset
+                              </button>
+                            </div>
+                          ) : (
+                            <input
+                              type="text"
+                              className="input-field text-xs py-1.5 flex-1 min-w-[200px]"
+                              placeholder="Or paste image URL (e.g. https://... or /uploads/...)"
+                              value={form.image}
+                              onChange={(e) => setForm({ ...form, image: e.target.value })}
+                            />
+                          )}
+                          {!form.image.startsWith('data:') && form.image && form.image !== '/images/farm.jpg' && (
                             <button
                               type="button"
                               onClick={() => setForm({ ...form, image: '/images/farm.jpg' })}
@@ -938,11 +1022,40 @@ const SellerDashboardPage = () => {
                       }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-[240px]">
-                        <ProductImage
-                          src={product.image}
-                          alt={product.name}
-                          className="h-16 w-16 rounded-2xl object-cover border border-gray-100 flex-shrink-0"
-                        />
+                        <label
+                          className="relative group cursor-pointer flex-shrink-0 block rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-primary-500 shadow-xs"
+                          title="Click to upload or change produce photo"
+                        >
+                          <ProductImage
+                            src={product.image}
+                            alt={product.name}
+                            className="h-16 w-16 rounded-2xl object-cover border border-gray-100 flex-shrink-0"
+                          />
+                          <div
+                            className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white transition-opacity ${
+                              uploadingProductId === product.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
+                          >
+                            {uploadingProductId === product.id ? (
+                              <Loader2 className="h-5 w-5 animate-spin text-white" />
+                            ) : (
+                              <>
+                                <Camera className="h-4 w-4 drop-shadow-sm" />
+                                <span className="text-[9px] font-bold mt-0.5 tracking-tight text-white drop-shadow-sm">Change</span>
+                              </>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingProductId === product.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) void handleQuickPhotoUpload(product.id, file)
+                            }}
+                          />
+                        </label>
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Link
@@ -1032,6 +1145,34 @@ const SellerDashboardPage = () => {
 
                       {/* Management Controls */}
                       <div className="flex items-center gap-1.5">
+                        <label
+                          className={`py-2 px-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-xs ${
+                            uploadingProductId === product.id
+                              ? 'bg-primary-50 text-primary-700 border border-primary-200'
+                              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                          }`}
+                          title="Add or update produce photo"
+                        >
+                          {uploadingProductId === product.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-700" />
+                          ) : (
+                            <Camera className="h-3.5 w-3.5 text-emerald-700" />
+                          )}
+                          <span className="hidden sm:inline font-bold">
+                            {uploadingProductId === product.id ? 'Saving...' : 'Photo'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingProductId === product.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) void handleQuickPhotoUpload(product.id, file)
+                            }}
+                          />
+                        </label>
+
                         <button
                           type="button"
                           onClick={() => handleToggleListingActive(product)}
@@ -1978,13 +2119,26 @@ const SellerDashboardPage = () => {
                           }}
                         />
                       </label>
-                      <input
-                        type="text"
-                        className="input-field text-xs py-1.5 flex-1 min-w-[180px]"
-                        placeholder="Or enter image URL"
-                        value={editModal.image.startsWith('data:') ? '(Uploaded Image File)' : editModal.image}
-                        onChange={(e) => setEditModal((prev) => ({ ...prev, image: e.target.value }))}
-                      />
+                      {editModal.image.startsWith('data:') ? (
+                        <div className="flex items-center justify-between gap-2 flex-1 min-w-[180px] bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5 text-xs text-emerald-800">
+                          <span className="font-semibold truncate">Custom photo file attached</span>
+                          <button
+                            type="button"
+                            className="text-xs text-rose-600 hover:text-rose-800 font-bold shrink-0 ml-1"
+                            onClick={() => setEditModal((prev) => ({ ...prev, image: '/images/farm.jpg' }))}
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          className="input-field text-xs py-1.5 flex-1 min-w-[180px]"
+                          placeholder="Or enter image URL (https://... or /uploads/...)"
+                          value={editModal.image}
+                          onChange={(e) => setEditModal((prev) => ({ ...prev, image: e.target.value }))}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2094,6 +2248,16 @@ const SellerDashboardPage = () => {
           </div>
         </div>
       )}
+
+      {/* Agricultural Feature Modals */}
+      <SeasonalHarvestCalendarModal
+        isOpen={showSellerCalendar}
+        onClose={() => setShowSellerCalendar(false)}
+      />
+      <CropDoctorModal
+        isOpen={showSellerCropDoctor}
+        onClose={() => setShowSellerCropDoctor(false)}
+      />
     </div>
   )
 }

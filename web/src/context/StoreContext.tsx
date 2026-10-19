@@ -172,11 +172,28 @@ export type TradeOffer = {
   fromName: string
   fromProductId: string
   fromProductName: string
+  fromProductImage?: string
+  offerQuantity?: number
+  offerUnit?: string
+  offerValue?: number
   toSellerId: string
+  toSellerName?: string
   toProductId: string
   toProductName: string
+  toProductImage?: string
+  wantQuantity?: number
+  wantUnit?: string
+  wantValue?: number
+  cashOffset?: number
   note: string
-  status: 'Open' | 'Accepted' | 'Declined'
+  status: 'Open' | 'Accepted' | 'Declined' | 'Countered'
+  counterOffer?: {
+    counterQuantity?: number
+    counterCashOffset?: number
+    counterNote?: string
+    counterBy?: string
+    counterAt?: string
+  }
   createdAt: string
 }
 
@@ -251,8 +268,22 @@ type StoreContextType = {
   addPost: (payload: Omit<Post, 'id' | 'createdAt' | 'sellerId' | 'sellerName'>) => void
   followCategory: (category: string) => void
   unfollowCategory: (category: string) => void
-  offerTrade: (payload: Omit<TradeOffer, 'id' | 'createdAt' | 'fromUserId' | 'fromName' | 'status'>) => void
-  respondTrade: (id: string, status: 'Accepted' | 'Declined') => void
+  offerTrade: (
+    payload: Omit<TradeOffer, 'id' | 'createdAt' | 'fromUserId' | 'fromName' | 'status'> & {
+      id?: string
+      fromUserId?: number
+      fromName?: string
+      status?: 'Open' | 'Accepted' | 'Declined' | 'Countered'
+      createdAt?: string
+    }
+  ) => void
+  respondTrade: (
+    id: string,
+    status: 'Accepted' | 'Declined' | 'Countered',
+    counterDetails?: { counterQuantity?: number; counterCashOffset?: number; counterNote?: string }
+  ) => void
+  syncTrades: () => Promise<void>
+  notify: (item: Omit<AppNotification, 'id' | 'createdAt' | 'readBy'>) => void
   applyCoupon: (code: string, shippingFee: number, subtotal: number) => CouponResult
   sendSms: (payload: Omit<SmsMessage, 'id' | 'createdAt' | 'channel' | 'status'>) => SmsMessage
   markNotificationsRead: () => void
@@ -511,9 +542,45 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
       if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
         setCentralProducts((current) => {
+          const currentMap = new Map<string, Product>(current.map((p) => [p.id, p]))
+          const mergedRemote = remoteProducts.map((remote) => {
+            const existing = currentMap.get(remote.id)
+            if (!existing) return remote
+
+            // Check if existing product has a custom photo (data URL, /uploads/, or non-default)
+            const hasCustomLocalImage =
+              existing.image &&
+              (existing.image.startsWith('data:') ||
+                existing.image.startsWith('/uploads/') ||
+                existing.image.startsWith('blob:'))
+            const remoteHasDefaultOrEmpty =
+              !remote.image ||
+              remote.image === '/images/farm.jpg' ||
+              remote.image.includes('images.unsplash.com')
+
+            const image = hasCustomLocalImage && remoteHasDefaultOrEmpty ? existing.image : (remote.image || existing.image)
+            const photos =
+              hasCustomLocalImage && remoteHasDefaultOrEmpty && existing.photos?.length
+                ? existing.photos
+                : remote.photos && remote.photos.length
+                ? remote.photos
+                : existing.photos
+
+            return {
+              ...remote,
+              image,
+              photos,
+            }
+          })
           const remoteIds = new Set(remoteProducts.map((p) => p.id))
           const localOnly = current.filter((p) => !remoteIds.has(p.id))
-          return [...localOnly, ...remoteProducts]
+          const nextCatalog = [...localOnly, ...mergedRemote]
+          try {
+            localStorage.setItem('agrimarket.products', JSON.stringify(nextCatalog))
+          } catch {
+            // ignore localStorage quota error
+          }
+          return nextCatalog
         })
       }
     } catch (err) {
@@ -536,6 +603,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (approvedIds.length > 0) {
           setApprovedSellerIds((prev) => Array.from(new Set([...prev, ...approvedIds])))
         }
+      }
+    } catch {
+      /* ignore sync error in offline mode */
+    }
+  }
+
+  const syncTrades = async () => {
+    try {
+      const res = await api.get<{ success?: boolean; data?: { trades: TradeOffer[] } }>('/trades')
+      const remoteTrades = res.data?.data?.trades
+      if (Array.isArray(remoteTrades) && remoteTrades.length > 0) {
+        setTrades((current) => {
+          const map = new Map<string, TradeOffer>()
+          current.forEach((t) => map.set(t.id, t))
+          remoteTrades.forEach((t) => map.set(t.id, t))
+          const merged = Array.from(map.values())
+          try {
+            localStorage.setItem('agrimarket.trades', JSON.stringify(merged))
+          } catch {}
+          return merged
+        })
       }
     } catch {
       /* ignore sync error in offline mode */
@@ -599,6 +687,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Sync products and seller applications from central database on mount
     refreshCatalog()
     syncApplications()
+    void syncTrades()
     void refreshCategories()
     void refreshPromotions()
     void refreshRiders()
@@ -1069,8 +1158,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const updateProduct: StoreContextType['updateProduct'] = (id, updates) => {
-    setCentralProducts((current) =>
-      current.map((product) => {
+    setCentralProducts((current) => {
+      const updated = current.map((product) => {
         if (product.id !== id) return product
         const nextPrice = updates.price !== undefined ? Math.max(1, updates.price) : product.price
         const priceChanged = updates.price !== undefined && updates.price !== product.price
@@ -1092,7 +1181,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           stock: nextStock,
         }
       })
-    )
+      try {
+        localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+      } catch (err) {
+        console.warn('Failed to save products to localStorage:', err)
+      }
+      return updated
+    })
     if (updates.stock !== undefined) {
       setStockOverrides((current) => ({ ...current, [id]: Math.max(0, updates.stock!) }))
     }
@@ -1895,23 +1990,57 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user) return
     const next: TradeOffer = {
       ...payload,
-      id: `tr-${Date.now()}`,
-      fromUserId: user.id,
-      fromName: `${user.firstName} ${user.lastName}`,
-      status: 'Open',
-      createdAt: new Date().toISOString(),
+      id: payload.id || `tr-${Date.now()}`,
+      fromUserId: payload.fromUserId || user.id,
+      fromName: payload.fromName || `${user.firstName} ${user.lastName}`,
+      status: payload.status || 'Open',
+      createdAt: payload.createdAt || new Date().toISOString(),
     }
-    setTrades((current) => [next, ...current])
+    setTrades((current) => {
+      const updated = [next, ...current]
+      try {
+        localStorage.setItem('agrimarket.trades', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
     notify({
       userId: 'all',
-      title: 'New trade offer',
-      message: `${next.fromName} wants to trade ${next.fromProductName} for ${next.toProductName}.`,
+      title: 'New harvest trade offer',
+      message: `${next.fromName} offered ${next.fromProductName} for ${next.toProductName}.`,
       href: '/trades',
     })
   }
 
-  const respondTrade = (id: string, status: 'Accepted' | 'Declined') => {
-    setTrades((current) => current.map((trade) => (trade.id === id ? { ...trade, status } : trade)))
+  const respondTrade: StoreContextType['respondTrade'] = (id, status, counterDetails) => {
+    setTrades((current) => {
+      const updated = current.map((trade) => {
+        if (trade.id !== id) return trade
+        const nextTrade: TradeOffer = {
+          ...trade,
+          status,
+          ...(counterDetails
+            ? {
+                counterOffer: {
+                  ...counterDetails,
+                  counterBy: user ? `${user.firstName} ${user.lastName}` : 'Seller',
+                  counterAt: new Date().toISOString(),
+                },
+              }
+            : {}),
+        }
+        return nextTrade
+      })
+      try {
+        localStorage.setItem('agrimarket.trades', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
+    notify({
+      userId: 'all',
+      title: `Trade ${status.toLowerCase()}`,
+      message: `Trade proposal ${id} was marked ${status.toLowerCase()}${counterDetails ? ' with a counter proposal' : ''}.`,
+      href: '/trades',
+    })
   }
 
   useEffect(() => {
@@ -2172,6 +2301,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       unfollowCategory,
       offerTrade,
       respondTrade,
+      syncTrades,
+      notify,
       applyCoupon,
       sendSms,
       markNotificationsRead,

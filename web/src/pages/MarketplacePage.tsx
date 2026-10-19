@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import {
+  Calendar,
+  CloudSun,
+  Stethoscope,
+  Sparkles,
+} from 'lucide-react'
 import { categories, type Product } from '../data/catalog'
 import { soccsksargenPlaces } from '../data/locations'
 import { useStore } from '../context/StoreContext'
@@ -8,6 +14,9 @@ import Seo from '../components/Seo'
 import { formatPeso } from '../lib/utils'
 import { BUDGET_PRESETS, filterByBudget, matchProduct } from '../lib/commerce'
 import ProductImage from '../components/ProductImage'
+import WeatherAdvisoryWidget from '../components/WeatherAdvisoryWidget'
+import SeasonalHarvestCalendarModal from '../components/SeasonalHarvestCalendarModal'
+import CropDoctorModal from '../components/CropDoctorModal'
 import api from '../services/api'
 
 const stockFilters = [
@@ -22,6 +31,9 @@ type StockFilter = (typeof stockFilters)[number][0]
 const MarketplacePage = () => {
   const { products, recommended, posts } = useStore()
   const [params, setParams] = useSearchParams()
+  const [showCalendarModal, setShowCalendarModal] = useState(false)
+  const [showCropDoctorModal, setShowCropDoctorModal] = useState(false)
+  const [showWeatherWidget, setShowWeatherWidget] = useState(false)
   const sort = params.get('sort') || 'featured'
   const budgetParam = params.get('budget')
   const budget = budgetParam ? Number(budgetParam) : undefined
@@ -143,6 +155,46 @@ const MarketplacePage = () => {
           <option value="stock">Availability</option>
         </select>
       </div>
+
+      {/* Regional Agricultural Intelligence & Field Tools */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-6">
+        <button
+          type="button"
+          onClick={() => setShowWeatherWidget(!showWeatherWidget)}
+          className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+            showWeatherWidget
+              ? 'bg-emerald-700 text-white'
+              : 'bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50'
+          }`}
+        >
+          <CloudSun className="h-4 w-4 text-amber-500" />
+          <span>{showWeatherWidget ? 'Hide Region XII Weather' : 'Region XII Agri-Weather'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowCalendarModal(true)}
+          className="px-3.5 py-2 rounded-2xl text-xs font-bold bg-white text-primary-800 border border-primary-200 hover:bg-primary-50 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <Calendar className="h-4 w-4 text-primary-700" />
+          <span>Seasonal Harvest Guide</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowCropDoctorModal(true)}
+          className="px-3.5 py-2 rounded-2xl text-xs font-bold bg-white text-teal-800 border border-teal-200 hover:bg-teal-50 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <Stethoscope className="h-4 w-4 text-teal-700" />
+          <span>Crop Doctor (Pest Advisory)</span>
+        </button>
+      </div>
+
+      {showWeatherWidget && (
+        <div className="mb-6 animate-fade-down">
+          <WeatherAdvisoryWidget />
+        </div>
+      )}
 
       <div className="card mb-6">
         <p className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Price cap (optional)</p>
@@ -293,6 +345,16 @@ const MarketplacePage = () => {
           )}
         </>
       )}
+
+      {/* Feature Modals */}
+      <SeasonalHarvestCalendarModal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+      />
+      <CropDoctorModal
+        isOpen={showCropDoctorModal}
+        onClose={() => setShowCropDoctorModal(false)}
+      />
     </div>
   )
 }

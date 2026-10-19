@@ -15,6 +15,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   X,
+  Leaf,
+  Bell,
+  Building2,
 } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useCart } from '../context/CartContext'
@@ -29,6 +32,11 @@ import ProductImage from '../components/ProductImage'
 import QuantityStepper from '../components/QuantityStepper'
 import ProductReviewsSection from '../components/ProductReviewsSection'
 import Seo from '../components/Seo'
+import ProduceFreshnessBadge from '../components/ProduceFreshnessBadge'
+import GapCertificationModal from '../components/GapCertificationModal'
+import FoodMilesCalculatorModal from '../components/FoodMilesCalculatorModal'
+import BulkQuotationModal from '../components/BulkQuotationModal'
+import PriceAlertModal from '../components/PriceAlertModal'
 import api from '../services/api'
 import type { Product } from '../data/catalog'
 
@@ -49,6 +57,10 @@ const ProductDetailPage = () => {
   const [reporting, setReporting] = useState(false)
   const [reportSuccess, setReportSuccess] = useState(false)
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>([])
+  const [showGapModal, setShowGapModal] = useState(false)
+  const [showFoodMilesModal, setShowFoodMilesModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [showPriceAlertModal, setShowPriceAlertModal] = useState(false)
 
   useLayoutEffect(() => {
     scrollToTopNow()
@@ -276,11 +288,30 @@ const ProductDetailPage = () => {
         <div>
           <p className="text-sm font-semibold text-primary-700 uppercase">{product.category}</p>
           <h1 className="text-4xl font-bold mt-2">{product.name}</h1>
-          <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-600">
+          <div className="flex flex-wrap items-center gap-2.5 mt-3 text-sm text-gray-600">
             <span className="inline-flex items-center gap-1"><Star className="h-4 w-4 fill-secondary-400 text-secondary-400" /> {product.rating} · {meta.sold}+ sold</span>
             <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {product.location}</span>
             <span className={`chip ${stockTone(product.stock)}`}>{stockLabel(product.stock)}</span>
             {product.tradeable && <span className="chip bg-primary-50 text-primary-800"><Repeat className="h-3 w-3 mr-1" /> Tradable</span>}
+            <ProduceFreshnessBadge category={product.category} productName={product.name} />
+            <button
+              type="button"
+              onClick={() => setShowGapModal(true)}
+              className="chip bg-emerald-50 text-emerald-800 border border-emerald-300 font-extrabold inline-flex items-center gap-1 hover:bg-emerald-100 transition cursor-pointer"
+              title="Click to view official PhilGAP and Organic safety accreditation"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+              <span>PhilGAP Verified</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowFoodMilesModal(true)}
+              className="chip bg-teal-50 text-teal-800 border border-teal-300 font-bold inline-flex items-center gap-1 hover:bg-teal-100 transition cursor-pointer"
+              title="Click to calculate farm-to-fork transit distance and CO2 saved"
+            >
+              <Leaf className="h-3.5 w-3.5 text-teal-600" />
+              <span>Food Miles</span>
+            </button>
           </div>
           <div className="flex items-baseline gap-3 mt-6">
             <p className="text-3xl font-bold">{formatPeso(currentPrice)}</p>
@@ -389,6 +420,28 @@ const ProductDetailPage = () => {
                 aria-label={isWishlisted(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
               >
                 <Heart className={`h-5 w-5 ${isWishlisted(product.id) ? 'fill-rose-500' : ''}`} />
+              </button>
+            )}
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => setShowPriceAlertModal(true)}
+                className="btn-outline py-2.5 px-3 inline-flex items-center gap-1.5 text-xs font-bold"
+                title="Set price drop alert"
+              >
+                <Bell className="h-4 w-4 text-amber-600" />
+                <span className="hidden sm:inline">Price Alert</span>
+              </button>
+            )}
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => setShowBulkModal(true)}
+                className="btn-secondary py-2.5 px-3.5 inline-flex items-center gap-1.5 text-xs font-bold"
+                title="Request wholesale volume quote for restaurants or business"
+              >
+                <Building2 className="h-4 w-4 text-primary-700" />
+                <span className="hidden sm:inline">Wholesale Quote</span>
               </button>
             )}
             {/* Offer a trade is hidden from delivery roles */}
@@ -569,6 +622,40 @@ const ProductDetailPage = () => {
           </div>
         </div>
       )}
+
+      {/* Agricultural Feature Modals */}
+      <GapCertificationModal
+        isOpen={showGapModal}
+        onClose={() => setShowGapModal(false)}
+        farmName={product.seller}
+        location={product.location}
+        isOrganic={product.organic}
+      />
+      <FoodMilesCalculatorModal
+        isOpen={showFoodMilesModal}
+        onClose={() => setShowFoodMilesModal(false)}
+        farmOrigin={product.location}
+        productName={product.name}
+      />
+      <BulkQuotationModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        productId={product.id}
+        productName={product.name}
+        sellerName={product.seller}
+        unit={product.unit}
+        currentPrice={product.price}
+      />
+      <PriceAlertModal
+        isOpen={showPriceAlertModal}
+        onClose={() => setShowPriceAlertModal(false)}
+        product={{
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          unit: product.unit,
+        }}
+      />
     </div>
   )
 }

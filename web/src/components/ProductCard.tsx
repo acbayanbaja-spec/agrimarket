@@ -96,7 +96,9 @@ const ProductCard = ({ product, delay = 0 }: Props) => {
             </Link>
           </div>
           {product.organic && (
-            <span className="text-[11px] font-semibold bg-primary-50 text-primary-800 px-2 py-1 rounded-full">Organic</span>
+            <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+              PhilGAP Organic
+            </span>
           )}
         </div>
           <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>

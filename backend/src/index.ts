@@ -29,6 +29,7 @@ import paymentRoutes from './routes/payments';
 import uploadRoutes from './routes/upload';
 import wishlistRoutes from './routes/wishlist';
 import analyticsRoutes from './routes/analytics';
+import tradeRoutes from './routes/trades';
 import path from 'path';
 import { db } from './database/store';
 import { isDatabaseRequired, isEmbeddedFallbackAllowed } from './config/persistence';
@@ -187,6 +188,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/trades', tradeRoutes);
 
 // Error handling
 app.use(notFoundHandler);
