@@ -298,18 +298,42 @@ function sanitizeParams(params: any[]): any[] {
   });
 }
 
+function cleanConnectionString(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    url.searchParams.delete('sslmode');
+    url.searchParams.delete('ssl-mode');
+    url.searchParams.delete('ssl');
+    return url.toString();
+  } catch {
+    return raw.replace(/[?&]sslmode=[^&]+/gi, '').replace(/[?&]ssl=[^&]+/gi, '');
+  }
+}
+
 const target = getDatabaseTarget();
 
-const connString = stripQuotes(
+if (target.sslEnabled && !process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
+const rawConnString = stripQuotes(
   target.connectionString ||
   process.env.DATABASE_URL ||
   process.env.DIRECT_URL ||
   `postgresql://${encodeURIComponent(target.user)}:${encodeURIComponent(target.password)}@${target.host}:${target.port}/${target.database}`
 );
 
+const connString = cleanConnectionString(rawConnString);
+
 const pgPool = new PgPool({
   connectionString: connString,
-  ssl: target.sslEnabled ? { rejectUnauthorized: false } : undefined,
+  ssl: target.sslEnabled
+    ? {
+        rejectUnauthorized: false,
+        servername: target.host,
+      }
+    : false,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECT_TIMEOUT_MS || '15000', 10),

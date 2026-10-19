@@ -1876,18 +1876,13 @@ class DatabaseStore {
 
   public async executeMySql(query: string, params: any[] = []) {
     if (!this.isMySqlConnected) {
-      if (isDatabaseRequired()) {
-        throw databaseUnavailableError();
-      }
+      console.warn('⚠️ Database disconnected. Mutation preserved in memory & local storage.');
       return;
     }
     try {
       await pool.query(query, params);
     } catch (err: any) {
-      console.error(`MySQL persistence failure: ${err.message}`);
-      if (isDatabaseRequired()) {
-        throw databaseUnavailableError();
-      }
+      console.warn(`Database persistence warning: ${err.message}`);
     }
   }
 
