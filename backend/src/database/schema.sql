@@ -134,6 +134,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   pickup_location VARCHAR(255),
   prep_status VARCHAR(50) DEFAULT 'unpacked',
   prep_notes TEXT,
+  seller_confirmed BOOLEAN DEFAULT FALSE,
+  seller_confirmed_at TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);

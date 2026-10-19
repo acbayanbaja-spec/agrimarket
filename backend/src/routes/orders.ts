@@ -39,19 +39,20 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
       buyerOrders.forEach((o) => map.set(o.id, o));
       sellerOrders.forEach((o) => {
         if (!map.has(o.id)) {
-          // Send each seller strictly the order items belonging to their store
-          const sellerItems = o.items.filter(
-            (it: any) =>
+          // Include all items in the order so sellers see multi-vendor order contents,
+          // annotated with isMine for clear permission control
+          const itemsWithOwnership = o.items.map((it: any) => ({
+            ...it,
+            isMine:
               it.sellerUserId === user.id ||
               it.sellerId === `seller-${user.id}` ||
-              it.sellerId === `user-${user.id}`
-          );
-          if (sellerItems.length > 0) {
-            map.set(o.id, {
-              ...o,
-              items: sellerItems,
-            });
-          }
+              it.sellerId === `user-${user.id}` ||
+              (user.email === 'seller@agrimarket.com' && (it.sellerId === 'seller-1' || it.sellerUserId === 2)),
+          }));
+          map.set(o.id, {
+            ...o,
+            items: itemsWithOwnership,
+          });
         }
       });
       orders = Array.from(map.values());
@@ -94,19 +95,21 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(403).json(errorResponse('Access denied to this order', null, 'FORBIDDEN', 403));
     }
 
-    // Send seller only the items belonging to their store
+    // Provide seller all items annotated with isMine so they can see multi-vendor items and locks
     if (isSeller && !isAdmin && !isBuyer) {
-      const sellerItems = order.items.filter(
-        (it: any) =>
+      const itemsWithOwnership = order.items.map((it: any) => ({
+        ...it,
+        isMine:
           it.sellerUserId === user.id ||
           it.sellerId === `seller-${user.id}` ||
-          it.sellerId === `user-${user.id}`
-      );
+          it.sellerId === `user-${user.id}` ||
+          (user.email === 'seller@agrimarket.com' && (it.sellerId === 'seller-1' || it.sellerUserId === 2)),
+      }));
       return res.json(
         successResponse(
           {
             ...order,
-            items: sellerItems,
+            items: itemsWithOwnership,
             timeline: db.getOrderStatusEvents(order.id),
           },
           'Order retrieved successfully'
@@ -418,6 +421,82 @@ router.put('/:id/status', authenticate, (req: AuthRequest, res: Response) => {
       if (!isAdmin && !isSeller) {
         return res.status(403).json(errorResponse('Only the assigned seller or admin can confirm this order', null, 'FORBIDDEN', 403));
       }
+
+      // If actor is a seller (and not an admin), confirm only their own products in this multi-vendor order
+      if (!isAdmin) {
+        const { productId } = req.body;
+        if (productId) {
+          const targetItem = existing.items.find((it: any) => it.productId === productId);
+          if (!targetItem) {
+            return res.status(404).json(errorResponse('Product not found in this order', null, 'NOT_FOUND', 404));
+          }
+          const isItemOwner =
+            targetItem.sellerUserId === user.id ||
+            targetItem.sellerId === `seller-${user.id}` ||
+            targetItem.sellerId === `user-${user.id}` ||
+            (user.email === 'seller@agrimarket.com' && (targetItem.sellerId === 'seller-1' || targetItem.sellerUserId === 2));
+
+          if (!isItemOwner) {
+            return res.status(403).json(
+              errorResponse(`Cannot confirm product "${targetItem.name}". You are not the seller of this product.`, null, 'FORBIDDEN', 403)
+            );
+          }
+        }
+
+        const confirmRes = db.confirmSellerItems(orderId, user.id, productId);
+        if (!confirmRes) {
+          return res.status(400).json(errorResponse('Failed to confirm items', null, 'CONFIRM_FAILED', 400));
+        }
+
+        const updated = confirmRes.order;
+        const sellerUser = db.getUserById(user.id);
+        const sellerDisplayName = sellerUser ? `${sellerUser.first_name} ${sellerUser.last_name}`.trim() : 'Seller';
+
+        if (confirmRes.pendingCount > 0) {
+          db.addNotification({
+            id: `notice-${Date.now()}-${updated.userId}`,
+            userId: updated.userId,
+            title: 'Seller Confirmed Produce! 🚜',
+            message: `${sellerDisplayName} confirmed their produce in order #${updated.id}. Waiting for ${confirmRes.pendingCount} other item(s) to be confirmed.`,
+            category: 'Order',
+            readBy: [],
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          if (driverId || updated.driverId) {
+            const assignedDriver = driverId ? Number(driverId) : updated.driverId!;
+            db.updateDelivery(`DEL-${orderId}`, {
+              driverId: assignedDriver,
+              status: updated.status,
+            });
+          }
+          db.addNotification({
+            id: `notice-${Date.now()}-${updated.userId}`,
+            userId: updated.userId,
+            title: 'All Sellers Confirmed Order! 🚜',
+            message: `All sellers have confirmed and packed order #${updated.id}. Ready for courier collection!`,
+            category: 'Order',
+            readBy: [],
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        if (io) {
+          broadcastOrderUpdated(io, updated);
+          if (updated.driverId) {
+            broadcastDeliveryUpdate(io, updated.driverId, {
+              orderId: updated.id,
+              status: updated.status,
+            });
+          }
+        }
+
+        const msg = confirmRes.pendingCount > 0
+          ? `Confirmed ${confirmRes.confirmedCount} product(s) for your farm. Waiting for ${confirmRes.pendingCount} other product(s) to be confirmed by their respective sellers.`
+          : 'All products in order confirmed successfully across all sellers.';
+
+        return res.json(successResponse(updated, msg));
+      }
     } else if (status === 'Preparing') {
       if (!isAdmin && !isSeller) {
         return res.status(403).json(errorResponse('Only the assigned seller or admin can update order to Preparing', null, 'FORBIDDEN', 403));
@@ -656,9 +735,35 @@ router.put('/:id/prepare', authenticate, (req: AuthRequest, res: Response) => {
     let updated: OrderEntity | null = null;
 
     if (productId) {
-      updated = db.updateOrderItemPrep(orderId, productId, prepStatus || 'packed', packingNotes);
+      const targetItem = order.items.find((i: any) => i.productId === productId);
+      if (!targetItem) {
+        return res.status(404).json(errorResponse('Product not found in this order', null, 'NOT_FOUND', 404));
+      }
+      const isTargetOwner =
+        targetItem.sellerUserId === user.id ||
+        targetItem.sellerId === `seller-${user.id}` ||
+        targetItem.sellerId === `user-${user.id}` ||
+        (user.email === 'seller@agrimarket.com' && (targetItem.sellerId === 'seller-1' || targetItem.sellerUserId === 2));
+
+      if (!isAdmin && !isTargetOwner) {
+        return res
+          .status(403)
+          .json(
+            errorResponse(
+              `Cannot pack or prepare product "${targetItem.name}". You are not the seller of this product.`,
+              null,
+              'FORBIDDEN',
+              403
+            )
+          );
+      }
+      updated = db.updateOrderItemPrep(orderId, productId, prepStatus || 'packed', packingNotes, user.id);
     } else if (prepStatus === 'packed') {
-      updated = db.packOrder(orderId, packingNotes);
+      if (isAdmin) {
+        updated = db.packOrder(orderId, packingNotes);
+      } else {
+        updated = db.packSellerItems(orderId, user.id, packingNotes);
+      }
     } else {
       const extra: Partial<OrderEntity> = {
         prepStatus: prepStatus || order.prepStatus || 'packing',
@@ -666,22 +771,31 @@ router.put('/:id/prepare', authenticate, (req: AuthRequest, res: Response) => {
         packedAt: prepStatus === 'packed' ? new Date().toISOString() : order.packedAt,
       };
       if (items && Array.isArray(items)) {
-        // Safely update prep status and notes only; never allow tampering with prices or products
+        // Safely update prep status and notes only for items owned by this seller
         const updatedItems = order.items.map((existingItem: any) => {
-          const match = items.find((i: any) => i.productId === existingItem.productId);
-          if (match) {
-            return {
-              ...existingItem,
-              prepStatus: match.prepStatus || existingItem.prepStatus,
-              prepNotes: match.prepNotes !== undefined ? match.prepNotes : existingItem.prepNotes,
-            };
+          const isItemOwner =
+            isAdmin ||
+            existingItem.sellerUserId === user.id ||
+            existingItem.sellerId === `seller-${user.id}` ||
+            existingItem.sellerId === `user-${user.id}` ||
+            (user.email === 'seller@agrimarket.com' && (existingItem.sellerId === 'seller-1' || existingItem.sellerUserId === 2));
+
+          if (isItemOwner) {
+            const match = items.find((i: any) => i.productId === existingItem.productId);
+            if (match) {
+              return {
+                ...existingItem,
+                prepStatus: match.prepStatus || existingItem.prepStatus,
+                prepNotes: match.prepNotes !== undefined ? match.prepNotes : existingItem.prepNotes,
+              };
+            }
           }
           return existingItem;
         });
         extra.items = updatedItems;
       }
       const newStatus = order.status === 'Pending' ? 'Confirmed' : order.status;
-      updated = db.updateOrderStatus(orderId, newStatus, extra);
+      updated = db.updateOrderStatus(orderId, newStatus, extra, user.id);
     }
 
     if (!updated) {
@@ -695,6 +809,61 @@ router.put('/:id/prepare', authenticate, (req: AuthRequest, res: Response) => {
     return res.json(successResponse(updated, 'Agricultural product packing and preparation updated successfully'));
   } catch (error: any) {
     return res.status(500).json(errorResponse(error.message, null, 'ORDER_PREPARE_FAILED', 500));
+  }
+});
+
+// @route   PUT /api/orders/:id/items/:productId/confirm
+// @desc    Confirm a specific product in an order (Authorized Seller of that product or Admin)
+// @access  Private (Seller / Admin)
+router.put('/:id/items/:productId/confirm', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { id: orderId, productId } = req.params;
+    const order = db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json(errorResponse('Order not found', null, 'NOT_FOUND', 404));
+    }
+
+    const user = req.user!;
+    const isAdmin = user.roles.includes('admin');
+    const targetItem = order.items.find((i: any) => i.productId === productId);
+    if (!targetItem) {
+      return res.status(404).json(errorResponse('Product not found in this order', null, 'NOT_FOUND', 404));
+    }
+
+    const isTargetOwner =
+      targetItem.sellerUserId === user.id ||
+      targetItem.sellerId === `seller-${user.id}` ||
+      targetItem.sellerId === `user-${user.id}` ||
+      (user.email === 'seller@agrimarket.com' && (targetItem.sellerId === 'seller-1' || targetItem.sellerUserId === 2));
+
+    if (!isAdmin && !isTargetOwner) {
+      return res.status(403).json(
+        errorResponse(
+          `Cannot confirm product "${targetItem.name}". You are not the seller of this product.`,
+          null,
+          'FORBIDDEN',
+          403
+        )
+      );
+    }
+
+    const result = db.confirmSellerItems(orderId, user.id, productId);
+    if (!result) {
+      return res.status(400).json(errorResponse('Failed to confirm product item', null, 'UPDATE_FAILED', 400));
+    }
+
+    if (io) {
+      broadcastOrderUpdated(io, result.order);
+    }
+
+    const message =
+      result.pendingCount === 0
+        ? `Confirmed "${targetItem.name}". All items in order #${orderId} are now confirmed!`
+        : `Confirmed "${targetItem.name}". Waiting for ${result.pendingCount} other item(s) from other sellers.`;
+
+    return res.json(successResponse(result.order, message));
+  } catch (error: any) {
+    return res.status(500).json(errorResponse(error.message, null, 'CONFIRM_ITEM_FAILED', 500));
   }
 });
 

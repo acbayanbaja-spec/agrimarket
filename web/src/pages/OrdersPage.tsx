@@ -128,7 +128,15 @@ const OrdersPage = () => {
                           : 'bg-primary-100 text-primary-800'
                       }`}
                     >
-                      {order.status === 'Pending' ? 'Waiting on Farm Confirmation' : order.status}
+                      {order.status === 'Pending'
+                        ? (() => {
+                            const confirmedCount = (order.items || []).filter((i) => i.prepStatus === 'packed' || i.sellerConfirmed).length
+                            const totalCount = (order.items || []).length
+                            return confirmedCount > 0
+                              ? `Pending (${confirmedCount}/${totalCount} confirmed)`
+                              : 'Waiting on Farm Confirmation'
+                          })()
+                        : order.status}
                     </span>
                   </div>
                 </div>
@@ -143,6 +151,23 @@ const OrdersPage = () => {
                           <p className="text-xs text-gray-500 truncate">
                             Farm Stall: <strong className="text-primary-800">{item.seller || mainSeller}</strong>
                           </p>
+                          <div className="mt-1">
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                item.prepStatus === 'packed' || item.sellerConfirmed
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : item.prepStatus === 'packing'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {item.prepStatus === 'packed' || item.sellerConfirmed
+                                ? '✓ Confirmed & Packed by Farm'
+                                : item.prepStatus === 'packing'
+                                ? '⏳ Farm is Packing Produce'
+                                : '⏳ Awaiting Seller Confirmation'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="text-right shrink-0">

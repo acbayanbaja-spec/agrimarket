@@ -1129,13 +1129,17 @@ const SellerDashboardPage = () => {
                   const myListingIds = new Set(myListings.map((p) => p.id))
                   const myHarvestItems = order.items.filter(
                     (it) =>
+                      it.isMine ||
                       myListingIds.has(it.productId) ||
                       it.sellerUserId === user?.id ||
                       (!user && (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
                   )
+                  const otherHarvestItems = order.items.filter(
+                    (it) => !myHarvestItems.some((m) => m.productId === it.productId)
+                  )
 
-                  const allMyItemsPacked = myHarvestItems.every((it) => it.prepStatus === 'packed')
-                  const anyMyItemsPacking = myHarvestItems.some((it) => it.prepStatus === 'packing' || it.prepStatus === 'packed')
+                  const allMyItemsPacked = myHarvestItems.length > 0 && myHarvestItems.every((it) => it.prepStatus === 'packed' || it.sellerConfirmed)
+                  const anyMyItemsPacking = myHarvestItems.some((it) => it.prepStatus === 'packing' || it.prepStatus === 'packed' || it.sellerConfirmed)
 
                   return (
                     <div
@@ -1159,7 +1163,11 @@ const SellerDashboardPage = () => {
                                   : 'bg-emerald-100 text-emerald-800'
                               }`}
                             >
-                              {order.status}
+                              {order.status === 'Pending' && otherHarvestItems.length > 0
+                                ? allMyItemsPacked
+                                  ? 'Pending Other Sellers'
+                                  : 'Pending Your Confirmation'
+                                : order.status}
                             </span>
                           </div>
 
@@ -1217,7 +1225,7 @@ const SellerDashboardPage = () => {
                                   : 'bg-gray-100 text-gray-600'
                               }`}
                             >
-                              {allMyItemsPacked ? '✓ All Packed & Inspected' : anyMyItemsPacking ? 'Packing in progress' : 'Awaiting packaging'}
+                              {allMyItemsPacked ? '✓ Your Produce Packed' : anyMyItemsPacking ? 'Packing in progress' : 'Awaiting packaging'}
                             </span>
 
                             <button
@@ -1284,7 +1292,7 @@ const SellerDashboardPage = () => {
                                   type="button"
                                   onClick={() => updateOrderItemPrep(order.id, item.productId, 'packed')}
                                   className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1 ${
-                                    item.prepStatus === 'packed'
+                                    item.prepStatus === 'packed' || item.sellerConfirmed
                                       ? 'bg-emerald-600 text-white shadow-sm'
                                       : 'bg-white border border-gray-200 text-gray-500 hover:bg-emerald-50'
                                   }`}
@@ -1295,6 +1303,70 @@ const SellerDashboardPage = () => {
                             </div>
                           ))}
                         </div>
+
+                        {/* Other Sellers' Produce in Multi-Vendor Order */}
+                        {otherHarvestItems.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-gray-100 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                                <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                  Other Sellers' Produce in this Order ({otherHarvestItems.length}):
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                Multi-vendor order
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500">
+                              Each seller must confirm and pack their own harvest. You cannot pack or confirm products from other farms.
+                            </p>
+                            <div className="space-y-2">
+                              {otherHarvestItems.map((item) => (
+                                <div
+                                  key={item.productId}
+                                  className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-gray-100/70 border border-gray-200/80 text-xs"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <ProductImage
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="h-10 w-10 rounded-lg object-cover border border-gray-200 opacity-80"
+                                    />
+                                    <div>
+                                      <p className="font-bold text-gray-800">
+                                        {item.name} <span className="text-gray-500">({item.quantity}×)</span>
+                                      </p>
+                                      <p className="text-[11px] text-gray-500">
+                                        Seller: <strong className="text-primary-800">{item.seller}</strong>
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] ${
+                                        item.prepStatus === 'packed' || item.sellerConfirmed
+                                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                          : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                      }`}
+                                    >
+                                      {item.prepStatus === 'packed' || item.sellerConfirmed
+                                        ? `✓ Confirmed by ${item.seller}`
+                                        : `⏳ Awaiting ${item.seller} Confirmation`}
+                                    </span>
+                                    <span
+                                      className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-gray-200 text-gray-500 cursor-not-allowed inline-flex items-center gap-1 select-none"
+                                      title="You cannot pack or confirm this item because it belongs to another seller"
+                                    >
+                                      🔒 Locked (Not your product)
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {order.packingNotes && (
                           <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100 text-xs text-emerald-800 flex items-center gap-2">
@@ -1330,18 +1402,29 @@ const SellerDashboardPage = () => {
                               onClick={() => handlePackAllAndReady(order.id)}
                             >
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                              <span>Pack All Produce</span>
+                              <span>Pack All My Produce</span>
                             </button>
                           )}
 
                           {order.status === 'Pending' && (
-                            <button
-                              type="button"
-                              className="btn-primary py-2 px-4 shadow-sm text-xs font-bold"
-                              onClick={() => confirmOrder(order.id, order.driverId || undefined)}
-                            >
-                              Confirm & Dispatch Rider
-                            </button>
+                            allMyItemsPacked ? (
+                              <div className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xs">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                <span>
+                                  {otherHarvestItems.length > 0 && !otherHarvestItems.every((it) => it.prepStatus === 'packed' || it.sellerConfirmed)
+                                    ? 'Your produce confirmed! Waiting on other sellers to confirm'
+                                    : 'All sellers confirmed! Ready for courier dispatch'}
+                                </span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn-primary py-2 px-4 shadow-sm text-xs font-bold"
+                                onClick={() => confirmOrder(order.id, order.driverId || undefined)}
+                              >
+                                Confirm My Produce
+                              </button>
+                            )
                           )}
 
                           {order.status === 'Confirmed' && (

@@ -256,47 +256,118 @@ export default function SellerScreen() {
                     <Text style={styles.buyerAddress}>📍 {order.address}</Text>
                   </View>
 
-                  <View style={styles.orderItemsList}>
-                    {order.items.map((item) => (
-                      <View key={item.productId} style={styles.orderItemRow}>
-                        <Text style={styles.orderItemName}>{item.quantity}× {item.name}</Text>
-                        <Text style={styles.orderItemSubtotal}>{formatPeso(item.price * item.quantity)}</Text>
+                  {/* Order Items Breakdown */}
+                  {(() => {
+                    const myItems = order.items.filter(
+                      (item) =>
+                        item.isMine ||
+                        item.sellerUserId === user?.id ||
+                        (user?.email === 'seller@agrimarket.com' && (item.sellerId === 'seller-1' || item.sellerUserId === 2))
+                    );
+                    const otherItems = order.items.filter((item) => !myItems.some((m) => m.productId === item.productId));
+                    const allMyItemsConfirmed = myItems.length > 0 && myItems.every((it) => it.prepStatus === 'packed' || it.sellerConfirmed);
+
+                    return (
+                      <View style={{ gap: 10 }}>
+                        {/* Your Produce Section */}
+                        <View style={styles.orderItemsList}>
+                          <Text style={{ fontSize: 12, fontWeight: '800', color: '#15803d', marginBottom: 6 }}>
+                            Your Produce (Action Required):
+                          </Text>
+                          {myItems.map((item) => (
+                            <View key={item.productId} style={[styles.orderItemRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 4, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }]}>
+                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                                <Text style={styles.orderItemName}>{item.quantity}× {item.name}</Text>
+                                <Text style={styles.orderItemSubtotal}>{formatPeso(item.price * item.quantity)}</Text>
+                              </View>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: 2 }}>
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: item.prepStatus === 'packed' || item.sellerConfirmed ? '#16a34a' : '#ea580c' }}>
+                                  {item.prepStatus === 'packed' || item.sellerConfirmed ? '✓ Packed & Confirmed' : '⏳ Ready to pack'}
+                                </Text>
+                                {order.status === 'Pending' && !(item.prepStatus === 'packed' || item.sellerConfirmed) && (
+                                  <TouchableOpacity
+                                    style={{ backgroundColor: '#15803d', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}
+                                    onPress={() => confirmOrder(order.id, item.productId)}
+                                  >
+                                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>Confirm This Product</Text>
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+
+                        {/* Other Sellers' Products (Read-Only) */}
+                        {otherItems.length > 0 && (
+                          <View style={[styles.orderItemsList, { backgroundColor: '#f8fafc', borderColor: '#e2e8f0', borderWidth: 1, borderRadius: 10, padding: 8 }]}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#64748b', marginBottom: 4 }}>
+                              Other Sellers' Produce in this Order ({otherItems.length}):
+                            </Text>
+                            <Text style={{ fontSize: 10, color: '#94a3b8', marginBottom: 6 }}>
+                              Only the designated seller can confirm & pack their own products.
+                            </Text>
+                            {otherItems.map((item) => (
+                              <View key={item.productId} style={[styles.orderItemRow, { paddingVertical: 4 }]}>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={[styles.orderItemName, { color: '#64748b' }]}>{item.quantity}× {item.name}</Text>
+                                  <Text style={{ fontSize: 10, color: '#94a3b8' }}>Seller: {item.seller}</Text>
+                                </View>
+                                <View style={{ alignItems: 'flex-end' }}>
+                                  <Text style={{ fontSize: 10, fontWeight: '700', color: item.prepStatus === 'packed' || item.sellerConfirmed ? '#16a34a' : '#d97706' }}>
+                                    {item.prepStatus === 'packed' || item.sellerConfirmed ? '✓ Confirmed by Seller' : '⏳ Awaiting Seller'}
+                                  </Text>
+                                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>🔒 Locked</Text>
+                                </View>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+
+                        <View style={styles.orderCardFooter}>
+                          <View>
+                            <Text style={styles.totalLabel}>Total Payout:</Text>
+                            <Text style={styles.totalAmount}>{formatPeso(order.total)}</Text>
+                          </View>
+
+                          {order.status === 'Pending' && (
+                            !allMyItemsConfirmed ? (
+                              <TouchableOpacity
+                                style={styles.actionBtnPrimary}
+                                onPress={() => confirmOrder(order.id)}
+                              >
+                                <Ionicons name="checkmark-done" size={16} color="#fff" />
+                                <Text style={styles.actionBtnText}>Confirm All My Produce</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <View style={[styles.doneBadge, { backgroundColor: '#f0fdf4', borderColor: '#86efac', borderWidth: 1 }]}>
+                                <Text style={[styles.doneBadgeText, { color: '#16a34a' }]}>
+                                  {otherItems.length > 0 && !otherItems.every((it) => it.prepStatus === 'packed' || it.sellerConfirmed)
+                                    ? '✓ Your Produce Confirmed · Waiting on Others'
+                                    : '✓ All Products Confirmed'}
+                                </Text>
+                              </View>
+                            )
+                          )}
+
+                          {order.status === 'Confirmed' && (
+                            <TouchableOpacity
+                              style={[styles.actionBtnPrimary, { backgroundColor: '#0284c7' }]}
+                              onPress={() => markShipped(order.id)}
+                            >
+                              <Ionicons name="bicycle" size={16} color="#fff" />
+                              <Text style={styles.actionBtnText}>Hand Over to Rider</Text>
+                            </TouchableOpacity>
+                          )}
+
+                          {order.status === 'Shipped' && (
+                            <View style={styles.doneBadge}>
+                              <Text style={styles.doneBadgeText}>✓ In Transit with Rider</Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
-                    ))}
-                  </View>
-
-                  <View style={styles.orderCardFooter}>
-                    <View>
-                      <Text style={styles.totalLabel}>Total Payout:</Text>
-                      <Text style={styles.totalAmount}>{formatPeso(order.total)}</Text>
-                    </View>
-
-                    {order.status === 'Pending' && (
-                      <TouchableOpacity
-                        style={styles.actionBtnPrimary}
-                        onPress={() => confirmOrder(order.id)}
-                      >
-                        <Ionicons name="checkmark-done" size={16} color="#fff" />
-                        <Text style={styles.actionBtnText}>Confirm & Pack Order</Text>
-                      </TouchableOpacity>
-                    )}
-
-                    {order.status === 'Confirmed' && (
-                      <TouchableOpacity
-                        style={[styles.actionBtnPrimary, { backgroundColor: '#0284c7' }]}
-                        onPress={() => markShipped(order.id)}
-                      >
-                        <Ionicons name="bicycle" size={16} color="#fff" />
-                        <Text style={styles.actionBtnText}>Hand Over to Rider</Text>
-                      </TouchableOpacity>
-                    )}
-
-                    {order.status === 'Shipped' && (
-                      <View style={styles.doneBadge}>
-                        <Text style={styles.doneBadgeText}>✓ In Transit with Rider</Text>
-                      </View>
-                    )}
-                  </View>
+                    );
+                  })()}
                 </View>
               ))
             )}

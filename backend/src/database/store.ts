@@ -94,6 +94,9 @@ export interface OrderItemEntity {
   prepStatus?: 'unpacked' | 'packing' | 'packed';
   prepNotes?: string;
   packedAt?: string;
+  sellerConfirmed?: boolean;
+  sellerConfirmedAt?: string;
+  isMine?: boolean;
 }
 
 export interface OrderEntity {
@@ -1783,6 +1786,8 @@ class DatabaseStore {
             pickupLocation: item.pickup_location || '',
             prepStatus: item.prep_status || 'unpacked',
             prepNotes: item.prep_notes || undefined,
+            sellerConfirmed: Boolean(item.seller_confirmed || item.prep_status === 'packed'),
+            sellerConfirmedAt: item.seller_confirmed_at || (item.prep_status === 'packed' ? item.created_at : undefined),
           });
           itemsByOrder.set(item.order_id, list);
         }
@@ -2477,35 +2482,56 @@ class DatabaseStore {
     orderId: string,
     productId: string,
     prepStatus: 'unpacked' | 'packing' | 'packed',
-    notes?: string
+    notes?: string,
+    actorUserId?: number
   ): OrderEntity | null {
     const order = this.data.orders.find((o) => o.id === orderId);
     if (!order) return null;
 
-    let itemFound = false;
+    const targetItem = order.items.find((item) => item.productId === productId);
+    if (!targetItem) return null;
+
+    if (actorUserId) {
+      const user = this.getUserById(actorUserId);
+      const isAdmin = user?.roles?.includes('admin');
+      const isItemOwner =
+        targetItem.sellerUserId === actorUserId ||
+        targetItem.sellerId === `seller-${actorUserId}` ||
+        targetItem.sellerId === `user-${actorUserId}` ||
+        (user?.email === 'seller@agrimarket.com' && (targetItem.sellerId === 'seller-1' || targetItem.sellerUserId === 2));
+
+      if (!isAdmin && !isItemOwner) {
+        throw new Error(`Unauthorized: You are not the seller of product "${targetItem.name}" and cannot update its packaging or confirmation.`);
+      }
+    }
+
+    const now = new Date().toISOString();
+    const isPacked = prepStatus === 'packed';
+
     order.items = order.items.map((item) => {
       if (item.productId === productId) {
-        itemFound = true;
         return {
           ...item,
           prepStatus,
           prepNotes: notes !== undefined ? notes : item.prepNotes,
-          packedAt: prepStatus === 'packed' ? new Date().toISOString() : item.packedAt,
+          packedAt: isPacked ? now : item.packedAt,
+          sellerConfirmed: isPacked ? true : item.sellerConfirmed,
+          sellerConfirmedAt: isPacked ? (item.sellerConfirmedAt || now) : item.sellerConfirmedAt,
         };
       }
       return item;
     });
 
-    if (!itemFound) return null;
-
     const allPacked = order.items.every((it) => it.prepStatus === 'packed');
+    const allConfirmed = order.items.every((it) => it.sellerConfirmed || it.prepStatus === 'packed');
     const anyPacking = order.items.some((it) => it.prepStatus === 'packing' || it.prepStatus === 'packed');
     order.prepStatus = allPacked ? 'packed' : anyPacking ? 'packing' : 'unpacked';
-    if (allPacked) {
-      order.packedAt = new Date().toISOString();
+
+    if (allPacked && allConfirmed) {
+      order.packedAt = now;
       if (order.status === 'Pending') {
         order.status = 'Confirmed';
-        order.sellerConfirmedAt = new Date().toISOString();
+        order.sellerConfirmedAt = now;
       }
     }
 
@@ -2513,15 +2539,146 @@ class DatabaseStore {
     return order;
   }
 
-  public packOrder(orderId: string, packingNotes?: string): OrderEntity | null {
+  public packSellerItems(orderId: string, sellerUserId: number, packingNotes?: string): OrderEntity | null {
+    const order = this.data.orders.find((o) => o.id === orderId);
+    if (!order) return null;
+
+    const user = this.getUserById(sellerUserId);
+    const isAdmin = user?.roles?.includes('admin');
+    const now = new Date().toISOString();
+
+    let packedCount = 0;
+    order.items = order.items.map((item) => {
+      const isMyItem =
+        isAdmin ||
+        item.sellerUserId === sellerUserId ||
+        item.sellerId === `seller-${sellerUserId}` ||
+        item.sellerId === `user-${sellerUserId}` ||
+        (user?.email === 'seller@agrimarket.com' && (item.sellerId === 'seller-1' || item.sellerUserId === 2));
+
+      if (isMyItem) {
+        packedCount++;
+        return {
+          ...item,
+          prepStatus: 'packed' as const,
+          packedAt: now,
+          sellerConfirmed: true,
+          sellerConfirmedAt: item.sellerConfirmedAt || now,
+          prepNotes: packingNotes !== undefined ? packingNotes : item.prepNotes,
+        };
+      }
+      return item;
+    });
+
+    if (packedCount === 0 && !isAdmin) {
+      throw new Error('Unauthorized: You have no products in this order to pack.');
+    }
+
+    const allPacked = order.items.every((it) => it.prepStatus === 'packed');
+    const allConfirmed = order.items.every((it) => it.sellerConfirmed || it.prepStatus === 'packed');
+    const anyPacking = order.items.some((it) => it.prepStatus === 'packing' || it.prepStatus === 'packed');
+    order.prepStatus = allPacked ? 'packed' : anyPacking ? 'packing' : 'unpacked';
+
+    if (allPacked && allConfirmed) {
+      order.packedAt = now;
+      if (order.status === 'Pending') {
+        order.status = 'Confirmed';
+        order.sellerConfirmedAt = now;
+      }
+    }
+    if (packingNotes !== undefined) order.packingNotes = packingNotes;
+
+    this.saveData();
+    return order;
+  }
+
+  public confirmSellerItems(
+    orderId: string,
+    sellerUserId: number,
+    productId?: string
+  ): { order: OrderEntity; confirmedCount: number; pendingCount: number } | null {
+    const order = this.data.orders.find((o) => o.id === orderId);
+    if (!order) return null;
+
+    const user = this.getUserById(sellerUserId);
+    const isAdmin = user?.roles?.includes('admin');
+    const now = new Date().toISOString();
+
+    let confirmedCount = 0;
+    order.items = order.items.map((item) => {
+      const isMyItem =
+        isAdmin ||
+        item.sellerUserId === sellerUserId ||
+        item.sellerId === `seller-${sellerUserId}` ||
+        item.sellerId === `user-${sellerUserId}` ||
+        (user?.email === 'seller@agrimarket.com' && (item.sellerId === 'seller-1' || item.sellerUserId === 2));
+
+      if (productId ? item.productId === productId : isMyItem) {
+        if (!isAdmin && !isMyItem) {
+          throw new Error(`Unauthorized: You are not the seller of product "${item.name}" and cannot confirm it.`);
+        }
+        confirmedCount++;
+        return {
+          ...item,
+          sellerConfirmed: true,
+          sellerConfirmedAt: item.sellerConfirmedAt || now,
+          prepStatus: 'packed' as const,
+          packedAt: item.packedAt || now,
+        };
+      }
+      return item;
+    });
+
+    if (confirmedCount === 0) {
+      throw new Error('No products matching your seller profile found in this order to confirm.');
+    }
+
+    const pendingItems = order.items.filter((it) => !it.sellerConfirmed && it.prepStatus !== 'packed');
+    const allPacked = order.items.every((it) => it.prepStatus === 'packed');
+    const anyPacking = order.items.some((it) => it.prepStatus === 'packing' || it.prepStatus === 'packed');
+    order.prepStatus = allPacked ? 'packed' : anyPacking ? 'packing' : 'unpacked';
+
+    if (pendingItems.length === 0) {
+      order.status = 'Confirmed';
+      order.sellerConfirmedAt = now;
+      order.packedAt = order.packedAt || now;
+    }
+
+    const sellerName = user ? `${user.first_name} ${user.last_name}`.trim() : 'Seller';
+    const auditEntry: OrderStatusAudit = {
+      status: order.status,
+      changedBy: sellerUserId,
+      changedByName: sellerName,
+      changedByRole: user?.roles?.[0] || 'seller',
+      timestamp: now,
+      note:
+        pendingItems.length === 0
+          ? 'All products confirmed across all sellers. Order is confirmed for courier collection.'
+          : `${sellerName} confirmed their produce (${confirmedCount} product(s)). Waiting for ${pendingItems.length} other product(s) from other sellers.`,
+    };
+    order.statusHistory = [...(order.statusHistory || []), auditEntry];
+
+    this.saveData();
+    return { order, confirmedCount, pendingCount: pendingItems.length };
+  }
+
+  public packOrder(orderId: string, packingNotes?: string, actorUserId?: number): OrderEntity | null {
+    if (actorUserId) {
+      const user = this.getUserById(actorUserId);
+      if (user && !user.roles.includes('admin')) {
+        return this.packSellerItems(orderId, actorUserId, packingNotes);
+      }
+    }
     const order = this.data.orders.find((o) => o.id === orderId);
     if (!order) return null;
 
     const now = new Date().toISOString();
     order.items = order.items.map((item) => ({
       ...item,
-      prepStatus: 'packed',
+      prepStatus: 'packed' as const,
       packedAt: now,
+      sellerConfirmed: true,
+      sellerConfirmedAt: item.sellerConfirmedAt || now,
     }));
     order.prepStatus = 'packed';
     order.packedAt = now;
@@ -2714,21 +2871,41 @@ class DatabaseStore {
       const now = new Date().toISOString();
 
       let orderItems = this.data.orders[idx].items;
+      const actorIsAdmin = actorUser?.roles?.includes('admin');
       if (status === 'Confirmed' && orderItems) {
-        orderItems = orderItems.map((item) => ({
-          ...item,
-          prepStatus: item.prepStatus === 'unpacked' || !item.prepStatus ? 'packed' : item.prepStatus,
-          packedAt: item.packedAt || now,
-        }));
+        orderItems = orderItems.map((item) => {
+          const isMyItem =
+            actorIsAdmin ||
+            !actorUserId ||
+            item.sellerUserId === actorUserId ||
+            item.sellerId === `seller-${actorUserId}` ||
+            item.sellerId === `user-${actorUserId}` ||
+            (actorUser?.email === 'seller@agrimarket.com' && (item.sellerId === 'seller-1' || item.sellerUserId === 2));
+
+          if (isMyItem) {
+            return {
+              ...item,
+              sellerConfirmed: true,
+              sellerConfirmedAt: item.sellerConfirmedAt || now,
+              prepStatus: item.prepStatus === 'unpacked' || !item.prepStatus ? 'packed' : item.prepStatus,
+              packedAt: item.packedAt || now,
+            };
+          }
+          return item;
+        });
       }
+
+      const allItemsConfirmed = (orderItems || []).every((it) => it.sellerConfirmed || it.prepStatus === 'packed');
+      const allItemsPacked = (orderItems || []).every((it) => it.prepStatus === 'packed');
+      const nextStatus = (status === 'Confirmed' && !allItemsConfirmed) ? 'Pending' : status;
 
       this.data.orders[idx] = {
         ...this.data.orders[idx],
         items: orderItems,
-        status,
-        sellerConfirmedAt: status === 'Confirmed' ? (this.data.orders[idx].sellerConfirmedAt || now) : this.data.orders[idx].sellerConfirmedAt,
-        prepStatus: status === 'Confirmed' && (!this.data.orders[idx].prepStatus || this.data.orders[idx].prepStatus === 'unpacked') ? 'packed' : this.data.orders[idx].prepStatus,
-        packedAt: status === 'Confirmed' && !this.data.orders[idx].packedAt ? now : this.data.orders[idx].packedAt,
+        status: nextStatus,
+        sellerConfirmedAt: allItemsConfirmed ? (this.data.orders[idx].sellerConfirmedAt || now) : this.data.orders[idx].sellerConfirmedAt,
+        prepStatus: allItemsPacked ? 'packed' : (orderItems || []).some(it => it.prepStatus === 'packing' || it.prepStatus === 'packed') ? 'packing' : 'unpacked',
+        packedAt: allItemsPacked && !this.data.orders[idx].packedAt ? now : this.data.orders[idx].packedAt,
         ...extra,
         statusHistory: [...existingHistory, auditEntry],
       };

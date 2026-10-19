@@ -21,6 +21,9 @@ export type OrderItem = {
   prepStatus?: 'unpacked' | 'packing' | 'packed'
   prepNotes?: string
   packedAt?: string
+  sellerConfirmed?: boolean
+  sellerConfirmedAt?: string
+  isMine?: boolean
 }
 
 export type Order = {
@@ -238,6 +241,7 @@ type StoreContextType = {
   updateOrderItemPrep: (orderId: string, productId: string, prepStatus: 'unpacked' | 'packing' | 'packed', notes?: string) => void
   packOrder: (orderId: string, packingNotes?: string) => void
   confirmOrder: (id: string, driverId?: number) => void
+  confirmOrderItem: (orderId: string, productId: string) => Promise<boolean>
   markShipped: (id: string) => void
   assignDriver: (orderId: string, driverId: number) => Promise<void>
   sellerOrders: Order[]
@@ -1557,48 +1561,105 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== id || order.status !== 'Pending') return order
-        const harvest = order.items.map((item) => `${item.quantity}× ${item.name}`).join(', ')
-        const pickup = order.items[0]?.pickupLocation || 'SOCCSKSARGEN stall'
-        notify({
-          userId: order.userId,
-          title: 'Seller confirmed your order',
-          message: `${order.id} is packed. A rider will pick up ${harvest}.`,
-          href: '/orders',
+        const now = new Date().toISOString()
+        const packedItems = order.items.map((it) => {
+          const isMyItem =
+            it.isMine ||
+            it.sellerUserId === user?.id ||
+            it.sellerId === `seller-${user?.id}` ||
+            it.sellerId === `user-${user?.id}` ||
+            (!user && (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+          if (isMyItem) {
+            return {
+              ...it,
+              prepStatus: 'packed' as const,
+              sellerConfirmed: true,
+              sellerConfirmedAt: it.sellerConfirmedAt || now,
+              packedAt: it.packedAt || now,
+            }
+          }
+          return it
         })
-        notify({
-          userId: effectiveDriverId,
-          title: 'Ready for pickup',
-          message: `Collect ${harvest} at ${pickup}. Buyer: ${order.buyerName} · ${order.buyerPhone || 'no mobile'} · drop-off ${order.address}.`,
-          href: '/delivery',
-        })
-        void api
-          .post('/delivery/deliveries', {
-            orderId: order.id,
-            driverId: effectiveDriverId,
-            buyerName: order.buyerName,
-            buyerPhone: order.buyerPhone,
-            address: order.address,
-            status: 'Confirmed',
-            lat: order.lat,
-            lng: order.lng,
+        const allConfirmed = packedItems.every((it) => it.sellerConfirmed || it.prepStatus === 'packed')
+        const allPacked = packedItems.every((it) => it.prepStatus === 'packed')
+        const nextStatus = allConfirmed ? ('Confirmed' as const) : order.status
+
+        if (allConfirmed) {
+          const harvest = order.items.map((item) => `${item.quantity}× ${item.name}`).join(', ')
+          const pickup = order.items[0]?.pickupLocation || 'SOCCSKSARGEN stall'
+          notify({
+            userId: order.userId,
+            title: 'Seller confirmed your order',
+            message: `${order.id} is packed and ready. A rider will pick up ${harvest}.`,
+            href: '/orders',
           })
-          .catch(() => undefined)
-        const packedItems = order.items.map((it) => ({
-          ...it,
-          prepStatus: 'packed' as const,
-          packedAt: new Date().toISOString(),
-        }))
+          notify({
+            userId: effectiveDriverId,
+            title: 'Ready for pickup',
+            message: `Collect ${harvest} at ${pickup}. Buyer: ${order.buyerName} · ${order.buyerPhone || 'no mobile'} · drop-off ${order.address}.`,
+            href: '/delivery',
+          })
+          void api
+            .post('/delivery/deliveries', {
+              orderId: order.id,
+              driverId: effectiveDriverId,
+              buyerName: order.buyerName,
+              buyerPhone: order.buyerPhone,
+              address: order.address,
+              status: 'Confirmed',
+              lat: order.lat,
+              lng: order.lng,
+            })
+            .catch(() => undefined)
+        }
+
         return {
           ...order,
           items: packedItems,
-          prepStatus: 'packed' as const,
-          packedAt: new Date().toISOString(),
-          status: 'Confirmed' as const,
+          prepStatus: allPacked ? ('packed' as const) : 'packing',
+          packedAt: allPacked ? now : order.packedAt,
+          status: nextStatus,
           driverId: effectiveDriverId,
-          sellerConfirmedAt: new Date().toISOString(),
+          sellerConfirmedAt: allConfirmed ? now : order.sellerConfirmedAt,
         }
       })
     )
+  }
+
+  const confirmOrderItem: StoreContextType['confirmOrderItem'] = async (orderId, productId) => {
+    try {
+      await api.put(`/orders/${orderId}/items/${productId}/confirm`)
+    } catch {
+      // fallback
+    }
+    const now = new Date().toISOString()
+    setOrders((current) =>
+      current.map((order) => {
+        if (order.id !== orderId) return order
+        const updatedItems = order.items.map((it) => {
+          if (it.productId === productId) {
+            return {
+              ...it,
+              prepStatus: 'packed' as const,
+              sellerConfirmed: true,
+              sellerConfirmedAt: now,
+              packedAt: now,
+            }
+          }
+          return it
+        })
+        const allConfirmed = updatedItems.every((it) => it.sellerConfirmed || it.prepStatus === 'packed')
+        const allPacked = updatedItems.every((it) => it.prepStatus === 'packed')
+        return {
+          ...order,
+          items: updatedItems,
+          status: allConfirmed ? ('Confirmed' as const) : order.status,
+          prepStatus: allPacked ? ('packed' as const) : 'packing',
+          sellerConfirmedAt: allConfirmed ? now : order.sellerConfirmedAt,
+        }
+      })
+    )
+    return true
   }
 
   const markShipped = (id: string) => {
@@ -1657,57 +1718,82 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== orderId) return order
+        const now = new Date().toISOString()
+        const isPacked = prepStatus === 'packed'
         const updatedItems = order.items.map((item) => {
           if (item.productId === productId) {
             return {
               ...item,
               prepStatus,
               prepNotes: notes !== undefined ? notes : item.prepNotes,
-              packedAt: prepStatus === 'packed' ? new Date().toISOString() : item.packedAt,
+              packedAt: isPacked ? now : item.packedAt,
+              sellerConfirmed: isPacked ? true : item.sellerConfirmed,
+              sellerConfirmedAt: isPacked ? (item.sellerConfirmedAt || now) : item.sellerConfirmedAt,
             }
           }
           return item
         })
         const allItemsPacked = updatedItems.every((item) => item.prepStatus === 'packed')
+        const allConfirmed = updatedItems.every((item) => item.sellerConfirmed || item.prepStatus === 'packed')
         const anyItemPacking = updatedItems.some((item) => item.prepStatus === 'packing' || item.prepStatus === 'packed')
         const orderPrepStatus = allItemsPacked ? 'packed' : anyItemPacking ? 'packing' : 'unpacked'
 
         return {
           ...order,
           items: updatedItems,
+          status: allConfirmed ? ('Confirmed' as const) : order.status,
           prepStatus: orderPrepStatus,
-          packedAt: allItemsPacked ? new Date().toISOString() : order.packedAt,
+          packedAt: allItemsPacked ? now : order.packedAt,
+          sellerConfirmedAt: allConfirmed ? (order.sellerConfirmedAt || now) : order.sellerConfirmedAt,
         }
       })
     )
     void publishSyncEvent('ORDER_ITEM_PREP_UPDATED', { orderId, productId, prepStatus, notes })
-    void api.put(`/orders/${orderId}/prepare`, { prepStatus, packingNotes: notes }).catch(() => undefined)
+    void api.put(`/orders/${orderId}/prepare`, { productId, prepStatus, packingNotes: notes }).catch(() => undefined)
   }
 
   const packOrder: StoreContextType['packOrder'] = (orderId, packingNotes) => {
+    const now = new Date().toISOString()
     setOrders((current) =>
       current.map((order) => {
         if (order.id !== orderId) return order
-        const packedItems = order.items.map((item) => ({
-          ...item,
-          prepStatus: 'packed' as const,
-          packedAt: new Date().toISOString(),
-        }))
-        const nextStatus = order.status === 'Pending' ? 'Confirmed' : order.status
+        const packedItems = order.items.map((item) => {
+          const isMyItem =
+            item.isMine ||
+            item.sellerUserId === user?.id ||
+            item.sellerId === `seller-${user?.id}` ||
+            item.sellerId === `user-${user?.id}` ||
+            (!user && (item.sellerUserId === 2 || item.sellerId === 'seller-1'))
+          if (isMyItem) {
+            return {
+              ...item,
+              prepStatus: 'packed' as const,
+              sellerConfirmed: true,
+              sellerConfirmedAt: item.sellerConfirmedAt || now,
+              packedAt: now,
+              prepNotes: packingNotes || item.prepNotes,
+            }
+          }
+          return item
+        })
+        const allItemsPacked = packedItems.every((item) => item.prepStatus === 'packed')
+        const allConfirmed = packedItems.every((item) => item.sellerConfirmed || item.prepStatus === 'packed')
+        const nextStatus = allConfirmed && order.status === 'Pending' ? ('Confirmed' as const) : order.status
         return {
           ...order,
           items: packedItems,
-          prepStatus: 'packed' as const,
+          prepStatus: allItemsPacked ? ('packed' as const) : 'packing',
           packingNotes: packingNotes || order.packingNotes,
-          packedAt: new Date().toISOString(),
+          packedAt: allItemsPacked ? now : order.packedAt,
           status: nextStatus,
+          sellerConfirmedAt: allConfirmed ? (order.sellerConfirmedAt || now) : order.sellerConfirmedAt,
         }
       })
     )
     notify({
       userId: 'all',
-      title: `Order ${orderId} packed & ready`,
-      message: `Agricultural goods for ${orderId} have been freshly inspected and packed.`,
+      title: `Order ${orderId} produce packed`,
+      message: `Your agricultural produce for ${orderId} has been inspected and marked packed.`,
       href: `/orders`,
     })
     void publishSyncEvent('ORDER_PACKED', { orderId, packingNotes })
@@ -2074,6 +2160,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       updateOrderItemPrep,
       packOrder,
       confirmOrder,
+      confirmOrderItem,
       markShipped,
       assignDriver,
       myListings,

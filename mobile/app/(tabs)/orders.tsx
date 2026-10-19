@@ -185,6 +185,18 @@ export default function OrdersScreen() {
                         <Text style={styles.itemName}>{item.name}</Text>
                         <Text style={styles.itemSeller}>Seller: {item.seller}</Text>
                         <Text style={styles.itemQtyPrice}>{item.quantity}× {formatPeso(item.price)}</Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: '700',
+                            color: item.prepStatus === 'packed' || item.sellerConfirmed ? '#16a34a' : '#ea580c',
+                            marginTop: 2,
+                          }}
+                        >
+                          {item.prepStatus === 'packed' || item.sellerConfirmed
+                            ? '✓ Confirmed & Packed by Farm'
+                            : '⏳ Awaiting Farm Confirmation'}
+                        </Text>
                       </View>
                     </View>
                   ))}

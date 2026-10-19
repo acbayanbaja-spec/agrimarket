@@ -17,6 +17,10 @@ export type CartItem = {
   pickupLocation: string
   unit: string
   stock: number
+  prepStatus?: 'unpacked' | 'packing' | 'packed'
+  sellerConfirmed?: boolean
+  sellerConfirmedAt?: string
+  isMine?: boolean
 }
 
 export type Order = {
@@ -143,7 +147,9 @@ type StoreContextType = {
   flashDeals: FlashDeal[]
   placeOrder: (payload: { address: string; payment: Order['payment']; usePoints?: boolean; voucherCode?: string; useCoins?: boolean }) => Order | null
   updateOrderStatus: (id: string, status: Order['status']) => void
-  confirmOrder: (id: string) => void
+  confirmOrder: (id: string, productId?: string) => void
+  confirmOrderItem?: (orderId: string, productId: string) => void
+  updateOrderItemPrep?: (orderId: string, productId: string, prepStatus: 'unpacked' | 'packing' | 'packed', notes?: string) => void
   markShipped: (id: string) => void
   submitApplication: (payload: Omit<SellerApplication, 'id' | 'userId' | 'status'>) => void
   reviewApplication: (id: string, status: 'Approved' | 'Rejected') => void
@@ -569,10 +575,69 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders((current) => current.map((order) => (order.id === id ? { ...order, status } : order)))
   }
 
-  const confirmOrder = (id: string) => {
-    void mobileApi.put(`/orders/${id}/status`, { status: 'Confirmed', driverId: DRIVER_ID }).catch(() => undefined)
+  const confirmOrder = (id: string, productId?: string) => {
+    void mobileApi
+      .put(`/orders/${id}/status`, { status: 'Confirmed', productId, driverId: DRIVER_ID })
+      .catch(() => undefined)
+    const now = new Date().toISOString()
     setOrders((current) =>
-      current.map((order) => (order.id === id && order.status === 'Pending' ? { ...order, status: 'Confirmed', driverId: DRIVER_ID } : order))
+      current.map((order) => {
+        if (order.id !== id) return order
+        const updatedItems = order.items.map((it) => {
+          const isMyItem =
+            it.isMine ||
+            it.sellerUserId === user?.id ||
+            it.sellerId === `seller-${user?.id}` ||
+            (user?.email === 'seller@agrimarket.com' && (it.sellerId === 'seller-1' || it.sellerUserId === 2))
+          if (productId ? it.productId === productId : isMyItem) {
+            return {
+              ...it,
+              prepStatus: 'packed' as const,
+              sellerConfirmed: true,
+              sellerConfirmedAt: it.sellerConfirmedAt || now,
+            }
+          }
+          return it
+        })
+        const allConfirmed = updatedItems.every((it) => it.sellerConfirmed || it.prepStatus === 'packed')
+        return {
+          ...order,
+          items: updatedItems,
+          status: allConfirmed ? ('Confirmed' as const) : order.status,
+          driverId: allConfirmed ? DRIVER_ID : order.driverId,
+        }
+      })
+    )
+  }
+
+  const confirmOrderItem = (orderId: string, productId: string) => {
+    confirmOrder(orderId, productId)
+  }
+
+  const updateOrderItemPrep = (orderId: string, productId: string, prepStatus: 'unpacked' | 'packing' | 'packed', notes?: string) => {
+    void mobileApi.put(`/orders/${orderId}/prepare`, { productId, prepStatus, packingNotes: notes }).catch(() => undefined)
+    const now = new Date().toISOString()
+    setOrders((current) =>
+      current.map((order) => {
+        if (order.id !== orderId) return order
+        const updatedItems = order.items.map((it) => {
+          if (it.productId === productId) {
+            return {
+              ...it,
+              prepStatus,
+              sellerConfirmed: prepStatus === 'packed' ? true : it.sellerConfirmed,
+              sellerConfirmedAt: prepStatus === 'packed' ? (it.sellerConfirmedAt || now) : it.sellerConfirmedAt,
+            }
+          }
+          return it
+        })
+        const allConfirmed = updatedItems.every((it) => it.sellerConfirmed || it.prepStatus === 'packed')
+        return {
+          ...order,
+          items: updatedItems,
+          status: allConfirmed ? ('Confirmed' as const) : order.status,
+        }
+      })
     )
   }
 
@@ -747,6 +812,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     placeOrder,
     updateOrderStatus,
     confirmOrder,
+    confirmOrderItem,
+    updateOrderItemPrep,
     markShipped,
     submitApplication,
     reviewApplication,
