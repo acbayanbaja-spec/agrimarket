@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, MessageSquare, Truck } from 'lucide-react'
+import { AlertTriangle, MessageSquare, Truck, Smartphone, Thermometer } from 'lucide-react'
 import { useStore, type Order } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
@@ -10,6 +10,8 @@ import ProductImage from '../components/ProductImage'
 import OrderTimeline from '../components/OrderTimeline'
 import CancelOrderModal from '../components/CancelOrderModal'
 import ContactSellerModal from '../components/ContactSellerModal'
+import LoadSmsDispatchModal from '../components/LoadSmsDispatchModal'
+import ColdChainMonitorModal from '../components/ColdChainMonitorModal'
 
 const OrdersPage = () => {
   const { myOrders } = useStore()
@@ -20,6 +22,8 @@ const OrdersPage = () => {
 
   const [selectedCancelOrder, setSelectedCancelOrder] = useState<Order | null>(null)
   const [selectedContactOrder, setSelectedContactOrder] = useState<Order | null>(null)
+  const [selectedSmsOrder, setSelectedSmsOrder] = useState<Order | null>(null)
+  const [selectedColdChainOrder, setSelectedColdChainOrder] = useState<Order | null>(null)
 
   const filteredOrders = useMemo(() => {
     if (activeTab === 'to_pay' || activeTab === 'Pending') {
@@ -222,6 +226,28 @@ const OrdersPage = () => {
                       <span>Contact Seller</span>
                     </button>
 
+                    {/* Rider SMS / Load SMS Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSmsOrder(order)}
+                      className="btn-outline py-2 px-3 text-xs sm:text-sm font-semibold inline-flex items-center gap-1 text-primary-700 border-primary-200 hover:bg-primary-50"
+                      title="Send SMS or Phone Load SMS to Rider Rico (09363894541)"
+                    >
+                      <Smartphone className="h-4 w-4 text-primary-700" />
+                      <span>Rider SMS</span>
+                    </button>
+
+                    {/* Cold Chain Sensor Telemetry */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedColdChainOrder(order)}
+                      className="btn-outline py-2 px-3 text-xs sm:text-sm font-semibold inline-flex items-center gap-1 text-cyan-700 border-cyan-200 hover:bg-cyan-50"
+                      title="Inspect cold chain transit temperature"
+                    >
+                      <Thermometer className="h-4 w-4 text-cyan-600" />
+                      <span>Cold Chain</span>
+                    </button>
+
                     {/* Receipt Link */}
                     <Link
                       to={`/orders/${order.id}/receipt`}
@@ -262,6 +288,25 @@ const OrdersPage = () => {
         isOpen={Boolean(selectedContactOrder)}
         order={selectedContactOrder}
         onClose={() => setSelectedContactOrder(null)}
+      />
+
+      {/* Cellular Load SMS Dispatch Modal */}
+      <LoadSmsDispatchModal
+        isOpen={Boolean(selectedSmsOrder)}
+        onClose={() => setSelectedSmsOrder(null)}
+        orderId={selectedSmsOrder?.id}
+        recipientRole="delivery"
+        defaultRecipientPhone="09363894541"
+        recipientName="Rider Rico"
+      />
+
+      {/* Cold Chain Monitor Modal */}
+      <ColdChainMonitorModal
+        isOpen={Boolean(selectedColdChainOrder)}
+        onClose={() => setSelectedColdChainOrder(null)}
+        orderId={selectedColdChainOrder?.id}
+        productName={selectedColdChainOrder?.items?.[0]?.name || 'Produce'}
+        sellerLocation={selectedColdChainOrder?.items?.[0]?.pickupLocation || 'Polomolok, South Cotabato'}
       />
     </div>
   )

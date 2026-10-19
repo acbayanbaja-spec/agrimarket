@@ -469,12 +469,15 @@ function readJson<T>(key: string, fallback: T): T {
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, addRole, grantRole } = useAuth()
   const [centralProducts, setCentralProducts] = useState<Product[]>(() => {
+    const deletedIds = new Set(readJson<string[]>('agrimarket.deleted_products', []))
     const stored = readJson<Product[] | null>('agrimarket.products', null)
     if (stored && stored.length > 0) {
       const storedIds = new Set(stored.map((p) => p.id))
-      return [...stored, ...catalogProducts.filter((p) => !storedIds.has(p.id))]
+      return [...stored, ...catalogProducts.filter((p) => !storedIds.has(p.id))].filter(
+        (p) => !deletedIds.has(p.id) && !p.isDeleted
+      )
     }
-    return catalogProducts
+    return catalogProducts.filter((p) => !deletedIds.has(p.id))
   })
   const [stockOverrides, setStockOverrides] = useState<Record<string, number>>({})
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({})
@@ -526,7 +529,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email: 'driver@agrimarket.com',
       first_name: 'Rico',
       last_name: 'Driver',
-      phone: '+639189998877',
+      phone: '09363894541',
       roles: ['delivery'],
       is_verified: true,
       is_active: true,
@@ -542,38 +545,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const remoteProducts = res.data?.data?.products || (Array.isArray(res.data) ? res.data : res.data?.products)
       if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
         setCentralProducts((current) => {
+          const deletedIds = new Set(readJson<string[]>('agrimarket.deleted_products', []))
           const currentMap = new Map<string, Product>(current.map((p) => [p.id, p]))
-          const mergedRemote = remoteProducts.map((remote) => {
-            const existing = currentMap.get(remote.id)
-            if (!existing) return remote
+          const mergedRemote = remoteProducts
+            .filter((p) => !deletedIds.has(p.id) && !p.isDeleted)
+            .map((remote) => {
+              const existing = currentMap.get(remote.id)
+              if (!existing) return remote
 
-            // Check if existing product has a custom photo (data URL, /uploads/, or non-default)
-            const hasCustomLocalImage =
-              existing.image &&
-              (existing.image.startsWith('data:') ||
-                existing.image.startsWith('/uploads/') ||
-                existing.image.startsWith('blob:'))
-            const remoteHasDefaultOrEmpty =
-              !remote.image ||
-              remote.image === '/images/farm.jpg' ||
-              remote.image.includes('images.unsplash.com')
+              // If remote has an image that is not empty, use remote image so cross-device edits sync
+              const image = remote.image || existing.image || '/images/farm.jpg'
+              const photos = remote.photos && remote.photos.length ? remote.photos : [image]
 
-            const image = hasCustomLocalImage && remoteHasDefaultOrEmpty ? existing.image : (remote.image || existing.image)
-            const photos =
-              hasCustomLocalImage && remoteHasDefaultOrEmpty && existing.photos?.length
-                ? existing.photos
-                : remote.photos && remote.photos.length
-                ? remote.photos
-                : existing.photos
-
-            return {
-              ...remote,
-              image,
-              photos,
-            }
-          })
+              return {
+                ...existing,
+                ...remote,
+                image,
+                photos,
+              }
+            })
           const remoteIds = new Set(remoteProducts.map((p) => p.id))
-          const localOnly = current.filter((p) => !remoteIds.has(p.id))
+          const localOnly = current.filter((p) => !remoteIds.has(p.id) && !deletedIds.has(p.id) && !p.isDeleted)
           const nextCatalog = [...localOnly, ...mergedRemote]
           try {
             localStorage.setItem('agrimarket.products', JSON.stringify(nextCatalog))
@@ -674,7 +666,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         fromName: 'Rico Driver',
         fromUserId: DRIVER_ID,
         toUserId: 3,
-        phone: '+639189998877',
+        phone: '09363894541',
         body: 'Good day po! Eggs are out for delivery, ETA 4:20 PM. Please keep GCash or cash ready.',
         createdAt: new Date().toISOString(),
         channel: 'sms',
@@ -734,21 +726,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // 2. When a product is updated, immediately update across all devices
     socket.on('product_updated', (updatedProd: Product) => {
-      setCentralProducts((current) =>
-        current.map((p) => (p.id === updatedProd.id ? { ...p, ...updatedProd } : p))
-      )
+      setCentralProducts((current) => {
+        const updated = current.map((p) => (p.id === updatedProd.id ? { ...p, ...updatedProd } : p))
+        try {
+          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+        } catch {}
+        return updated
+      })
     })
 
     // 3. When a product is unlisted by Admin, immediately update visibility across all devices
     socket.on('product_unlisted', ({ id, isUnlisted }: { id: string; isUnlisted: boolean }) => {
-      setCentralProducts((current) =>
-        current.map((p) => (p.id === id ? { ...p, isUnlisted, isActive: !isUnlisted } : p))
-      )
+      setCentralProducts((current) => {
+        const updated = current.map((p) => (p.id === id ? { ...p, isUnlisted, isActive: !isUnlisted } : p))
+        try {
+          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+        } catch {}
+        return updated
+      })
     })
 
-    // 4. When a product is deleted by Admin, immediately purge from all screens worldwide!
+    // 4. When a product is deleted, immediately purge from all screens worldwide!
     socket.on('product_deleted', ({ id }: { id: string }) => {
-      setCentralProducts((current) => current.filter((p) => p.id !== id))
+      const deletedList = readJson<string[]>('agrimarket.deleted_products', [])
+      if (!deletedList.includes(id)) {
+        try {
+          localStorage.setItem('agrimarket.deleted_products', JSON.stringify([...deletedList, id]))
+        } catch {}
+      }
+      setCentralProducts((current) => {
+        const updated = current.filter((p) => p.id !== id)
+        try {
+          localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+        } catch {}
+        return updated
+      })
     })
 
     // 5. Catalog change broad sync
@@ -1253,8 +1265,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const removeProduct = (id: string) => {
-    setCentralProducts((current) => current.filter((product) => product.id !== id))
-    void api.delete(`/products/${id}`).catch(() => undefined)
+    const deletedList = readJson<string[]>('agrimarket.deleted_products', [])
+    if (!deletedList.includes(id)) {
+      try {
+        localStorage.setItem('agrimarket.deleted_products', JSON.stringify([...deletedList, id]))
+      } catch {}
+    }
+    setCentralProducts((current) => {
+      const updated = current.filter((product) => product.id !== id)
+      try {
+        localStorage.setItem('agrimarket.products', JSON.stringify(updated))
+      } catch {}
+      return updated
+    })
+    void api.delete(`/products/${id}`).catch((err) => console.warn('Product delete sync warning:', err))
   }
 
   const unlistProduct = (id: string, unlisted: boolean = true) => {
@@ -1897,46 +1921,51 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const myListings = useMemo(() => {
     if (!user) return []
-    const legacyAliases: Record<number, string[]> = {
-      2: ['seller-1', 'seller-2'],
-      13: ['seller-2', 'seller-3', 'seller-13'],
-      15: ['seller-3', 'seller-5', 'seller-15'],
-      12: ['seller-4', 'seller-2', 'seller-12'],
-      17: ['seller-5', 'seller-7', 'seller-17'],
-      16: ['seller-6', 'seller-16'],
-      18: ['seller-7', 'seller-8', 'seller-9', 'seller-18'],
-      14: ['seller-4', 'seller-6', 'seller-8', 'seller-14'],
+
+    // Strict 1-to-1 non-overlapping legacy demo seller mapping
+    const legacySingleMap: Record<number, string> = {
+      12: 'seller-12',
+      13: 'seller-13',
+      14: 'seller-14',
+      15: 'seller-15',
+      16: 'seller-16',
+      17: 'seller-17',
+      18: 'seller-18',
     }
-    const aliases = legacyAliases[user.id] || []
+
     return allProducts.filter((product) => {
+      // 1. Direct seller ownership via user id
       if (product.sellerUserId === user.id) return true
       if (product.sellerId === `user-${user.id}` || product.sellerId === `seller-${user.id}`) return true
-      if (aliases.includes(product.sellerId)) return true
-      if ((user.email === 'seller@agrimarket.com' || user.id === 2) && (product.sellerId === 'seller-1' || product.sellerUserId === 2)) return true
+
+      // 2. Primary demo seller account (Maria Santos - user ID 2) owns seller-1 and seller-2
+      if (
+        (user.id === 2 || user.email === 'seller@agrimarket.com') &&
+        (product.sellerUserId === 2 || product.sellerId === 'seller-2' || product.sellerId === 'seller-1')
+      ) {
+        return true
+      }
+
+      // 3. Isolated legacy demo seller ID check
+      if (legacySingleMap[user.id] && product.sellerId === legacySingleMap[user.id]) {
+        return true
+      }
+
       return false
     })
   }, [allProducts, user])
 
   const sellerOrders = useMemo(() => {
     if (!user) return []
-    const legacyAliases: Record<number, string[]> = {
-      2: ['seller-1', 'seller-2'],
-      13: ['seller-2', 'seller-3', 'seller-13'],
-      15: ['seller-3', 'seller-5', 'seller-15'],
-      12: ['seller-4', 'seller-2', 'seller-12'],
-      17: ['seller-5', 'seller-7', 'seller-17'],
-      16: ['seller-6', 'seller-16'],
-      18: ['seller-7', 'seller-8', 'seller-9', 'seller-18'],
-      14: ['seller-4', 'seller-6', 'seller-8', 'seller-14'],
-    }
-    const aliases = legacyAliases[user.id] || []
     const listingIds = new Set(myListings.map((product) => product.id))
     return orders.filter((order) =>
-      order.items.some((item) =>
-        listingIds.has(item.productId) ||
-        item.sellerUserId === user.id ||
-        (item.sellerId && aliases.includes(item.sellerId)) ||
-        ((user.email === 'seller@agrimarket.com' || user.id === 2) && (item.sellerUserId === 2 || item.sellerId === 'seller-1'))
+      order.items.some(
+        (item) =>
+          listingIds.has(item.productId) ||
+          item.sellerUserId === user.id ||
+          item.sellerId === `seller-${user.id}` ||
+          ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
+            (item.sellerUserId === 2 || item.sellerId === 'seller-2' || item.sellerId === 'seller-1'))
       )
     )
   }, [orders, myListings, user])

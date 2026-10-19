@@ -5,6 +5,8 @@ import {
   CloudSun,
   Stethoscope,
   Sparkles,
+  Users,
+  Sprout,
 } from 'lucide-react'
 import { categories, type Product } from '../data/catalog'
 import { soccsksargenPlaces } from '../data/locations'
@@ -17,6 +19,8 @@ import ProductImage from '../components/ProductImage'
 import WeatherAdvisoryWidget from '../components/WeatherAdvisoryWidget'
 import SeasonalHarvestCalendarModal from '../components/SeasonalHarvestCalendarModal'
 import CropDoctorModal from '../components/CropDoctorModal'
+import BayanihanPoolModal from '../components/BayanihanPoolModal'
+import SoilYieldCalculatorModal from '../components/SoilYieldCalculatorModal'
 import api from '../services/api'
 
 const stockFilters = [
@@ -34,6 +38,8 @@ const MarketplacePage = () => {
   const [showCalendarModal, setShowCalendarModal] = useState(false)
   const [showCropDoctorModal, setShowCropDoctorModal] = useState(false)
   const [showWeatherWidget, setShowWeatherWidget] = useState(false)
+  const [showBayanihanModal, setShowBayanihanModal] = useState(false)
+  const [showYieldModal, setShowYieldModal] = useState(false)
   const sort = params.get('sort') || 'featured'
   const budgetParam = params.get('budget')
   const budget = budgetParam ? Number(budgetParam) : undefined
@@ -187,6 +193,24 @@ const MarketplacePage = () => {
         >
           <Stethoscope className="h-4 w-4 text-teal-700" />
           <span>Crop Doctor (Pest Advisory)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowBayanihanModal(true)}
+          className="px-3.5 py-2 rounded-2xl text-xs font-bold bg-white text-amber-800 border border-amber-200 hover:bg-amber-50 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <Users className="h-4 w-4 text-amber-700" />
+          <span>Bayanihan Group Pool</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowYieldModal(true)}
+          className="px-3.5 py-2 rounded-2xl text-xs font-bold bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50 transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+        >
+          <Sprout className="h-4 w-4 text-emerald-700" />
+          <span>Soil & Yield AI</span>
         </button>
       </div>
 
@@ -354,6 +378,14 @@ const MarketplacePage = () => {
       <CropDoctorModal
         isOpen={showCropDoctorModal}
         onClose={() => setShowCropDoctorModal(false)}
+      />
+      <BayanihanPoolModal
+        isOpen={showBayanihanModal}
+        onClose={() => setShowBayanihanModal(false)}
+      />
+      <SoilYieldCalculatorModal
+        isOpen={showYieldModal}
+        onClose={() => setShowYieldModal(false)}
       />
     </div>
   )

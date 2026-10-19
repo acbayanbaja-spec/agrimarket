@@ -3,6 +3,7 @@ import { authenticate, type AuthRequest } from '../middleware/auth';
 import { db, MessageEntity } from '../database/store';
 import { successResponse, errorResponse } from '../utils/response';
 import { io } from '../index';
+import { sendSmsMessage, detectPhilippineCarrier } from '../services/smsService';
 
 const router = Router();
 
@@ -56,7 +57,7 @@ router.get('/conversations/:id', authenticate, (req: AuthRequest, res: Response)
 // @route   POST /api/messages/sms
 // @desc    Send SMS or in-app message
 // @access  Private
-router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
+router.post('/sms', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
     const body = req.body;
@@ -161,6 +162,20 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
       status: body.phone ? 'sent' : 'delivered',
     };
 
+    let smsDispatchInfo: any = null;
+    if (body.phone) {
+      try {
+        smsDispatchInfo = await sendSmsMessage({
+          to: String(body.phone),
+          message: message.body,
+          orderId: message.orderId,
+          senderName: 'AgriMarket',
+        });
+      } catch (err: any) {
+        console.warn('SMS dispatch error:', err.message);
+      }
+    }
+
     const created = db.addMessage(message);
 
     // Broadcast over WebSocket strictly to authorized rooms
@@ -176,8 +191,9 @@ router.post('/sms', authenticate, (req: AuthRequest, res: Response) => {
       successResponse(
         {
           ...created,
-          gateway: 'agrimarket-telecom-relay',
-          telcoCarrier: 'Globe/Smart/DITO Verified',
+          gateway: smsDispatchInfo?.gateway || 'agrimarket-telecom-relay',
+          telcoCarrier: smsDispatchInfo?.telcoCarrier || (body.phone ? detectPhilippineCarrier(body.phone) : 'In-App Channel'),
+          smsDispatchInfo,
         },
         'Message sent successfully'
       )

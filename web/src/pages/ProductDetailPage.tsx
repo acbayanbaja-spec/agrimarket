@@ -18,6 +18,9 @@ import {
   Leaf,
   Bell,
   Building2,
+  Calendar,
+  Users,
+  Thermometer,
 } from 'lucide-react'
 import { useStore } from '../context/StoreContext'
 import { useCart } from '../context/CartContext'
@@ -37,6 +40,9 @@ import GapCertificationModal from '../components/GapCertificationModal'
 import FoodMilesCalculatorModal from '../components/FoodMilesCalculatorModal'
 import BulkQuotationModal from '../components/BulkQuotationModal'
 import PriceAlertModal from '../components/PriceAlertModal'
+import ForwardHarvestModal from '../components/ForwardHarvestModal'
+import BayanihanPoolModal from '../components/BayanihanPoolModal'
+import ColdChainMonitorModal from '../components/ColdChainMonitorModal'
 import api from '../services/api'
 import type { Product } from '../data/catalog'
 
@@ -61,6 +67,9 @@ const ProductDetailPage = () => {
   const [showFoodMilesModal, setShowFoodMilesModal] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [showPriceAlertModal, setShowPriceAlertModal] = useState(false)
+  const [showForwardHarvestModal, setShowForwardHarvestModal] = useState(false)
+  const [showBayanihanModal, setShowBayanihanModal] = useState(false)
+  const [showColdChainModal, setShowColdChainModal] = useState(false)
 
   useLayoutEffect(() => {
     scrollToTopNow()
@@ -444,6 +453,39 @@ const ProductDetailPage = () => {
                 <span className="hidden sm:inline">Wholesale Quote</span>
               </button>
             )}
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => setShowForwardHarvestModal(true)}
+                className="btn-outline py-2.5 px-3.5 inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 border-amber-300 hover:bg-amber-50"
+                title="Book a pre-harvest forward contract at locked farm-gate rate"
+              >
+                <Calendar className="h-4 w-4 text-amber-700" />
+                <span className="hidden sm:inline">Forward Harvest</span>
+              </button>
+            )}
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => setShowBayanihanModal(true)}
+                className="btn-outline py-2.5 px-3.5 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 border-emerald-300 hover:bg-emerald-50"
+                title="Join a Bayanihan community group pool for wholesale price"
+              >
+                <Users className="h-4 w-4 text-emerald-700" />
+                <span className="hidden sm:inline">Group Pool</span>
+              </button>
+            )}
+            {!hasRole('delivery') && (
+              <button
+                type="button"
+                onClick={() => setShowColdChainModal(true)}
+                className="btn-outline py-2.5 px-3 inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800 border-cyan-300 hover:bg-cyan-50"
+                title="Inspect real-time IoT cold chain telemetry"
+              >
+                <Thermometer className="h-4 w-4 text-cyan-700" />
+                <span className="hidden sm:inline">Cold Chain</span>
+              </button>
+            )}
             {/* Offer a trade is hidden from delivery roles */}
             {product.tradeable && !hasRole('delivery') && (
               <Link to={`/trades?want=${product.id}`} className="btn-outline">
@@ -655,6 +697,29 @@ const ProductDetailPage = () => {
           price: product.price,
           unit: product.unit,
         }}
+      />
+      <ForwardHarvestModal
+        isOpen={showForwardHarvestModal}
+        onClose={() => setShowForwardHarvestModal(false)}
+        productName={product.name}
+        sellerName={product.seller}
+        sellerLocation={product.location}
+        currentPrice={product.price}
+        unit={product.unit}
+      />
+      <BayanihanPoolModal
+        isOpen={showBayanihanModal}
+        onClose={() => setShowBayanihanModal(false)}
+        productName={product.name}
+        retailPrice={product.price}
+        wholesalePrice={Math.round(product.price * 0.72)}
+        unit={product.unit}
+      />
+      <ColdChainMonitorModal
+        isOpen={showColdChainModal}
+        onClose={() => setShowColdChainModal(false)}
+        productName={product.name}
+        sellerLocation={product.location}
       />
     </div>
   )

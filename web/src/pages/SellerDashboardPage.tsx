@@ -38,6 +38,9 @@ import {
   CloudSun,
   Calendar,
   Stethoscope,
+  Smartphone,
+  Thermometer,
+  Sprout,
 } from 'lucide-react'
 import { fileToDataUrl, formatPeso, uploadProductImage } from '../lib/utils'
 import Seo from '../components/Seo'
@@ -46,6 +49,10 @@ import OrderTimeline from '../components/OrderTimeline'
 import WeatherAdvisoryWidget from '../components/WeatherAdvisoryWidget'
 import SeasonalHarvestCalendarModal from '../components/SeasonalHarvestCalendarModal'
 import CropDoctorModal from '../components/CropDoctorModal'
+import LoadSmsDispatchModal from '../components/LoadSmsDispatchModal'
+import ColdChainMonitorModal from '../components/ColdChainMonitorModal'
+import SoilYieldCalculatorModal from '../components/SoilYieldCalculatorModal'
+import ForwardHarvestModal from '../components/ForwardHarvestModal'
 import api from '../services/api'
 
 type SellerTab = 'products' | 'orders' | 'messages' | 'analytics' | 'feed'
@@ -123,6 +130,22 @@ const SellerDashboardPage = () => {
   const [showSellerWeather, setShowSellerWeather] = useState(false)
   const [showSellerCalendar, setShowSellerCalendar] = useState(false)
   const [showSellerCropDoctor, setShowSellerCropDoctor] = useState(false)
+  const [showSellerSoilModal, setShowSellerSoilModal] = useState(false)
+  const [showSellerColdChainModal, setShowSellerColdChainModal] = useState(false)
+  const [showSellerForwardHarvestModal, setShowSellerForwardHarvestModal] = useState(false)
+  const [smsModalData, setSmsModalData] = useState<{
+    isOpen: boolean
+    orderId: string
+    recipientRole: 'buyer' | 'delivery'
+    recipientPhone: string
+    recipientName: string
+  }>({
+    isOpen: false,
+    orderId: '',
+    recipientRole: 'delivery',
+    recipientPhone: '09363894541',
+    recipientName: '',
+  })
 
   // Edit Product Modal State
   const [editModal, setEditModal] = useState<{
@@ -549,6 +572,33 @@ const SellerDashboardPage = () => {
           >
             <Stethoscope className="h-4 w-4 text-teal-700" />
             <span>Crop Doctor</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSellerSoilModal(true)}
+            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+          >
+            <Sprout className="h-4 w-4 text-emerald-700" />
+            <span>Soil & Yield AI</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSellerColdChainModal(true)}
+            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+          >
+            <Thermometer className="h-4 w-4 text-cyan-700" />
+            <span>Cold-Chain</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSellerForwardHarvestModal(true)}
+            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+          >
+            <FileText className="h-4 w-4 text-amber-700" />
+            <span>Forward Harvest</span>
           </button>
 
           <button
@@ -1578,6 +1628,34 @@ const SellerDashboardPage = () => {
                               <span>Rider Collected · Mark Shipped</span>
                             </button>
                           )}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSmsModalData({
+                                isOpen: true,
+                                orderId: order.id,
+                                recipientRole: 'delivery',
+                                recipientPhone: '09363894541',
+                                recipientName: order.buyerName || 'Customer',
+                              })
+                            }
+                            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 text-primary-700 border-primary-200 hover:bg-primary-50"
+                            title="Dispatch SMS / Load SMS to Rider Rico (09363894541) or Buyer"
+                          >
+                            <Smartphone className="h-3.5 w-3.5 text-primary-700" />
+                            <span>Load SMS</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setShowSellerColdChainModal(true)}
+                            className="btn-outline py-2 px-3 text-xs font-bold inline-flex items-center gap-1.5 text-cyan-700 border-cyan-200 hover:bg-cyan-50"
+                            title="View Cold-Chain Temperature Sensors"
+                          >
+                            <Thermometer className="h-3.5 w-3.5 text-cyan-600" />
+                            <span>Cold Chain</span>
+                          </button>
                         </div>
                       </div>
 
@@ -2257,6 +2335,26 @@ const SellerDashboardPage = () => {
       <CropDoctorModal
         isOpen={showSellerCropDoctor}
         onClose={() => setShowSellerCropDoctor(false)}
+      />
+      <SoilYieldCalculatorModal
+        isOpen={showSellerSoilModal}
+        onClose={() => setShowSellerSoilModal(false)}
+      />
+      <ColdChainMonitorModal
+        isOpen={showSellerColdChainModal}
+        onClose={() => setShowSellerColdChainModal(false)}
+      />
+      <ForwardHarvestModal
+        isOpen={showSellerForwardHarvestModal}
+        onClose={() => setShowSellerForwardHarvestModal(false)}
+      />
+      <LoadSmsDispatchModal
+        isOpen={smsModalData.isOpen}
+        onClose={() => setSmsModalData((prev) => ({ ...prev, isOpen: false }))}
+        orderId={smsModalData.orderId}
+        recipientRole={smsModalData.recipientRole}
+        defaultRecipientPhone={smsModalData.recipientPhone}
+        recipientName={smsModalData.recipientName}
       />
     </div>
   )

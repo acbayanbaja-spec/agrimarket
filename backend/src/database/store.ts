@@ -364,7 +364,7 @@ export const initialUsers: UserEntity[] = disableDemoAccounts
     password_hash: driverPasswordHash,
     first_name: 'Rico',
     last_name: 'Driver',
-    phone: '+639175551111',
+    phone: '09363894541',
     roles: ['delivery'],
     is_verified: true,
     is_active: true,

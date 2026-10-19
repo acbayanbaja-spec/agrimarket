@@ -19,27 +19,38 @@ function canManageProduct(user: { id: number; roles: string[]; email?: string } 
   if (user.roles.includes('admin')) return true;
   if (!user.roles.includes('seller')) return false;
 
-  const legacyAliases: Record<number, string[]> = {
-    2: ['seller-1', 'seller-2'],
-    13: ['seller-2', 'seller-3', 'seller-13'],
-    15: ['seller-3', 'seller-5', 'seller-15'],
-    12: ['seller-4', 'seller-2', 'seller-12'],
-    17: ['seller-5', 'seller-7', 'seller-17'],
-    16: ['seller-6', 'seller-16'],
-    18: ['seller-7', 'seller-8', 'seller-9', 'seller-18'],
-    14: ['seller-4', 'seller-6', 'seller-8', 'seller-14'],
-  };
-  const aliases = legacyAliases[user.id] || [];
-
-  // Check seller ownership
-  return (
+  // Direct seller ownership
+  if (
     product.sellerUserId === user.id ||
     product.sellerId === `seller-${user.id}` ||
-    product.sellerId === `user-${user.id}` ||
-    (Boolean(product.sellerId) && aliases.includes(product.sellerId)) ||
-    ((user.email === 'seller@agrimarket.com' || user.id === 2) &&
-      (product.sellerId === 'seller-1' || product.sellerId === 'seller-2' || product.sellerUserId === 2))
-  );
+    product.sellerId === `user-${user.id}`
+  ) {
+    return true;
+  }
+
+  // Primary demo seller account (Maria Santos - user ID 2) owns seller-1 and seller-2
+  if (
+    (user.id === 2 || user.email === 'seller@agrimarket.com') &&
+    (product.sellerId === 'seller-1' || product.sellerId === 'seller-2' || product.sellerUserId === 2)
+  ) {
+    return true;
+  }
+
+  // Strict 1-to-1 non-overlapping legacy demo seller mapping
+  const legacySingleMap: Record<number, string> = {
+    12: 'seller-12',
+    13: 'seller-13',
+    14: 'seller-14',
+    15: 'seller-15',
+    16: 'seller-16',
+    17: 'seller-17',
+    18: 'seller-18',
+  };
+  if (legacySingleMap[user.id] && product.sellerId === legacySingleMap[user.id]) {
+    return true;
+  }
+
+  return false;
 }
 
 // @route   GET /api/products
