@@ -1699,7 +1699,7 @@ class DatabaseStore {
          LEFT JOIN roles r ON ur.role_id = r.id
          GROUP BY u.id`
       );
-      this.data.users = (userRows || []).map((row: any) => ({
+      const remoteUsers: UserEntity[] = (userRows || []).map((row: any) => ({
         id: Number(row.id),
         email: row.email,
         password_hash: row.password_hash,
@@ -1713,6 +1713,36 @@ class DatabaseStore {
         suspension_reason: row.suspension_reason || undefined,
         created_at: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
       }));
+
+      // Preserve any local registered users that are not in PostgreSQL, backfilling them
+      const remoteEmailSet = new Set(remoteUsers.map((u) => u.email.toLowerCase().trim()));
+      const unmigratedLocalUsers = (this.data.users || []).filter((u) => !remoteEmailSet.has(u.email.toLowerCase().trim()));
+
+      for (const localU of unmigratedLocalUsers) {
+        try {
+          const [ins]: any = await pool.query(
+            'INSERT INTO users (email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO UPDATE SET password_hash=EXCLUDED.password_hash RETURNING id',
+            [localU.email, localU.password_hash, localU.first_name, localU.last_name, localU.phone || null, localU.is_verified ? 1 : 0, localU.is_active ? 1 : 0]
+          );
+          const backfillId = ins[0]?.id || localU.id;
+          localU.id = backfillId;
+          for (const roleName of localU.roles || ['buyer']) {
+            await pool.query(
+              'INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ? ON CONFLICT (user_id, role_id) DO NOTHING',
+              [backfillId, roleName]
+            );
+          }
+          remoteUsers.push(localU);
+        } catch (err: any) {
+          console.warn('Notice: could not sync unmigrated local user into PostgreSQL:', localU.email, err.message);
+          remoteUsers.push(localU);
+        }
+      }
+
+      this.data.users = remoteUsers;
+      this.saveData();
+
+      await pool.query("SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users))").catch(() => {});
 
       try {
         const [categoryRows]: any = await pool.query(
@@ -2010,21 +2040,34 @@ class DatabaseStore {
   }
 
   public addUser(user: Omit<UserEntity, 'id'> & { id?: number }) {
-    const newId = user.id || (this.data.users.length ? Math.max(...this.data.users.map((u) => u.id)) + 1 : 1);
-    const newUser: UserEntity = { ...user, roles: normalizeRoles(user.roles), id: newId };
-    this.data.users.push(newUser);
+    const cleanEmail = user.email.toLowerCase().trim();
+    const existingIdx = this.data.users.findIndex(
+      (u) => (user.id && u.id === user.id) || u.email.toLowerCase().trim() === cleanEmail
+    );
+    const newId = user.id || (existingIdx !== -1 ? this.data.users[existingIdx].id : (this.data.users.length ? Math.max(...this.data.users.map((u) => u.id)) + 1 : 1));
+    const newUser: UserEntity = { ...user, email: cleanEmail, roles: normalizeRoles(user.roles), id: newId };
+    
+    if (existingIdx !== -1) {
+      this.data.users[existingIdx] = newUser;
+    } else {
+      this.data.users.push(newUser);
+    }
     this.saveData();
 
-    this.executeMySql(
-      'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email)',
-      [newUser.id, newUser.email, newUser.password_hash, newUser.first_name, newUser.last_name, newUser.phone || null, newUser.is_verified ? 1 : 0, newUser.is_active ? 1 : 0]
-    );
-
-    for (const r of newUser.roles) {
+    if (this.isMySqlConnected) {
       this.executeMySql(
-        'INSERT IGNORE INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ?',
-        [newUser.id, r]
+        'INSERT INTO users (id, email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE email=VALUES(email), password_hash=VALUES(password_hash)',
+        [newUser.id, newUser.email, newUser.password_hash, newUser.first_name, newUser.last_name, newUser.phone || null, newUser.is_verified ? 1 : 0, newUser.is_active ? 1 : 0]
       ).catch(() => {});
+
+      for (const r of newUser.roles) {
+        this.executeMySql(
+          'INSERT IGNORE INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ?',
+          [newUser.id, r]
+        ).catch(() => {});
+      }
+
+      this.executeMySql("SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users))").catch(() => {});
     }
 
     return newUser;

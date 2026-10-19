@@ -85,7 +85,7 @@ async function loadMysqlUserByEmail(email: string) {
          FROM users u
          LEFT JOIN user_roles ur ON u.id = ur.user_id
          LEFT JOIN roles r ON ur.role_id = r.id
-         WHERE u.email = ?
+         WHERE LOWER(u.email) = LOWER(?)
          GROUP BY u.id`,
         [cand]
       );
@@ -103,11 +103,12 @@ export const authService = {
   async register(data: RegisterData) {
     await db.waitUntilReady();
     const email = normalizeEmail(data.email);
+    const phone = data.phone?.trim() ? data.phone.trim() : null;
 
     if (db.getIsMySqlConnected()) {
       const connection = await pool.getConnection();
       try {
-        const [existingUsers] = await connection.query('SELECT id FROM users WHERE email = ?', [email]);
+        const [existingUsers] = await connection.query('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [email]);
         if ((existingUsers as any[]).length > 0) {
           throw existsError();
         }
@@ -115,7 +116,7 @@ export const authService = {
         const passwordHash = await bcrypt.hash(data.password, 10);
         const [result] = await connection.query(
           'INSERT INTO users (email, password_hash, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?) RETURNING id',
-          [email, passwordHash, data.firstName, data.lastName, data.phone || null]
+          [email, passwordHash, data.firstName.trim(), data.lastName.trim(), phone]
         );
 
         const userId = (result as any).insertId || (result as any)[0]?.id;
@@ -145,12 +146,15 @@ export const authService = {
           password_hash: passwordHash,
           first_name: user.first_name,
           last_name: user.last_name,
-          phone: user.phone,
+          phone: user.phone || undefined,
           roles: user.roles,
           is_verified: true,
           is_active: true,
           created_at: new Date().toISOString(),
         });
+
+        // Keep Postgres sequence in sync
+        await connection.query("SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users))").catch(() => {});
 
         return { user, token: signUserToken(user) };
       } finally {
@@ -171,9 +175,9 @@ export const authService = {
     const newUser = db.addUser({
       email,
       password_hash: passwordHash,
-      first_name: data.firstName,
-      last_name: data.lastName,
-      phone: data.phone,
+      first_name: data.firstName.trim(),
+      last_name: data.lastName.trim(),
+      phone: phone || undefined,
       roles: ['buyer'],
       is_verified: true,
       is_active: true,
@@ -192,22 +196,21 @@ export const authService = {
     if (db.getIsMySqlConnected()) {
       try {
         const user = await loadMysqlUserByEmail(email);
-        if (!user) {
-          throw credentialsError();
-        }
-        if (!user.is_active) {
-          throw deactivatedError();
-        }
+        if (user) {
+          if (!user.is_active) {
+            throw deactivatedError();
+          }
 
-        const isValid = await bcrypt.compare(data.password, user.password_hash);
-        if (!isValid) {
-          throw credentialsError();
-        }
+          const isValid = await bcrypt.compare(data.password, user.password_hash);
+          if (!isValid) {
+            throw credentialsError();
+          }
 
-        user.roles = normalizeRoles(user.roles);
-        const token = signUserToken(user);
-        delete user.password_hash;
-        return { user, token };
+          user.roles = normalizeRoles(user.roles);
+          const token = signUserToken(user);
+          delete user.password_hash;
+          return { user, token };
+        }
       } catch (mysqlErr: any) {
         if (mysqlErr.statusCode) {
           throw mysqlErr;
@@ -221,23 +224,50 @@ export const authService = {
       throw databaseUnavailableError();
     }
 
-    const user = db.getUserByEmail(email);
-    if (!user) {
+    // Check embedded store / JSON database if user was not found in PostgreSQL (or fallback mode)
+    const localUser = db.getUserByEmail(email);
+    if (!localUser) {
       throw credentialsError();
     }
 
-    if (!user.is_active) {
+    if (!localUser.is_active) {
       throw deactivatedError();
     }
 
-    const isValid = await bcrypt.compare(data.password, user.password_hash);
+    const isValid = await bcrypt.compare(data.password, localUser.password_hash);
     if (!isValid) {
       throw credentialsError();
     }
 
-    user.roles = normalizeRoles(user.roles);
-    const token = signUserToken(user);
-    const { password_hash, ...safeUser } = user;
+    localUser.roles = normalizeRoles(localUser.roles);
+
+    // If PostgreSQL is connected, backfill this valid local user to PostgreSQL so subsequent logins find it directly
+    if (db.getIsMySqlConnected()) {
+      try {
+        const conn = await pool.getConnection();
+        try {
+          const [ins]: any = await conn.query(
+            'INSERT INTO users (email, password_hash, first_name, last_name, phone, is_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO UPDATE SET password_hash=EXCLUDED.password_hash RETURNING id',
+            [localUser.email, localUser.password_hash, localUser.first_name, localUser.last_name, localUser.phone || null, localUser.is_verified ? 1 : 0, localUser.is_active ? 1 : 0]
+          );
+          const backfillId = ins[0]?.id || localUser.id;
+          for (const roleName of localUser.roles || ['buyer']) {
+            await conn.query(
+              'INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ? ON CONFLICT (user_id, role_id) DO NOTHING',
+              [backfillId, roleName]
+            );
+          }
+          await conn.query("SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users))").catch(() => {});
+        } finally {
+          conn.release();
+        }
+      } catch (backfillErr: any) {
+        console.warn('Notice: could not backfill local user to PostgreSQL:', backfillErr.message);
+      }
+    }
+
+    const token = signUserToken(localUser);
+    const { password_hash, ...safeUser } = localUser;
     return { user: safeUser, token };
   },
 

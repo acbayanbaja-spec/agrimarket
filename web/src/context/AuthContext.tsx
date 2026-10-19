@@ -125,9 +125,9 @@ function withApprovedRoles(next: User): User {
 function findLocalAccount(email: string, password: string) {
   const normalized = email.trim().toLowerCase()
   const targetEmail = sellerEmailAliases[normalized] || normalized
-  const all = [...demoAccounts, ...readLocalUsers()]
+  const all = [...readLocalUsers().reverse(), ...demoAccounts]
   return all.find((account) => {
-    const accEmail = account.email.toLowerCase()
+    const accEmail = account.email.trim().toLowerCase()
     return (accEmail === targetEmail || accEmail === normalized) && account.password === password
   })
 }
@@ -155,21 +155,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const login = async (email: string, password: string) => {
+    const cleanEmail = email.trim()
     try {
-      const { data } = await api.post('/auth/login', { email: email.trim(), password })
+      const { data } = await api.post('/auth/login', { email: cleanEmail, password })
       const payload = data.data || data
       if (!payload?.token || !payload?.user) {
         throw new Error('Invalid response from server')
       }
       const nextUser = normalizeUser(payload.user)
       setSession(nextUser, payload.token)
+      // Keep local credentials updated for offline / restart resilience
+      const locals = readLocalUsers().filter((l) => l.email.trim().toLowerCase() !== cleanEmail.toLowerCase())
+      writeLocalUsers([...locals, {
+        email: cleanEmail,
+        password,
+        firstName: nextUser.firstName,
+        lastName: nextUser.lastName,
+        phone: nextUser.phone,
+        id: nextUser.id,
+        roles: nextUser.roles,
+      }])
       return nextUser
     } catch (error: any) {
       const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
       const isServerDown = error?.response?.status === 503 || error?.response?.status === 502 || error?.response?.status === 504
-      if (isNetworkError || isServerDown) {
-        const localMatch = findLocalAccount(email, password)
+      const isAuthError = error?.response?.status === 401
+
+      if (isNetworkError || isServerDown || isAuthError) {
+        const localMatch = findLocalAccount(cleanEmail, password)
         if (localMatch) {
+          // If the backend was reachable but returned 401 (e.g. backend was wiped or account was created during offline/local fallback),
+          // silently auto-register/sync this account to the server now so both server & client are in sync
+          if (isAuthError) {
+            try {
+              const regRes = await api.post('/auth/register', {
+                email: localMatch.email,
+                password,
+                firstName: localMatch.firstName,
+                lastName: localMatch.lastName,
+                phone: localMatch.phone,
+              })
+              const regBody = regRes.data.data || regRes.data
+              if (regBody?.token && regBody?.user) {
+                const nextUser = normalizeUser(regBody.user)
+                setSession(nextUser, regBody.token)
+                return nextUser
+              }
+            } catch {
+              // Silently proceed with local fallback session
+            }
+          }
+
           const nextUser: User = {
             id: localMatch.id,
             email: localMatch.email,
@@ -182,28 +218,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return nextUser
         }
       }
-      throw new Error(getErrorMessage(error, 'Unable to sign in. Check your email and password.'))
+      throw new Error(getErrorMessage(error, 'Invalid email or password.'))
     }
   }
 
   const register = async (payload: RegisterPayload) => {
+    const cleanEmail = payload.email.trim()
     try {
-      const { data } = await api.post('/auth/register', payload)
+      const { data } = await api.post('/auth/register', { ...payload, email: cleanEmail })
       const body = data.data || data
       if (!body?.token || !body?.user) {
         throw new Error('Registration failed')
       }
       const nextUser = normalizeUser(body.user)
       setSession(nextUser, body.token)
+      // Save to local cache so credentials survive backend sleeping/restarts
+      const locals = readLocalUsers().filter((l) => l.email.trim().toLowerCase() !== cleanEmail.toLowerCase())
+      writeLocalUsers([...locals, {
+        ...payload,
+        email: cleanEmail,
+        id: nextUser.id,
+        roles: nextUser.roles,
+      }])
     } catch (error: any) {
       const isNetworkError = !error?.response || error?.message?.includes('Network Error') || error?.code === 'ECONNABORTED' || error?.message?.includes('waking up')
-      if (import.meta.env.DEV && isNetworkError) {
+      const isServerDown = error?.response?.status === 502 || error?.response?.status === 503 || error?.response?.status === 504
+      if (isNetworkError || isServerDown) {
         const locals = readLocalUsers()
-        if (locals.some((l) => l.email.toLowerCase() === payload.email.toLowerCase())) {
+        if (locals.some((l) => l.email.trim().toLowerCase() === cleanEmail.toLowerCase())) {
           throw new Error('An account with this email already exists.')
         }
         const newLocal: LocalAccount = {
           ...payload,
+          email: cleanEmail,
           id: Date.now(),
           roles: ['buyer'],
         }
