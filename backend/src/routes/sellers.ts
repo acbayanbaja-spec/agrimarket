@@ -164,9 +164,27 @@ router.put('/application/:id/review', authenticate, authorize('admin'), (req: Au
 router.get('/dashboard', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const user = req.user!;
-    const sellerId = `seller-${user.id}`;
-    const myProducts = db.getProducts().filter((p) => p.sellerId === sellerId || p.sellerUserId === user.id);
-    const incomingOrders = db.getOrdersBySellerId(sellerId, user.id);
+    const emailOwnerMap: Record<string, number> = {
+      'seller@agrimarket.com': 2,
+      'seller.vegetables@agrimarket.com': 2,
+      'seller.fruits@agrimarket.com': 13,
+      'seller.midsayap@agrimarket.com': 13,
+      'seller.rice@agrimarket.com': 15,
+      'seller.tacurong@agrimarket.com': 15,
+      'seller.grains@agrimarket.com': 12,
+      'seller.koronadal@agrimarket.com': 12,
+      'seller.fish@agrimarket.com': 17,
+      'seller.lakesebu@agrimarket.com': 17,
+      'seller.poultry@agrimarket.com': 16,
+      'seller.livestock@agrimarket.com': 18,
+      'seller.dairy@agrimarket.com': 18,
+      'seller.supplies@agrimarket.com': 14,
+      'seller.gensan@agrimarket.com': 14,
+    };
+    const effectiveUserId = user.email ? emailOwnerMap[user.email.toLowerCase()] || user.id : user.id;
+    const sellerId = `seller-${effectiveUserId}`;
+    const myProducts = db.getProducts(true).filter((p) => p.sellerId === sellerId || p.sellerUserId === effectiveUserId);
+    const incomingOrders = db.getOrdersBySellerId(sellerId, effectiveUserId);
 
     const totalRevenue = incomingOrders
       .filter((o) => o.status === 'Delivered')

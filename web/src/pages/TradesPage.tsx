@@ -154,7 +154,7 @@ const TradesPage = () => {
         t.toSellerId === `seller-${user.id}` ||
         t.toSellerId === `user-${user.id}` ||
         myProductIds.has(t.toProductId) ||
-        (user.email === 'seller@agrimarket.com' && (t.toSellerId === 'seller-1' || t.toSellerId === 'seller-2'))
+        ((user.email === 'seller@agrimarket.com' || user.email === 'seller.vegetables@agrimarket.com') && t.toSellerId === 'seller-2')
       )
     })
   }, [trades, user, myListings])

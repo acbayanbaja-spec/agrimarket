@@ -270,7 +270,7 @@ const SellerDashboardPage = () => {
         const belongsToSeller =
           listingIds.has(item.productId) ||
           item.sellerUserId === user?.id ||
-          (!user && (item.sellerUserId === 2 || item.sellerId === 'seller-1'))
+          (!user && (item.sellerUserId === 2 || item.sellerId === 'seller-2'))
 
         if (belongsToSeller) {
           const itemTotal = item.price * item.quantity
@@ -1323,7 +1323,7 @@ const SellerDashboardPage = () => {
                       it.isMine ||
                       myListingIds.has(it.productId) ||
                       it.sellerUserId === user?.id ||
-                      (!user && (it.sellerUserId === 2 || it.sellerId === 'seller-1'))
+                      (!user && (it.sellerUserId === 2 || it.sellerId === 'seller-2'))
                   )
                   const otherHarvestItems = order.items.filter(
                     (it) => !myHarvestItems.some((m) => m.productId === it.productId)

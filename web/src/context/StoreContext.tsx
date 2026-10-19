@@ -360,8 +360,8 @@ const seedReviews: Review[] = [
 const seedPosts: Post[] = [
   {
     id: 'post-1',
-    sellerId: 'seller-1',
-    sellerName: 'Green Valley Farm',
+    sellerId: 'seller-2',
+    sellerName: 'Maria Santos',
     productId: 'p-tomato',
     productName: 'Salad Tomatoes',
     body: 'Dawn harvest of salad tomatoes is packed in Polomolok. Tagging Vegetables — first 40 kilos get ice packs for free.',
@@ -371,8 +371,8 @@ const seedPosts: Post[] = [
   },
   {
     id: 'post-2',
-    sellerId: 'seller-3',
-    sellerName: 'Midsayap Gold Orchard',
+    sellerId: 'seller-13',
+    sellerName: 'Eduardo Dizon',
     productId: 'p-mango',
     productName: 'Carabao Mangoes',
     body: 'Carabao mangoes hitting peak sugar this week in Midsayap. We can do Gensan and Koronadal drop-off Friday.',
@@ -393,7 +393,7 @@ const seedOrders: Order[] = [
     userId: 3,
     buyerName: 'Juan Cruz',
     buyerPhone: '+639189998877',
-    items: [{ productId: 'p-rice', name: 'Dinorado Rice', price: 58, quantity: 10, image: '/images/rice.jpg', seller: 'Green Valley Farm', sellerId: 'seller-1', sellerUserId: 2, pickupLocation: "M'lang, Cotabato" }],
+    items: [{ productId: 'p-rice', name: 'Dinorado Rice', price: 58, quantity: 10, image: '/images/rice.jpg', seller: 'Lilia Mendoza', sellerId: 'seller-15', sellerUserId: 15, pickupLocation: 'Tacurong City, Sultan Kudarat' }],
     subtotal: 580,
     shippingFee: 50,
     shippingDiscount: 50,
@@ -418,7 +418,7 @@ const seedOrders: Order[] = [
     userId: 3,
     buyerName: 'Juan Cruz',
     buyerPhone: '+639189998877',
-    items: [{ productId: 'p-eggs', name: 'Free-Range Eggs', price: 220, quantity: 2, image: '/images/eggs.jpg', seller: 'Koronadal Sunrise Poultry', sellerId: 'seller-6', sellerUserId: 16, pickupLocation: 'Koronadal City, South Cotabato' }],
+    items: [{ productId: 'p-eggs', name: 'Free-Range Eggs', price: 220, quantity: 2, image: '/images/eggs.jpg', seller: 'Nestor Aquino', sellerId: 'seller-16', sellerUserId: 16, pickupLocation: 'Koronadal City, South Cotabato' }],
     subtotal: 440,
     shippingFee: 50,
     shippingDiscount: 0,
@@ -441,7 +441,7 @@ const seedOrders: Order[] = [
     userId: 3,
     buyerName: 'Juan Cruz',
     buyerPhone: '+639189998877',
-    items: [{ productId: 'p-tomato', name: 'Salad Tomatoes', price: 85, quantity: 5, image: '/images/tomato.jpg', seller: 'Green Valley Farm', sellerId: 'seller-1', sellerUserId: 2, pickupLocation: 'Polomolok, South Cotabato' }],
+    items: [{ productId: 'p-tomato', name: 'Salad Tomatoes', price: 85, quantity: 5, image: '/images/tomato.jpg', seller: 'Maria Santos', sellerId: 'seller-2', sellerUserId: 2, pickupLocation: 'Polomolok, South Cotabato' }],
     subtotal: 425,
     shippingFee: 50,
     shippingDiscount: 0,
@@ -457,6 +457,70 @@ const seedOrders: Order[] = [
     lng: 124.8436,
   },
 ]
+
+export const CATEGORY_SELLER_MAP: Record<string, {
+  fullName: string;
+  farmName: string;
+  sellerUserId: number;
+  sellerId: string;
+  location: string;
+}> = {
+  Fruits: { fullName: 'Eduardo Dizon', farmName: 'Midsayap Gold Orchard', sellerUserId: 13, sellerId: 'seller-13', location: 'Midsayap, Cotabato' },
+  Vegetables: { fullName: 'Maria Santos', farmName: 'Green Valley Farm', sellerUserId: 2, sellerId: 'seller-2', location: 'Polomolok, South Cotabato' },
+  Rice: { fullName: 'Lilia Mendoza', farmName: 'Tacurong Rice Mills', sellerUserId: 15, sellerId: 'seller-15', location: 'Tacurong City, Sultan Kudarat' },
+  Grains: { fullName: 'Juanita Reyes', farmName: 'Koronadal Grain Farms', sellerUserId: 12, sellerId: 'seller-12', location: 'Koronadal City, South Cotabato' },
+  'Rice & Grains': { fullName: 'Juanita Reyes', farmName: 'Koronadal Grain Farms', sellerUserId: 12, sellerId: 'seller-12', location: 'Koronadal City, South Cotabato' },
+  Fish: { fullName: 'Danilo Blaan', farmName: 'Lake Sebu Fisheries', sellerUserId: 17, sellerId: 'seller-17', location: 'Lake Sebu, South Cotabato' },
+  Poultry: { fullName: 'Nestor Aquino', farmName: 'Koronadal Sunrise Poultry', sellerUserId: 16, sellerId: 'seller-16', location: 'Koronadal City, South Cotabato' },
+  Livestock: { fullName: 'Ramon Valdez', farmName: 'Surallah Dairy Farm', sellerUserId: 18, sellerId: 'seller-18', location: 'Surallah, South Cotabato' },
+  'Farm Supplies': { fullName: 'Roberto Tan', farmName: 'Gensan Agri Supply', sellerUserId: 14, sellerId: 'seller-14', location: 'General Santos City' },
+  Seeds: { fullName: 'Roberto Tan', farmName: 'Gensan Agri Supply', sellerUserId: 14, sellerId: 'seller-14', location: 'General Santos City' },
+};
+
+export function normalizeProductSeller(product: Product): Product {
+  let cat = product.category || 'Vegetables';
+  if (cat === 'Rice & Grains') {
+    cat = (product.name || '').toLowerCase().includes('rice') ? 'Rice' : 'Grains';
+  }
+  const catMap = CATEGORY_SELLER_MAP[cat] || CATEGORY_SELLER_MAP[product.category];
+
+  const isCustomUserProduct =
+    Boolean(product.sellerUserId && Number(product.sellerUserId) > 100) ||
+    Boolean(product.sellerId && product.sellerId.startsWith('user-'));
+
+  const seller = isCustomUserProduct && product.seller && !product.seller.toLowerCase().startsWith('seller')
+    ? product.seller
+    : catMap
+    ? catMap.fullName
+    : product.seller && !product.seller.toLowerCase().startsWith('seller')
+    ? product.seller
+    : 'Maria Santos';
+
+  const sellerId = isCustomUserProduct && product.sellerId
+    ? product.sellerId
+    : catMap
+    ? catMap.sellerId
+    : product.sellerId || 'seller-2';
+
+  const sellerUserId = isCustomUserProduct && product.sellerUserId
+    ? Number(product.sellerUserId)
+    : catMap
+    ? catMap.sellerUserId
+    : Number(product.sellerUserId) || 2;
+
+  const location = product.location && product.location.trim() && product.location !== 'Farm Stall'
+    ? product.location
+    : catMap?.location || 'Polomolok, South Cotabato';
+
+  return {
+    ...product,
+    category: cat,
+    seller,
+    sellerId,
+    sellerUserId,
+    location,
+  };
+}
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -474,11 +538,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const stored = readJson<Product[] | null>('agrimarket.products', null)
     if (stored && stored.length > 0) {
       const storedIds = new Set(stored.map((p) => p.id))
-      return [...stored, ...catalogProducts.filter((p) => !storedIds.has(p.id))].filter(
+      return [...stored.map(normalizeProductSeller), ...catalogProducts.filter((p) => !storedIds.has(p.id)).map(normalizeProductSeller)].filter(
         (p) => !deletedIds.has(p.id) && !p.isDeleted
       )
     }
-    return catalogProducts.filter((p) => !deletedIds.has(p.id))
+    return catalogProducts.map(normalizeProductSeller).filter((p) => !deletedIds.has(p.id))
   })
   const [stockOverrides, setStockOverrides] = useState<Record<string, number>>({})
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({})
@@ -854,8 +918,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       } else if (payload.type === 'PRODUCT_UPDATED') {
         const prod = payload.data?.product as Product
-        if (prod?.id) {
-          setCentralProducts((current) => current.map((p) => (p.id === prod.id ? { ...p, ...prod } : p)))
+        const productId = payload.data?.productId || prod?.id
+        const updates = payload.data?.updates || prod
+        if (productId && updates) {
+          setCentralProducts((current) => {
+            const next = current.map((p) => (p.id === productId ? normalizeProductSeller({ ...p, ...updates }) : p))
+            try {
+              localStorage.setItem('agrimarket.products', JSON.stringify(next))
+            } catch {}
+            return next
+          })
+        }
+      } else if (payload.type === 'PRODUCT_DELETED') {
+        const productId = payload.data?.productId || payload.data?.id
+        if (productId) {
+          const deletedList = readJson<string[]>('agrimarket.deleted_products', [])
+          if (!deletedList.includes(productId)) {
+            try {
+              localStorage.setItem('agrimarket.deleted_products', JSON.stringify([...deletedList, productId]))
+            } catch {}
+          }
+          setCentralProducts((current) => {
+            const next = current.filter((p) => p.id !== productId)
+            try {
+              localStorage.setItem('agrimarket.products', JSON.stringify(next))
+            } catch {}
+            return next
+          })
         }
       } else if (payload.type === 'PRODUCT_STOCK_UPDATED') {
         const { productId, stock } = payload.data || {}
@@ -1087,27 +1176,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void publishSyncEvent('NOTIFICATION_CREATED', { notification: next })
   }
 
-const CATEGORY_SELLER_MAP: Record<string, {
-  fullName: string;
-  farmName: string;
-  sellerUserId: number;
-  sellerId: string;
-  location: string;
-}> = {
-  Fruits: { fullName: 'Eduardo Dizon', farmName: 'Midsayap Gold Orchard', sellerUserId: 13, sellerId: 'seller-13', location: 'Midsayap, Cotabato' },
-  Vegetables: { fullName: 'Maria Santos', farmName: 'Green Valley Farm', sellerUserId: 2, sellerId: 'seller-2', location: 'Polomolok, South Cotabato' },
-  Rice: { fullName: 'Lilia Mendoza', farmName: 'Tacurong Rice Mills', sellerUserId: 15, sellerId: 'seller-15', location: 'Tacurong City, Sultan Kudarat' },
-  Grains: { fullName: 'Juanita Reyes', farmName: 'Koronadal Grain Farms', sellerUserId: 12, sellerId: 'seller-12', location: 'Koronadal City, South Cotabato' },
-  'Rice & Grains': { fullName: 'Juanita Reyes', farmName: 'Koronadal Grain Farms', sellerUserId: 12, sellerId: 'seller-12', location: 'Koronadal City, South Cotabato' },
-  Fish: { fullName: 'Danilo Blaan', farmName: 'Lake Sebu Fisheries', sellerUserId: 17, sellerId: 'seller-17', location: 'Lake Sebu, South Cotabato' },
-  Poultry: { fullName: 'Nestor Aquino', farmName: 'Koronadal Sunrise Poultry', sellerUserId: 16, sellerId: 'seller-16', location: 'Koronadal City, South Cotabato' },
-  Livestock: { fullName: 'Ramon Valdez', farmName: 'Surallah Dairy Farm', sellerUserId: 18, sellerId: 'seller-18', location: 'Surallah, South Cotabato' },
-  'Farm Supplies': { fullName: 'Roberto Tan', farmName: 'Gensan Agri Supply', sellerUserId: 14, sellerId: 'seller-14', location: 'General Santos City' },
-  Seeds: { fullName: 'Roberto Tan', farmName: 'Gensan Agri Supply', sellerUserId: 14, sellerId: 'seller-14', location: 'General Santos City' },
-}
 
   const allProducts = useMemo<Product[]>(() => {
-    return centralProducts.map((product) => {
+    return centralProducts.map((rawProduct) => {
+      const product = normalizeProductSeller(rawProduct)
       const stock = stockOverrides[product.id] ?? product.stock
       const price = priceOverrides[product.id] ?? product.price
       const productReviews = reviews.filter((review) => review.productId === product.id && review.status !== 'hidden')
@@ -1123,7 +1195,6 @@ const CATEGORY_SELLER_MAP: Record<string, {
         photos,
         lat: product.lat ?? 6.5004,
         lng: product.lng ?? 124.8436,
-        sellerUserId: product.sellerUserId ?? (product.sellerId === 'seller-1' ? 2 : 0),
         tradeable: product.tradeable ?? true,
         priceHistory: product.priceHistory?.length ? product.priceHistory : [{ date: new Date().toISOString().slice(0, 10), price }],
         stock,
@@ -1298,7 +1369,7 @@ const CATEGORY_SELLER_MAP: Record<string, {
       } catch {}
       return updated
     })
-    void api.delete(`/products/${id}`).catch((err) => console.warn('Product delete sync warning:', err))
+    void publishSyncEvent('PRODUCT_DELETED', { productId: id, id }); void api.delete(`/products/${id}`).catch((err) => console.warn('Product delete sync warning:', err))
   }
 
   const unlistProduct = (id: string, unlisted: boolean = true) => {
@@ -1942,33 +2013,44 @@ const CATEGORY_SELLER_MAP: Record<string, {
   const myListings = useMemo(() => {
     if (!user) return []
 
-    // Strict 1-to-1 non-overlapping legacy demo seller mapping
-    const legacySingleMap: Record<number, string> = {
-      12: 'seller-12',
-      13: 'seller-13',
-      14: 'seller-14',
-      15: 'seller-15',
-      16: 'seller-16',
-      17: 'seller-17',
-      18: 'seller-18',
+    const sellerCategoryUserMap: Record<number, number> = {
+      2: 2,
+      12: 12,
+      13: 13,
+      14: 14,
+      15: 15,
+      16: 16,
+      17: 17,
+      18: 18,
     }
 
+    const emailOwnerMap: Record<string, number> = {
+      'seller@agrimarket.com': 2,
+      'seller.vegetables@agrimarket.com': 2,
+      'seller.fruits@agrimarket.com': 13,
+      'seller.midsayap@agrimarket.com': 13,
+      'seller.rice@agrimarket.com': 15,
+      'seller.tacurong@agrimarket.com': 15,
+      'seller.grains@agrimarket.com': 12,
+      'seller.koronadal@agrimarket.com': 12,
+      'seller.fish@agrimarket.com': 17,
+      'seller.lakesebu@agrimarket.com': 17,
+      'seller.poultry@agrimarket.com': 16,
+      'seller.livestock@agrimarket.com': 18,
+      'seller.dairy@agrimarket.com': 18,
+      'seller.supplies@agrimarket.com': 14,
+      'seller.gensan@agrimarket.com': 14,
+    }
+
+    const effectiveSellerUserId = user.email ? emailOwnerMap[user.email.toLowerCase()] || user.id : user.id
+
     return allProducts.filter((product) => {
-      // 1. Direct seller ownership via user id
-      if (product.sellerUserId === user.id) return true
-      if (product.sellerId === `user-${user.id}` || product.sellerId === `seller-${user.id}`) return true
+      if (product.sellerUserId === effectiveSellerUserId) return true
+      if (product.sellerId === `user-${user.id}` || product.sellerId === `seller-${effectiveSellerUserId}`) return true
 
-      // 2. Primary demo seller account (Maria Santos - user ID 2) owns seller-1 and seller-2
-      if (
-        (user.id === 2 || user.email === 'seller@agrimarket.com') &&
-        (product.sellerUserId === 2 || product.sellerId === 'seller-2' || product.sellerId === 'seller-1')
-      ) {
-        return true
-      }
-
-      // 3. Isolated legacy demo seller ID check
-      if (legacySingleMap[user.id] && product.sellerId === legacySingleMap[user.id]) {
-        return true
+      if (user.id > 100 || !sellerCategoryUserMap[user.id]) {
+        const userFullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+        if (userFullName && product.seller && product.seller.toLowerCase() === userFullName.toLowerCase()) return true
       }
 
       return false

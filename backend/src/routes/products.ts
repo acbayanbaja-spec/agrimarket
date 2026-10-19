@@ -28,25 +28,38 @@ function canManageProduct(user: { id: number; roles: string[]; email?: string } 
     return true;
   }
 
-  // Primary demo seller account (Maria Santos - user ID 2) owns seller-1 and seller-2
+  const emailOwnerMap: Record<string, number> = {
+    'seller@agrimarket.com': 2,
+    'seller.vegetables@agrimarket.com': 2,
+    'seller.fruits@agrimarket.com': 13,
+    'seller.midsayap@agrimarket.com': 13,
+    'seller.rice@agrimarket.com': 15,
+    'seller.tacurong@agrimarket.com': 15,
+    'seller.grains@agrimarket.com': 12,
+    'seller.koronadal@agrimarket.com': 12,
+    'seller.fish@agrimarket.com': 17,
+    'seller.lakesebu@agrimarket.com': 17,
+    'seller.poultry@agrimarket.com': 16,
+    'seller.livestock@agrimarket.com': 18,
+    'seller.dairy@agrimarket.com': 18,
+    'seller.supplies@agrimarket.com': 14,
+    'seller.gensan@agrimarket.com': 14,
+  };
+
+  const effectiveSellerUserId = user.email ? emailOwnerMap[user.email.toLowerCase()] || user.id : user.id;
+
   if (
-    (user.id === 2 || user.email === 'seller@agrimarket.com') &&
-    (product.sellerId === 'seller-1' || product.sellerId === 'seller-2' || product.sellerUserId === 2)
+    product.sellerUserId === effectiveSellerUserId ||
+    product.sellerId === `seller-${effectiveSellerUserId}`
   ) {
     return true;
   }
 
-  // Strict 1-to-1 non-overlapping legacy demo seller mapping
-  const legacySingleMap: Record<number, string> = {
-    12: 'seller-12',
-    13: 'seller-13',
-    14: 'seller-14',
-    15: 'seller-15',
-    16: 'seller-16',
-    17: 'seller-17',
-    18: 'seller-18',
-  };
-  if (legacySingleMap[user.id] && product.sellerId === legacySingleMap[user.id]) {
+  // Primary demo seller account (Maria Santos - user ID 2) owns Vegetables
+  if (
+    (effectiveSellerUserId === 2) &&
+    (product.sellerId === 'seller-2' || product.sellerUserId === 2 || product.category === 'Vegetables')
+  ) {
     return true;
   }
 
