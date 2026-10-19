@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import { ShoppingCart, User, Menu, Leaf, X, LayoutDashboard, Bike, LineChart, Smartphone, Sparkles, Download } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
@@ -20,6 +20,8 @@ const MainLayout = () => {
   const { syncStatus } = useStore()
   const [open, setOpen] = useState(false)
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
+  const location = useLocation()
+  const isMessagesPage = location.pathname.startsWith('/messages')
 
   const dashboardLink = hasRole('admin')
     ? '/admin-dashboard'
@@ -32,7 +34,7 @@ const MainLayout = () => {
   const isAdminOrDelivery = hasRole('admin') || hasRole('delivery')
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50/50">
+    <div className={isMessagesPage ? "h-screen flex flex-col bg-[#18191a] overflow-hidden" : "min-h-screen flex flex-col bg-gray-50/50"}>
       <a href="#main-content" className="skip-link">Skip to marketplace content</a>
       {syncStatus === 'offline' && (
         <div role="status" className="bg-amber-100 text-amber-950 text-sm text-center px-4 py-2 font-semibold">
@@ -40,7 +42,7 @@ const MainLayout = () => {
         </div>
       )}
       <InstallBanner />
-      <header className="bg-white/85 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50 transition-all">
+      <header className={isMessagesPage ? "bg-white/95 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50 transition-all shrink-0" : "bg-white/85 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50 transition-all"}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2 group">
@@ -159,17 +161,18 @@ const MainLayout = () => {
         </div>
       )}
 
-      <main id="main-content" className="flex-1" tabIndex={-1}>
+      <main id="main-content" className={isMessagesPage ? "flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden" : "flex-1"} tabIndex={-1}>
         <Outlet />
       </main>
-      <BottomNav />
-      <FloatingQuickActions />
-      <AgriAiAssistant />
+      {!isMessagesPage && <BottomNav />}
+      {!isMessagesPage && <FloatingQuickActions />}
+      {!isMessagesPage && <AgriAiAssistant />}
 
       {/* Modals */}
       <DownloadAppModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} />
 
-      <footer className="bg-soil-900 text-white mt-8">
+      {!isMessagesPage && (
+        <footer className="bg-soil-900 text-white mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -213,6 +216,7 @@ const MainLayout = () => {
           </div>
         </div>
       </footer>
+      )}
     </div>
   )
 }

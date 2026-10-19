@@ -27,7 +27,9 @@ import {
   MapPin,
   PackageCheck,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Maximize2,
+  Minimize2
 } from 'lucide-react'
 import { useStore, SmsMessage } from '../context/StoreContext'
 import { useAuth } from '../context/AuthContext'
@@ -91,6 +93,35 @@ const MessagesPage: React.FC = () => {
   const [showEmojiBar, setShowEmojiBar] = useState(false)
   const [callModal, setCallModal] = useState<'audio' | 'video' | null>(null)
   const [reactions, setReactions] = useState<Record<string, string>>({})
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement))
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {
+          setIsFullscreen((prev) => !prev)
+        })
+      } else {
+        setIsFullscreen((prev) => !prev)
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {
+          setIsFullscreen(false)
+        })
+      } else {
+        setIsFullscreen(false)
+      }
+    }
+  }
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -316,7 +347,15 @@ const MessagesPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-[#18191a] text-[#e4e6eb] min-h-[calc(100vh-4rem)] flex flex-col font-sans select-none antialiased">
+    <div className={`bg-[#18191a] text-[#e4e6eb] font-sans select-none antialiased ${isFullscreen ? 'fixed inset-0 z-[9999] h-screen w-screen overflow-hidden' : 'w-full h-full flex flex-col overflow-hidden'}`}>
+      {isFullscreen && (
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-600 px-4 py-1.5 flex items-center justify-between text-xs text-white shrink-0 shadow-md z-50">
+          <span className="font-bold flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Full Screen Mode · Press ESC to exit</span>
+          <button type="button" onClick={toggleFullscreen} className="px-2.5 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-semibold transition-colors flex items-center gap-1">
+            <Minimize2 className="w-3 h-3" /> Exit Full Screen
+          </button>
+        </div>
+      )}
       <Seo
         title="Messenger · Buyer, Seller & Rider Chat"
         description="Real-time Facebook Messenger dark mode communication between buyers, farm producers, and delivery couriers."
@@ -324,15 +363,15 @@ const MessagesPage: React.FC = () => {
       />
 
       {/* Main Container */}
-      <div className="flex-1 flex max-w-[1600px] w-full mx-auto overflow-hidden border-x border-[#2f3031] h-[calc(100vh-4rem)]">
+      <div className="flex-1 flex w-full h-full overflow-hidden">
         
         {/* ======================================================== */}
         {/* LEFT SIDEBAR: "Chats" (Messenger Dark Sidebar)           */}
         {/* ======================================================== */}
-        <aside className="w-full sm:w-80 md:w-96 flex-shrink-0 bg-[#242526] border-r border-[#2f3031] flex flex-col h-full">
+        <aside className="w-full sm:w-80 md:w-96 flex-shrink-0 bg-[#242526] border-r border-[#2f3031] flex flex-col h-full overflow-hidden">
           
           {/* Sidebar Header */}
-          <div className="p-3 sm:p-4 pb-2">
+          <div className="p-3 sm:p-4 pb-2 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
                 Chats
@@ -381,7 +420,7 @@ const MessagesPage: React.FC = () => {
             </div>
 
             {/* Quick Filter Tabs (Messenger style) */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-semibold text-[#b0b3b8]">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-semibold text-[#b0b3b8]" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {(['all', 'sellers', 'riders', 'buyers', 'orders'] as ChatFilterTab[]).map((tab) => (
                 <button
                   key={tab}
@@ -400,7 +439,7 @@ const MessagesPage: React.FC = () => {
           </div>
 
           {/* Conversation Thread List */}
-          <div className="flex-1 overflow-y-auto px-2 space-y-1">
+          <div className="flex-1 overflow-y-auto px-2 space-y-1 messenger-scrollbar">
             {filteredThreads.length === 0 ? (
               <div className="text-center py-10 px-4 text-[#b0b3b8]">
                 <MessageCircle className="w-10 h-10 mx-auto text-[#4e4f50] mb-2" />
@@ -465,7 +504,7 @@ const MessagesPage: React.FC = () => {
 
           {/* User Account Bar at Bottom of Sidebar */}
           {user && (
-            <div className="p-3 bg-[#1e1f20] border-t border-[#2f3031] flex items-center justify-between">
+            <div className="p-3 bg-[#1e1f20] border-t border-[#2f3031] flex items-center justify-between shrink-0 mt-auto">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                   {user.firstName?.charAt(0) || 'U'}
@@ -539,6 +578,16 @@ const MessagesPage: React.FC = () => {
               </button>
               <button
                 type="button"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Exit Full Screen" : "Enter Full Screen"}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                  isFullscreen ? 'bg-blue-600 text-white shadow-glow' : 'hover:bg-[#3a3b3c] text-blue-400'
+                }`}
+              >
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowInfoSidebar(!showInfoSidebar)}
                 title="Conversation & Order Details"
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
@@ -552,7 +601,7 @@ const MessagesPage: React.FC = () => {
 
           {/* Pinned Order Announcement Header (Matching Messenger image's pinned link!) */}
           {activeOrder && (
-            <div className="bg-[#1f2022] border-b border-[#2f3031] px-4 py-2 flex items-center justify-between text-xs text-[#b0b3b8]">
+            <div className="bg-[#1f2022] border-b border-[#2f3031] px-4 py-2 flex items-center justify-between text-xs text-[#b0b3b8] shrink-0">
               <div className="flex items-center gap-2 truncate">
                 <Pin className="w-3.5 h-3.5 text-blue-400 shrink-0 rotate-45" />
                 <span className="font-semibold text-white truncate">
@@ -856,7 +905,7 @@ const MessagesPage: React.FC = () => {
         {/* RIGHT INFO SIDEBAR (Toggled by info button)              */}
         {/* ======================================================== */}
         {showInfoSidebar && (
-          <aside className="w-80 bg-[#242526] border-l border-[#2f3031] flex flex-col p-4 overflow-y-auto animate-fade-left">
+          <aside className="w-80 bg-[#242526] border-l border-[#2f3031] flex flex-col p-4 overflow-y-auto messenger-scrollbar h-full shrink-0 animate-fade-left">
             <div className="flex items-center justify-between pb-3 border-b border-[#3a3b3c]">
               <h3 className="font-bold text-white text-sm">Thread Details</h3>
               <button
