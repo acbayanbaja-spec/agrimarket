@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Coins, Truck, Leaf } from 'lucide-react'
+import { Coins, Truck, Leaf, Lock } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { formatPeso } from '../lib/utils'
@@ -35,6 +35,30 @@ const CartPage = () => {
             Delivery riders do not place orders or maintain carts. Manage your assigned harvest parcels and regional drop-offs in the Delivery Command Desk.
           </p>
           <Link to="/delivery" className="btn-primary">Open Delivery Command Desk</Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="page-shell max-w-2xl text-center">
+        <div className="card p-8 sm:p-12 animate-fade-up bg-white border border-gray-200/90 rounded-3xl shadow-soft">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-200">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h1 className="text-3xl font-bold font-display text-gray-900 mb-3">Please Log In First</h1>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto leading-relaxed">
+            Basket contents are protected and reserved for registered members. Please sign in to your buyer or seller account to view produce inside your basket and proceed to checkout.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/login" state={{ from: '/cart' }} className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold">
+              Sign In to Your Account
+            </Link>
+            <Link to="/register" className="btn-outline inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold">
+              Create New Account
+            </Link>
+          </div>
         </div>
       </div>
     )

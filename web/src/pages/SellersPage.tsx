@@ -24,15 +24,20 @@ const SellersPage = () => {
           <Link key={seller.id} to={`/marketplace?seller=${encodeURIComponent(seller.name)}`} className="card hover:shadow-soft hover:-translate-y-0.5 transition-all flex flex-col justify-between">
             <div>
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-xl font-semibold text-gray-900">{seller.name}</h2>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{seller.name}</h2>
+                  {(seller as any).farmName && (
+                    <p className="text-xs font-semibold text-primary-700 mt-0.5">{(seller as any).farmName}</p>
+                  )}
+                </div>
                 {(seller as any).category && (
                   <span className="bg-emerald-50 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
                     {(seller as any).category}
                   </span>
                 )}
               </div>
-              <p className="text-gray-600 mt-1 text-sm">{seller.location}</p>
-              {(seller as any).contactPerson && (
+              <p className="text-gray-600 mt-2 text-sm">{seller.location}</p>
+              {(seller as any).contactPerson && (seller as any).contactPerson !== seller.name && (
                 <p className="text-xs text-gray-500 mt-2">
                   Manager: <span className="text-gray-700 font-medium">{(seller as any).contactPerson}</span>
                 </p>

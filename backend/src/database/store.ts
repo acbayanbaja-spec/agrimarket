@@ -456,6 +456,109 @@ export const initialUsers: UserEntity[] = disableDemoAccounts
   },
 ];
 
+export interface CategorySellerMeta {
+  fullName: string;
+  farmName: string;
+  sellerUserId: number;
+  sellerId: string;
+  location: string;
+  lat: number;
+  lng: number;
+}
+
+export const CATEGORY_SELLER_MAP: Record<string, CategorySellerMeta> = {
+  Fruits: {
+    fullName: 'Eduardo Dizon',
+    farmName: 'Midsayap Gold Orchard',
+    sellerUserId: 13,
+    sellerId: 'seller-13',
+    location: 'Midsayap, Cotabato',
+    lat: 7.1906,
+    lng: 124.5381,
+  },
+  Vegetables: {
+    fullName: 'Maria Santos',
+    farmName: 'Green Valley Farm',
+    sellerUserId: 2,
+    sellerId: 'seller-2',
+    location: 'Polomolok, South Cotabato',
+    lat: 6.2214,
+    lng: 125.0647,
+  },
+  Rice: {
+    fullName: 'Lilia Mendoza',
+    farmName: 'Tacurong Rice Mills',
+    sellerUserId: 15,
+    sellerId: 'seller-15',
+    location: 'Tacurong City, Sultan Kudarat',
+    lat: 6.6925,
+    lng: 124.6764,
+  },
+  Grains: {
+    fullName: 'Juanita Reyes',
+    farmName: 'Koronadal Grain Farms',
+    sellerUserId: 12,
+    sellerId: 'seller-12',
+    location: 'Koronadal City, South Cotabato',
+    lat: 6.5004,
+    lng: 124.8436,
+  },
+  'Rice & Grains': {
+    fullName: 'Juanita Reyes',
+    farmName: 'Koronadal Grain Farms',
+    sellerUserId: 12,
+    sellerId: 'seller-12',
+    location: 'Koronadal City, South Cotabato',
+    lat: 6.5004,
+    lng: 124.8436,
+  },
+  Fish: {
+    fullName: 'Danilo Blaan',
+    farmName: 'Lake Sebu Fisheries',
+    sellerUserId: 17,
+    sellerId: 'seller-17',
+    location: 'Lake Sebu, South Cotabato',
+    lat: 6.2255,
+    lng: 124.7088,
+  },
+  Poultry: {
+    fullName: 'Nestor Aquino',
+    farmName: 'Koronadal Sunrise Poultry',
+    sellerUserId: 16,
+    sellerId: 'seller-16',
+    location: 'Koronadal City, South Cotabato',
+    lat: 6.5004,
+    lng: 124.8436,
+  },
+  Livestock: {
+    fullName: 'Ramon Valdez',
+    farmName: 'Surallah Dairy Farm',
+    sellerUserId: 18,
+    sellerId: 'seller-18',
+    location: 'Surallah, South Cotabato',
+    lat: 6.3753,
+    lng: 124.7456,
+  },
+  'Farm Supplies': {
+    fullName: 'Roberto Tan',
+    farmName: 'Gensan Agri Supply',
+    sellerUserId: 14,
+    sellerId: 'seller-14',
+    location: 'General Santos City',
+    lat: 6.1164,
+    lng: 125.1716,
+  },
+  Seeds: {
+    fullName: 'Roberto Tan',
+    farmName: 'Gensan Agri Supply',
+    sellerUserId: 14,
+    sellerId: 'seller-14',
+    location: 'General Santos City',
+    lat: 6.1164,
+    lng: 125.1716,
+  },
+};
+
 export const initialProducts: ProductEntity[] = [
   // 1. Vegetables -> Green Valley Farm (Maria Santos, id: 2, seller-2)
   {
@@ -467,7 +570,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 120,
     rating: 4.8,
     reviews: 64,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -493,7 +596,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 45,
     rating: 4.6,
     reviews: 28,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -519,7 +622,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 60,
     rating: 4.8,
     reviews: 47,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -545,7 +648,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 95,
     rating: 4.7,
     reviews: 32,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -571,7 +674,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 110,
     rating: 4.6,
     reviews: 25,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -597,7 +700,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 60,
     rating: 4.9,
     reviews: 42,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -623,7 +726,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 40,
     rating: 4.8,
     reviews: 33,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -649,7 +752,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 180,
     rating: 4.8,
     reviews: 76,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -675,7 +778,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 80,
     rating: 4.9,
     reviews: 52,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -701,7 +804,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 70,
     rating: 4.7,
     reviews: 38,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -727,7 +830,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 65,
     rating: 5,
     reviews: 0,
-    seller: 'Green Valley Farm',
+    seller: 'Maria Santos',
     sellerId: 'seller-2',
     sellerUserId: 2,
     location: 'Polomolok, South Cotabato',
@@ -755,7 +858,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 60,
     rating: 4.9,
     reviews: 82,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -781,7 +884,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 50,
     rating: 4.7,
     reviews: 41,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -807,7 +910,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 85,
     rating: 4.7,
     reviews: 44,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -833,7 +936,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 40,
     rating: 5,
     reviews: 94,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -859,7 +962,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 50,
     rating: 4.9,
     reviews: 61,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -885,7 +988,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 90,
     rating: 4.7,
     reviews: 49,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -911,7 +1014,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 55,
     rating: 4.9,
     reviews: 63,
-    seller: 'Midsayap Gold Orchard',
+    seller: 'Eduardo Dizon',
     sellerId: 'seller-13',
     sellerUserId: 13,
     location: 'Midsayap, Cotabato',
@@ -939,7 +1042,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 300,
     rating: 4.9,
     reviews: 110,
-    seller: 'Tacurong Rice Mills',
+    seller: 'Lilia Mendoza',
     sellerId: 'seller-15',
     sellerUserId: 15,
     location: 'Tacurong City, Sultan Kudarat',
@@ -965,7 +1068,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 150,
     rating: 4.9,
     reviews: 69,
-    seller: 'Tacurong Rice Mills',
+    seller: 'Lilia Mendoza',
     sellerId: 'seller-15',
     sellerUserId: 15,
     location: 'Tacurong City, Sultan Kudarat',
@@ -993,7 +1096,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 80,
     rating: 4.7,
     reviews: 35,
-    seller: 'Koronadal Grain Farms',
+    seller: 'Juanita Reyes',
     sellerId: 'seller-12',
     sellerUserId: 12,
     location: 'Koronadal City, South Cotabato',
@@ -1021,7 +1124,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 90,
     rating: 4.9,
     reviews: 67,
-    seller: 'Lake Sebu Fisheries',
+    seller: 'Danilo Blaan',
     sellerId: 'seller-17',
     sellerUserId: 17,
     location: 'Lake Sebu, South Cotabato',
@@ -1047,7 +1150,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 85,
     rating: 4.8,
     reviews: 83,
-    seller: 'Lake Sebu Fisheries',
+    seller: 'Danilo Blaan',
     sellerId: 'seller-17',
     sellerUserId: 17,
     location: 'Lake Sebu, South Cotabato',
@@ -1075,7 +1178,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 25,
     rating: 4.8,
     reviews: 39,
-    seller: 'Koronadal Sunrise Poultry',
+    seller: 'Nestor Aquino',
     sellerId: 'seller-16',
     sellerUserId: 16,
     location: 'Koronadal City, South Cotabato',
@@ -1101,7 +1204,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 75,
     rating: 4.8,
     reviews: 53,
-    seller: 'Koronadal Sunrise Poultry',
+    seller: 'Nestor Aquino',
     sellerId: 'seller-16',
     sellerUserId: 16,
     location: 'Koronadal City, South Cotabato',
@@ -1129,7 +1232,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 35,
     rating: 4.8,
     reviews: 36,
-    seller: 'Surallah Dairy Farm',
+    seller: 'Ramon Valdez',
     sellerId: 'seller-18',
     sellerUserId: 18,
     location: 'Surallah, South Cotabato',
@@ -1157,7 +1260,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 65,
     rating: 4.9,
     reviews: 58,
-    seller: 'Gensan Agri Supply',
+    seller: 'Roberto Tan',
     sellerId: 'seller-14',
     sellerUserId: 14,
     location: 'General Santos City',
@@ -1183,7 +1286,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 140,
     rating: 4.6,
     reviews: 29,
-    seller: 'Gensan Agri Supply',
+    seller: 'Roberto Tan',
     sellerId: 'seller-14',
     sellerUserId: 14,
     location: 'General Santos City',
@@ -1209,7 +1312,7 @@ export const initialProducts: ProductEntity[] = [
     stock: 45,
     rating: 5,
     reviews: 115,
-    seller: 'Gensan Agri Supply',
+    seller: 'Roberto Tan',
     sellerId: 'seller-14',
     sellerUserId: 14,
     location: 'General Santos City',
@@ -1283,7 +1386,7 @@ const initialOrders: OrderEntity[] = [
         price: 58,
         quantity: 10,
         image: '/images/rice.jpg',
-        seller: 'Green Valley Farm',
+        seller: 'Maria Santos',
         sellerId: 'seller-1',
         sellerUserId: 2,
         pickupLocation: "M'lang, Cotabato",
@@ -1319,7 +1422,7 @@ const initialOrders: OrderEntity[] = [
         price: 220,
         quantity: 2,
         image: '/images/eggs.jpg',
-        seller: 'Koronadal Sunrise Poultry',
+        seller: 'Nestor Aquino',
         sellerId: 'seller-6',
         sellerUserId: 16,
         pickupLocation: 'Koronadal City, South Cotabato',
@@ -1783,32 +1886,50 @@ class DatabaseStore {
           'SELECT * FROM products WHERE is_deleted IS NOT TRUE'
         );
         if (productRows?.length) {
-          this.data.products = productRows.map((row: any) => ({
-            id: String(row.id),
-            name: row.name,
-            category: row.category,
-            price: Number(row.price),
-            unit: row.unit,
-            stock: Number(row.stock || 0),
-            rating: Number(row.rating || 5),
-            reviews: Number(row.reviews_count || 0),
-            seller: row.seller_id,
-            sellerId: row.seller_id,
-            sellerUserId: Number(row.seller_user_id),
-            location: row.location || '',
-            image: row.image || '',
-            photos: row.image ? [row.image] : [],
-            description: row.description || '',
-            organic: Boolean(row.is_organic),
-            tradeable: false,
-            lat: 0,
-            lng: 0,
-            created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
-            isActive: row.is_active !== 0 && row.is_active !== false,
-            is_active: row.is_active !== 0 && row.is_active !== false,
-            isUnlisted: Boolean(row.is_unlisted),
-            isDeleted: Boolean(row.is_deleted),
-          }));
+          this.data.products = productRows.map((row: any) => {
+            let cat = row.category || 'Vegetables';
+            if (cat === 'Rice & Grains') {
+              cat = (row.name || '').toLowerCase().includes('rice') ? 'Rice' : 'Grains';
+            }
+            const catMap = CATEGORY_SELLER_MAP[cat] || CATEGORY_SELLER_MAP[row.category];
+            const sellerUser = this.data.users.find((u) => u.id === Number(row.seller_user_id));
+
+            const sellerFullName = sellerUser
+              ? `${sellerUser.first_name} ${sellerUser.last_name}`.trim()
+              : catMap
+              ? catMap.fullName
+              : 'SOCCSKSARGEN Farm Partner';
+
+            const canonicalUserId = catMap ? catMap.sellerUserId : Number(row.seller_user_id);
+            const canonicalSellerId = catMap ? catMap.sellerId : row.seller_id;
+
+            return {
+              id: String(row.id),
+              name: row.name,
+              category: cat,
+              price: Number(row.price),
+              unit: row.unit,
+              stock: Number(row.stock || 0),
+              rating: Number(row.rating || 5),
+              reviews: Number(row.reviews_count || 0),
+              seller: sellerFullName,
+              sellerId: canonicalSellerId,
+              sellerUserId: canonicalUserId,
+              location: row.location || catMap?.location || '',
+              image: row.image || '',
+              photos: row.image ? [row.image] : [],
+              description: row.description || '',
+              organic: Boolean(row.is_organic),
+              tradeable: false,
+              lat: catMap?.lat || 0,
+              lng: catMap?.lng || 0,
+              created_at: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+              isActive: row.is_active !== 0 && row.is_active !== false,
+              is_active: row.is_active !== 0 && row.is_active !== false,
+              isUnlisted: Boolean(row.is_unlisted),
+              isDeleted: Boolean(row.is_deleted),
+            };
+          });
         }
       } catch (err: any) {
         console.warn('Product hydrate skipped:', err.message);
@@ -1928,7 +2049,44 @@ class DatabaseStore {
 
         return {
           users: loadedUsers,
-          products: parsed.products || initialProducts,
+          products: (() => {
+            const rawProds: ProductEntity[] = parsed.products || initialProducts;
+            return rawProds.map((p) => {
+              let cat = p.category;
+              if (cat === 'Rice & Grains') {
+                cat = (p.name || '').toLowerCase().includes('rice') ? 'Rice' : 'Grains';
+              }
+              const catMap = CATEGORY_SELLER_MAP[cat] || CATEGORY_SELLER_MAP[p.category];
+              const isLegacySellerName =
+                !p.seller ||
+                p.seller.toLowerCase().startsWith('seller-') ||
+                p.seller.toLowerCase().startsWith('seller ') ||
+                (catMap && p.seller === catMap.farmName);
+
+              if (catMap) {
+                return {
+                  ...p,
+                  category: cat,
+                  seller: isLegacySellerName ? catMap.fullName : (p.seller || catMap.fullName),
+                  sellerId: catMap.sellerId,
+                  sellerUserId: catMap.sellerUserId,
+                  location: p.location || catMap.location,
+                  lat: p.lat || catMap.lat,
+                  lng: p.lng || catMap.lng,
+                };
+              }
+
+              const foundUser = loadedUsers.find((u) => u.id === p.sellerUserId);
+              if (foundUser && isLegacySellerName) {
+                return {
+                  ...p,
+                  seller: `${foundUser.first_name} ${foundUser.last_name}`.trim(),
+                };
+              }
+
+              return p;
+            });
+          })(),
           categories: loadedCategories,
           orders: parsed.orders || (disableDemoAccounts ? [] : initialOrders),
           cart: parsed.cart || [],
@@ -2214,6 +2372,11 @@ class DatabaseStore {
   }
 
   public addProduct(product: ProductEntity) {
+    const catMap = CATEGORY_SELLER_MAP[product.category];
+    const sellerUser = this.data.users.find((u) => u.id === product.sellerUserId);
+    if (!product.seller || product.seller.toLowerCase().startsWith('seller-') || product.seller.toLowerCase().startsWith('seller ')) {
+      product.seller = sellerUser ? `${sellerUser.first_name} ${sellerUser.last_name}`.trim() : (catMap?.fullName || 'Local Producer');
+    }
     this.data.products.unshift(product);
     this.saveData();
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { Product } from '../data/catalog'
+import { useAuth } from './AuthContext'
 
 export type CartItem = {
   product: Product
@@ -70,33 +71,48 @@ function normalizeCartItem(raw: any): CartItem | null {
 }
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAuth()
+  const storageKey = user ? `agrimarket.cart.${user.id}` : null
   const [items, setItems] = useState<CartItem[]>([])
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setItems([])
+      setHydrated(true)
+      return
+    }
+
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
+      const userKey = `agrimarket.cart.${user.id}`
+      let raw = localStorage.getItem(userKey)
+      if (!raw) {
+        raw = localStorage.getItem(STORAGE_KEY)
+      }
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) {
           const valid = parsed.map(normalizeCartItem).filter((i): i is CartItem => i !== null)
           setItems(valid)
         }
+      } else {
+        setItems([])
       }
     } catch {
       setItems([])
     }
     setHydrated(true)
-  }, [])
+  }, [user, isAuthenticated])
 
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || !isAuthenticated || !storageKey) return
     const valid = items.filter((item): item is CartItem => Boolean(item && item.product && item.product.id))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(valid))
-  }, [items, hydrated])
+    localStorage.setItem(storageKey, JSON.stringify(valid))
+  }, [items, hydrated, isAuthenticated, storageKey])
 
   const addItem = (product: Product, quantity = 1) => {
     if (!product || !product.id) return
+    if (!isAuthenticated) return
     setItems((current) => {
       const valid = current.filter((item): item is CartItem => Boolean(item && item.product && item.product.id))
       const existing = valid.find((item) => item.product.id === product.id)
@@ -160,6 +176,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clear = () => setItems([])
 
   const value = useMemo(() => {
+    if (!isAuthenticated || !user) {
+      return {
+        items: [],
+        count: 0,
+        selectedCount: 0,
+        subtotal: 0,
+        selectedSubtotal: 0,
+        selectedItems: [],
+        addItem,
+        updateQuantity,
+        removeItem,
+        removeItems,
+        removeSelectedItems,
+        toggleSelect,
+        selectAll,
+        clear,
+      }
+    }
+
     const valid = items.filter((item): item is CartItem => Boolean(item && item.product && item.product.id))
     const subtotal = valid.reduce((sum, item) => sum + (Number(item.product.price) || 0) * (Number(item.quantity) || 1), 0)
     const count = valid.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
@@ -187,7 +222,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       selectAll,
       clear,
     }
-  }, [items])
+  }, [items, isAuthenticated, user])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

@@ -109,7 +109,12 @@ const MarketplacePage = () => {
     let list = products.filter((product) => {
       const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
       const matchesQuery = matchProduct(product, query)
-      const matchesSeller = !seller || product.seller === seller
+      const matchesSeller =
+        !seller ||
+        product.seller === seller ||
+        product.seller.toLowerCase() === seller.toLowerCase() ||
+        product.seller.toLowerCase().includes(seller.toLowerCase()) ||
+        (product.sellerId && product.sellerId.toLowerCase() === seller.toLowerCase())
       const matchesStock =
         availability === 'all' ||
         (availability === 'in' && product.stock > 0) ||

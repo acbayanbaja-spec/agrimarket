@@ -13,6 +13,7 @@ export type OrderItem = {
   name: string
   price: number
   quantity: number
+  unit?: string
   image: string
   seller: string
   sellerId: string
@@ -1086,6 +1087,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void publishSyncEvent('NOTIFICATION_CREATED', { notification: next })
   }
 
+const CATEGORY_SELLER_MAP: Record<string, {
+  fullName: string;
+  farmName: string;
+  sellerUserId: number;
+  sellerId: string;
+  location: string;
+}> = {
+  Fruits: { fullName: 'Eduardo Dizon', farmName: 'Midsayap Gold Orchard', sellerUserId: 13, sellerId: 'seller-13', location: 'Midsayap, Cotabato' },
+  Vegetables: { fullName: 'Maria Santos', farmName: 'Green Valley Farm', sellerUserId: 2, sellerId: 'seller-2', location: 'Polomolok, South Cotabato' },
+  Rice: { fullName: 'Lilia Mendoza', farmName: 'Tacurong Rice Mills', sellerUserId: 15, sellerId: 'seller-15', location: 'Tacurong City, Sultan Kudarat' },
+  Grains: { fullName: 'Juanita Reyes', farmName: 'Koronadal Grain Farms', sellerUserId: 12, sellerId: 'seller-12', location: 'Koronadal City, South Cotabato' },
+  'Rice & Grains': { fullName: 'Juanita Reyes', farmName: 'Koronadal Grain Farms', sellerUserId: 12, sellerId: 'seller-12', location: 'Koronadal City, South Cotabato' },
+  Fish: { fullName: 'Danilo Blaan', farmName: 'Lake Sebu Fisheries', sellerUserId: 17, sellerId: 'seller-17', location: 'Lake Sebu, South Cotabato' },
+  Poultry: { fullName: 'Nestor Aquino', farmName: 'Koronadal Sunrise Poultry', sellerUserId: 16, sellerId: 'seller-16', location: 'Koronadal City, South Cotabato' },
+  Livestock: { fullName: 'Ramon Valdez', farmName: 'Surallah Dairy Farm', sellerUserId: 18, sellerId: 'seller-18', location: 'Surallah, South Cotabato' },
+  'Farm Supplies': { fullName: 'Roberto Tan', farmName: 'Gensan Agri Supply', sellerUserId: 14, sellerId: 'seller-14', location: 'General Santos City' },
+  Seeds: { fullName: 'Roberto Tan', farmName: 'Gensan Agri Supply', sellerUserId: 14, sellerId: 'seller-14', location: 'General Santos City' },
+}
+
   const allProducts = useMemo<Product[]>(() => {
     return centralProducts.map((product) => {
       const stock = stockOverrides[product.id] ?? product.stock
@@ -1120,8 +1140,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addProduct: StoreContextType['addProduct'] = (product) => {
     const sellerUserId = user ? user.id : 2
-    const seller = user ? `${user.firstName} ${user.lastName}` : 'Green Valley Farm'
-    const sellerId = user ? `seller-${user.id}` : 'seller-1'
+    const seller = user ? `${user.firstName} ${user.lastName}`.trim() : 'Maria Santos'
+    const sellerId = user ? `seller-${user.id}` : 'seller-2'
     const image = product.image || '/images/farm.jpg'
     const rawPhotos = [image, ...(Array.isArray(product.photos) ? product.photos : [])].filter((p) => Boolean(p && typeof p === 'string' && p.trim().length > 0))
     const photos = Array.from(new Set(rawPhotos.length > 0 ? rawPhotos : ['/images/farm.jpg']))
